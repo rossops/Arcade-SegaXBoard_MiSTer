@@ -27,6 +27,11 @@ module xb_core (
     output            p5_req, output [24:3] p5_addr, input  [63:0] p5_dout, input p5_ack,
     output            p6_req, output [24:1] p6_addr, input  [15:0] p6_dout, input p6_ack,
 
+    // tile ROM load (from the ioctl loader)
+    input             tile_wr,
+    input      [17:0] tile_waddr,
+    input       [7:0] tile_wdata,
+
     // inputs (active high)
     input      [15:0] p1_buttons,   // 0 right 1 left 2 down 3 up 4 vulcan 5 missile 6 start 7 coin 8 test 9 service
     input       [7:0] adc_x, adc_y, adc_throttle,
@@ -67,7 +72,7 @@ wire       v0, line_start, vbl_irq, latch_pulse;
 xb_video_timing timing (
     .clk(clk_sys), .reset(reset),
     .ce_pix(ce_pix), .hcnt(hcnt), .vcnt(vcnt),
-    .hblank(hb), .vblank(vb), .hsync(hs), .vsync(vs),
+    .hblank(hb_t), .vblank(vb_t), .hsync(hs_t), .vsync(vs_t),
     .v0(v0), .line_start(line_start), .vbl_irq(vbl_irq), .latch_pulse(latch_pulse)
 );
 
@@ -161,16 +166,21 @@ xb_dpram #(.AW(13)) backup2 (.clk(clk_sys), .a_addr(ma[13:1]), .a_din(m_dout), .
 
 // ---- video RAMs (CPU side only until M2/M3)
 wire [15:0] tile_q, text_q, spr_q, pal_q;
+wire [14:0] tm_tile_addr; wire [15:0] tm_tile_q;
+wire [10:0] tm_text_addr; wire [15:0] tm_text_q;
 xb_dpram #(.AW(15)) tileram (.clk(clk_sys), .a_addr(ma[15:1]), .a_din(m_dout), .a_be(m_be),
-    .a_we(m_valid && m_wr && m_sel_tile && m_start), .a_dout(tile_q), .b_addr(15'd0), .b_dout());
+    .a_we(m_valid && m_wr && m_sel_tile && m_start), .a_dout(tile_q), .b_addr(tm_tile_addr), .b_dout(tm_tile_q));
 xb_dpram #(.AW(11)) textram (.clk(clk_sys), .a_addr(ma[11:1]), .a_din(m_dout), .a_be(m_be),
-    .a_we(m_valid && m_wr && m_sel_text && m_start), .a_dout(text_q), .b_addr(11'd0), .b_dout());
+    .a_we(m_valid && m_wr && m_sel_text && m_start), .a_dout(text_q), .b_addr(tm_text_addr), .b_dout(tm_text_q));
 // sprite RAM: two 4K banks, CPU sees spr_bank; a write to 0x110000 swaps
 reg spr_bank;
 xb_dpram #(.AW(12)) spriteram (.clk(clk_sys), .a_addr({spr_bank, ma[11:1]}), .a_din(m_dout), .a_be(m_be),
     .a_we(m_valid && m_wr && m_sel_spr && m_start), .a_dout(spr_q), .b_addr(12'd0), .b_dout());
-xb_dpram #(.AW(13)) paletteram (.clk(clk_sys), .a_addr(ma[13:1]), .a_din(m_dout), .a_be(m_be),
-    .a_we(m_valid && m_wr && m_sel_pal && m_start), .a_dout(pal_q), .b_addr(13'd0), .b_dout());
+wire [12:0] pal_idx; wire pal_effects;
+wire  [7:0] pal_r, pal_g, pal_b;
+xb_palette_5242 palette (.clk(clk_sys), .a_addr(ma[13:1]), .a_din(m_dout), .a_be(m_be),
+    .a_we(m_valid && m_wr && m_sel_pal && m_start), .a_dout(pal_q),
+    .b_addr(pal_idx), .b_effects(pal_effects), .r(pal_r), .g(pal_g), .b(pal_b));
 always @(posedge clk_sys) begin
     if (reset) spr_bank <= 1'b0;
     else if (m_valid && m_wr && m_sel_sprdraw && m_start) spr_bank <= ~spr_bank;
@@ -379,10 +389,39 @@ always @* begin
     else                    begin m_din = 16'hFFFF;   m_ack = m_ram_rdy; end   // sprdraw, ioctl, unmapped
 end
 
-// ---------------------------------------------------------------- video stub
-assign r = (hb | vb | !display_enable) ? 8'd0 : {hcnt[8:6], 5'd0} | {5'd0, vcnt[7:5]};
-assign g = (hb | vb | !display_enable) ? 8'd0 : {hcnt[5:3], 5'd0};
-assign b = (hb | vb | !display_enable) ? 8'd0 : 8'h40;
+// ---------------------------------------------------------------- video
+wire [15:0] rom_addr_tm; wire [7:0] tp0, tp1, tp2;
+xb_tilerom tilerom (.clk(clk_sys), .wr(tile_wr), .wr_addr(tile_waddr), .wr_data(tile_wdata),
+    .rd_addr(rom_addr_tm), .plane0(tp0), .plane1(tp1), .plane2(tp2));
+
+wire [10:0] fg_pix, bg_pix; wire [6:0] tx_pix;
+xb_tilemap_5197 tilemap (
+    .clk(clk_sys), .reset(reset),
+    .line_start(line_start), .vcnt(vcnt), .latch_pulse(latch_pulse), .ce_pix(ce_pix), .hcnt(hcnt),
+    .tile_addr(tm_tile_addr), .tile_q(tm_tile_q), .text_addr(tm_text_addr), .text_q(tm_text_q),
+    .rom_addr(rom_addr_tm), .rom_p0(tp0), .rom_p1(tp1), .rom_p2(tp2),
+    .fg_pix(fg_pix), .bg_pix(bg_pix), .tx_pix(tx_pix)
+);
+
+// pixel pipeline: line buffer read (1) -> mixer (1, at ce_pix) -> palette (2).
+// The blanking/sync signals are delayed one pixel so the framework samples
+// the RGB of the same pixel.
+reg ce_pix_d1, ce_pix_d2;
+always @(posedge clk_sys) begin ce_pix_d1 <= ce_pix; ce_pix_d2 <= ce_pix_d1; end
+xb_mixer mixer (
+    .clk(clk_sys), .ce_pix(ce_pix_d1), .road_priority(board_desc.road_priority),
+    .fg_pix(fg_pix), .bg_pix(bg_pix), .tx_pix(tx_pix),
+    .road_bg_v(1'b0), .road_bg_idx(13'd0), .road_fg_v(1'b0), .road_fg_idx(13'd0),
+    .spr_v(1'b0), .spr_pix(16'd0),
+    .pal_idx(pal_idx), .pal_effects(pal_effects)
+);
+reg hb_d, vb_d2, hs_d, vs_d;
+wire hb_t, vb_t, hs_t, vs_t;
+always @(posedge clk_sys) if (ce_pix) begin hb_d <= hb_t; vb_d2 <= vb_t; hs_d <= hs_t; vs_d <= vs_t; end
+assign hb = hb_d; assign vb = vb_d2; assign hs = hs_d; assign vs = vs_d;
+assign r = (hb | vb | !display_enable) ? 8'd0 : pal_r;
+assign g = (hb | vb | !display_enable) ? 8'd0 : pal_g;
+assign b = (hb | vb | !display_enable) ? 8'd0 : pal_b;
 
 assign audio_l = 16'sd0;
 assign audio_r = 16'sd0;

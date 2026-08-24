@@ -214,6 +214,7 @@ wire [24:1] sw_addr;
 wire [15:0] sw_din;
 wire  [1:0] sw_be;
 board_desc_t board_desc;
+wire        tile_wr; wire [17:0] tile_waddr; wire [7:0] tile_wdata;
 
 xb_rom_loader loader (
     .clk(clk_sys), .rst(~pll_locked),
@@ -224,6 +225,7 @@ xb_rom_loader loader (
     .board_desc(board_desc),
     .sdr_wr_req(sw_req), .sdr_wr_addr(sw_addr), .sdr_wr_din(sw_din),
     .sdr_wr_be(sw_be), .sdr_wr_ack(sw_ack),
+    .tile_wr(tile_wr), .tile_waddr(tile_waddr), .tile_wdata(tile_wdata),
     .rom_loaded(rom_loaded)
 );
 
@@ -284,6 +286,7 @@ wire signed [15:0] aud_l, aud_r;
 xb_core core (
     .clk_sys(clk_sys), .clk_ram(clk_ram), .reset(reset), .pause(pause),
     .board_desc(board_desc),
+    .tile_wr(tile_wr), .tile_waddr(tile_waddr), .tile_wdata(tile_wdata),
     .p0_req(p0_req), .p0_addr(p0_addr), .p0_dout(p0_dout), .p0_ack(p0_ack),
     .p1_req(p1_req), .p1_addr(p1_addr), .p1_dout(p1_dout), .p1_ack(p1_ack),
     .p2_req(p2_req), .p2_addr(p2_addr), .p2_dout(p2_dout), .p2_ack(p2_ack),

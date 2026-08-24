@@ -103,6 +103,12 @@ def main():
         os.makedirs(a.hexdir, exist_ok=True)
         for r, d in regions.items():
             write_hex(os.path.join(a.hexdir, f"{r}.hex"), d)
+        # tile ROM planes as byte files for the BRAM tile ROM ($readmemh)
+        t = regions["tile"]
+        for p in range(3):
+            with open(os.path.join(a.hexdir, f"tilerom{p}.hex"), "w") as f:
+                for i in range(0x10000):
+                    f.write(f"{t[p * 0x10000 + i]:02x}\n")
     print(f"{a.out}: {len(stream)} bytes ({len(stream)/1048576:.2f} MB)")
 
 

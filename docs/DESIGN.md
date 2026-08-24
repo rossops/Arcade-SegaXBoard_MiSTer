@@ -66,6 +66,41 @@ with the instruction after the trigger write, so the divider completes in
 The service-mode memory test needs the text layer to read its result, so
 that part of the M1 gate moves to M2.
 
+## Video, tile layers (M2)
+
+The 192 KB tile ROM lives in BRAM (`xb_tilerom`, three 64 KB planes, ~154
+M10K) and is filled by the ioctl loader, instead of the SDRAM tile cache the
+plan sketched: it removes an arbitration client and a worst-case miss storm,
+and the BRAM budget still ends around 60%. `xb_tilemap_5197` renders the
+next scanline of fg (register set 0), bg (set 1) and text into 320-entry
+double-buffered line buffers at one pixel per clock (~1,050 clocks of the
+3,200 per line), following MAME's tilemap_16b_draw_layer exactly: sets
+latched at line 261, row scroll per 8 lines with the alternate-set bit,
+column scroll per 16 pixels, 2x2 page quadrants, x = (0xC0 - xscroll). The
+mixer is a direct port of screen_update's layer order and priority marks;
+the palette applies MAME's resistor-weight tables (generated into
+`xb_pal_lut.svh` by `verif/models/palette5242.py`).
+
+Lessons: `xb_dpram` and `xb_tilerom` both register their outputs, so a
+registered address costs two clocks to data; the tile colour field is bits
+12:6 (it overlaps the code) and the text colour bits 11:9.
+
+### M2 verification
+
+`tools/mame_capture.py` (Lua autoboot) dumps tile/text/palette/sprite/road
+RAM and a PNG at a chosen frame. `verif/models/tilemap16b.py` renders from
+such a dump and is pixel-exact against MAME's PNG on every tile-opaque pixel
+of frames 60, 150, 300 and 240 (attract). `verif/unit/tilemap/run_tilemap.py`
+drives the RTL renderer with the same dumps under Icarus and is pixel-exact
+per layer on all four. `tools/board_check.py` renders the model from the
+RTL's own RAM dump (`+dumpframe`) and the whole board's frame is exact
+(71,680/71,680 at frame 60). Board frames cannot be compared directly to
+MAME's PNG at the same frame number because the game state drifts by a few
+frames (cross-CPU timing), so the gate uses the RTL's own RAM state.
+
+The service-mode capture (`--test`) does not yet engage the switch through
+Lua; MAME input playback is the fallback when a text-only screen is needed.
+
 ## ROM stream
 
 `tools/pack_roms.py` and `tools/gen_mra.py` share `tools/romsets.py`. The

@@ -106,6 +106,22 @@ always @(posedge clk_sys) begin
     end
 end
 
+// ---- RAM dump at +dumpframe=N (start of that frame's vblank)
+integer dumpframe = -1;
+initial begin if (!$value$plusargs("dumpframe=%d", dumpframe)) dumpframe = -1; end
+task automatic dump_ram(input string name, input integer words, input integer which);
+    integer fd, k;
+    fd = $fopen(name, "wb");
+    for (k = 0; k < words; k = k + 1) begin
+        case (which)
+            0: $fwrite(fd, "%c%c", core.tileram.mem[k][7:0], core.tileram.mem[k][15:8]);
+            1: $fwrite(fd, "%c%c", core.textram.mem[k][7:0], core.textram.mem[k][15:8]);
+            default: $fwrite(fd, "%c%c", core.palette.mem[k][7:0], core.palette.mem[k][15:8]);
+        endcase
+    end
+    $fclose(fd);
+endtask
+
 // ---- frame dump: one PPM per frame (320x224)
 reg vb_d;
 reg [8:0] px, py;
@@ -114,6 +130,12 @@ string fname;
 always @(posedge clk_sys) begin
     vb_d <= vb;
     if (vb && !vb_d) begin
+        if (frame == dumpframe) begin
+            dump_ram("rtl_tileram.bin", 32768, 0);
+            dump_ram("rtl_textram.bin", 2048, 1);
+            dump_ram("rtl_paletteram.bin", 8192, 2);
+            $display("dumped RAMs at frame %0d", frame);
+        end
         if (ppm_open) begin $fclose(fppm); ppm_open <= 0; end
         frame <= frame + 1;
         if (frame + 1 == max_frames) $finish;

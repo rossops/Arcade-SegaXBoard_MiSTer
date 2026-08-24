@@ -7,6 +7,10 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/xb_pkg.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/xb_core.sv
 
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/xb_video_timing.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/xb_tilerom.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/xb_tilemap_5197.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/xb_palette_5242.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/xb_mixer.sv
 
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/cpu/xb_m68k_bus.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/cpu/xb_rom_cache.sv

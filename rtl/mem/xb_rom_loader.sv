@@ -31,15 +31,22 @@ module xb_rom_loader (
     output reg  [1:0] sdr_wr_be,
     input             sdr_wr_ack,
 
+    // tile ROM BRAM (two byte writes per stream word)
+    output reg        tile_wr,
+    output reg [17:0] tile_waddr,
+    output reg  [7:0] tile_wdata,
+
     output reg        rom_loaded
 );
 
 reg [7:0] desc_bytes [0:7];
 reg       busy;
+reg       tile_hi_pend;      // second byte of a tile word still to write
+reg [7:0] tile_hi_byte;
 reg       index0_seen;
 integer   i;
 
-assign ioctl_wait = busy | ~mem_ready;
+assign ioctl_wait = busy | tile_hi_pend | ~mem_ready;
 
 function automatic [24:0] map_addr(input [26:0] a);
     if      (a < OFF_SUB)    map_addr = SDR_MAIN_BASE   + (a[24:0] - OFF_MAIN[24:0]);
@@ -58,6 +65,7 @@ always @(posedge clk) begin
     if (rst) begin
         sdr_wr_req <= 1'b0; sdr_wr_addr <= '0; sdr_wr_din <= '0; sdr_wr_be <= '0;
         rom_loaded <= 1'b0; busy <= 1'b0; index0_seen <= 1'b0;
+        tile_wr <= 1'b0; tile_waddr <= '0; tile_wdata <= '0; tile_hi_pend <= 1'b0; tile_hi_byte <= '0;
         desc_r <= '0;
         for (i = 0; i < 8; i = i + 1) desc_bytes[i] <= 8'd0;
     end
@@ -65,6 +73,13 @@ always @(posedge clk) begin
         if (sdr_wr_ack) begin
             sdr_wr_req <= 1'b0;
             busy       <= 1'b0;
+        end
+        tile_wr <= 1'b0;
+        if (tile_hi_pend) begin
+            tile_wr      <= 1'b1;
+            tile_waddr   <= tile_waddr + 18'd1;
+            tile_wdata   <= tile_hi_byte;
+            tile_hi_pend <= 1'b0;
         end
 
         if (mem_ready && ioctl_download && ioctl_wr && !busy && ioctl_index == 8'd0) begin
@@ -82,6 +97,15 @@ always @(posedge clk) begin
                     desc_r.adc_reverse   <= desc_bytes[3];
                     desc_r.pcm_bankmask  <= desc_bytes[4];
                 end
+            end
+            else if (ioctl_addr >= OFF_TILE && ioctl_addr < OFF_TILE + 27'h3_0000) begin
+                logic [26:0] ta;
+                ta = ioctl_addr - OFF_TILE;
+                tile_wr      <= 1'b1;
+                tile_waddr   <= ta[17:0];
+                tile_wdata   <= ioctl_dout[7:0];
+                tile_hi_byte <= ioctl_dout[15:8];
+                tile_hi_pend <= 1'b1;
             end
             else if (ioctl_addr < OFF_END) begin
                 logic [24:0] ma;
