@@ -1,0 +1,5 @@
+set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) fx68k.sv     ]
+set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) fx68kAlu.sv  ]
+set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) uaddrPla.sv  ]
+set_global_assignment -name MIF_FILE           [file join $::quartus(qip_path) microrom.mem ]
+set_global_assignment -name MIF_FILE           [file join $::quartus(qip_path) nanorom.mem  ]

@@ -1,0 +1,17 @@
+# Sega X Board — project file list. Add files here, never in the Quartus IDE.
+set_global_assignment -name QIP_FILE sys/sys.qip
+set_global_assignment -name SDC_FILE Arcade-SegaXBoard.sdc
+
+set_global_assignment -name SYSTEMVERILOG_FILE Arcade-SegaXBoard.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/xb_pkg.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/xb_core.sv
+
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/xb_video_timing.sv
+
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/mem/sdram.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/mem/xb_rom_loader.sv
+
+set_global_assignment -name QIP_FILE rtl/cpu/fx68k/fx68k.qip
+set_global_assignment -name QIP_FILE rtl/audio/jt51/jt51.qip
+set_global_assignment -name QIP_FILE rtl/audio/T80/T80.qip
+set_global_assignment -name QIP_FILE rtl/pll/pll.qip

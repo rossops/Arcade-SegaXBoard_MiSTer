@@ -1,0 +1,5 @@
+# The game core PLL is generated under rtl/pll/synthesis and included by
+# files.qip. Keep this MiSTer framework QIP limited to its own support PLLs.
+set_global_assignment -name QIP_FILE           [file join $::quartus(qip_path) pll_hdmi.qip ]
+set_global_assignment -name QIP_FILE           [file join $::quartus(qip_path) pll_audio.qip ]
+set_global_assignment -name QIP_FILE           [file join $::quartus(qip_path) pll_cfg.qip ]
