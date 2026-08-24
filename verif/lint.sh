@@ -8,7 +8,7 @@ FX="-Wno-VARHIDDEN -Wno-ALWCOMBORDER -Wno-BLKANDNBLK -Wno-WIDTH -Wno-CASEINCOMPL
 OWN="rtl/xb_pkg.sv rtl/video/xb_video_timing.sv rtl/mem/sdram.sv rtl/mem/xb_rom_loader.sv rtl/mem/xb_dpram.sv \
   rtl/cpu/xb_math_5248.sv rtl/cpu/xb_math_5249.sv rtl/cpu/xb_cmptimer_5250.sv rtl/io/xb_cxd1095.sv rtl/io/xb_adc0804.sv \
   rtl/cpu/xb_rom_cache.sv rtl/cpu/xb_m68k_bus.sv \
-  rtl/video/xb_tilerom.sv rtl/video/xb_tilemap_5197.sv rtl/video/xb_palette_5242.sv rtl/video/xb_mixer.sv rtl/xb_core.sv"
+  rtl/mem/xb_fb_if.sv rtl/video/xb_sprite_5211.sv rtl/video/xb_tilerom.sv rtl/video/xb_tilemap_5197.sv rtl/video/xb_palette_5242.sv rtl/video/xb_mixer.sv rtl/xb_core.sv"
 FXF="rtl/cpu/fx68k/fx68k.sv rtl/cpu/fx68k/fx68kAlu.sv rtl/cpu/fx68k/uaddrPla.sv"
 # our own files: strict
 for f in $OWN; do

@@ -101,6 +101,47 @@ frames (cross-CPU timing), so the gate uses the RTL's own RAM state.
 The service-mode capture (`--test`) does not yet engage the switch through
 Lua; MAME input playback is the fallback when a text-only screen is needed.
 
+## Sprites, 315-5211A (M3)
+
+`xb_sprite_5211` (clk_ram) walks the renderer bank of sprite RAM and draws
+into one of two 512x256x16 framebuffers in DDR3 through `xb_fb_if` (forked
+from the System 32 core: pixel runs assembled per row and flushed as 64-bit
+words with byte enables, whole-line reads into a ping-pong line RAM, line
+erase). The row/zoom/pitch/end-code algorithm is MAME's
+sega_outrun_sprite_device::draw with the X Board fields; MAME keeps the row
+base (`addr`, advanced by pitch) separate from the row's working pointer
+(`data[7]`), and so does the RTL. Sprite ROM comes from SDRAM port p2 in
+128-bit bursts (four 32-bit words), cached one burst at a time.
+
+Sequencing follows MacDonald, not MAME: a `$110000` write swaps the sprite
+RAM banks and starts a render; the render first erases the back buffer (256
+lines, ~33k clocks) and is aborted at the start of vblank; at vblank the
+buffers swap only if a render ran. MAME re-renders the buffered list every
+frame, which is an emulator convenience — an earlier version that also
+re-rendered at vblank produced frames mixing two lists. Empty pixel = 0xFFFF
+(MAME's transparent value). The sprite pixel keeps its shadow bit; the mixer
+applies MAME's rule (bits 14 and 3:0 == 0x400A selects the effects palette of
+the pixel underneath), so no read-modify-write is needed and `wr_shadow` is
+tied low.
+
+Render time on the captured attract lists: 2.6 / 4.9 / 3.8 ms per frame at
+100 MHz (heaviest: 52k opaque pixels, 29% of a frame). Raw opaque throughput
+is about 11 Mpix/s, under the 25 Mpix/s the plan pencilled in; the practical
+criterion (every captured frame renders well inside a frame) holds with 3x
+margin. If a real scene ever overruns, overlapping a row's DDR flush with the
+next row's ROM fetch is the first optimisation.
+
+### M3 verification
+
+`tools/mame_capture.lua` taps the `$110000` write and saves the list about to
+be rendered (`spritelist.bin`). `verif/models/sprite5211.py` + the tile mix
+are pixel-exact against MAME's PNG on frames 60/150/300 (priorities and
+shadow pen included). `verif/unit/sprite/run_sprite.py` drives the RTL
+renderer, `xb_fb_if` and the DDRAM model with the same lists and is exact on
+all three. `tools/board_check.py` (with the RTL's sprite RAM dumped at the
+dump frame and the frame before) is exact on the whole board at frame 60.
+`verif/board/check_m3.sh` runs this.
+
 ## ROM stream
 
 `tools/pack_roms.py` and `tools/gen_mra.py` share `tools/romsets.py`. The

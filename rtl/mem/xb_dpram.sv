@@ -6,12 +6,13 @@ module xb_dpram #(
     parameter AW = 13,           // word address width
     parameter INIT_FF = 0        // fill with 0xFFFF at reset (sim only)
 ) (
-    input             clk,
+    input             clk,       // port A (CPU)
     input    [AW-1:0] a_addr,
     input      [15:0] a_din,
     input       [1:0] a_be,
     input             a_we,
     output reg [15:0] a_dout,
+    input             b_clk,     // port B (renderer) — may differ from clk
     input    [AW-1:0] b_addr,
     output reg [15:0] b_dout
 );
@@ -26,6 +27,6 @@ always @(posedge clk) begin
         if (a_be[0]) mem[a_addr][7:0]  <= a_din[7:0];
     end
     a_dout <= mem[a_addr];
-    b_dout <= mem[b_addr];
 end
+always @(posedge b_clk) b_dout <= mem[b_addr];
 endmodule

@@ -110,14 +110,8 @@ assign LED_POWER = 0;
 assign LED_DISK = 0;
 assign BUTTONS = 0;
 
-// DDR3 framebuffer port: unused until the sprite generator lands (M3)
+// DDR3: the two sprite framebuffers (xb_fb_if inside the core)
 assign DDRAM_CLK = clk_ram;
-assign DDRAM_BURSTCNT = 0;
-assign DDRAM_ADDR = 0;
-assign DDRAM_RD = 0;
-assign DDRAM_DIN = 0;
-assign DDRAM_BE = 0;
-assign DDRAM_WE = 0;
 
 //////////////////////////////////   CONF   ///////////////////////////////////
 `ifndef BUILD_DATE
@@ -287,6 +281,9 @@ xb_core core (
     .clk_sys(clk_sys), .clk_ram(clk_ram), .reset(reset), .pause(pause),
     .board_desc(board_desc),
     .tile_wr(tile_wr), .tile_waddr(tile_waddr), .tile_wdata(tile_wdata),
+    .DDRAM_BUSY(DDRAM_BUSY), .DDRAM_BURSTCNT(DDRAM_BURSTCNT), .DDRAM_ADDR(DDRAM_ADDR),
+    .DDRAM_DOUT(DDRAM_DOUT), .DDRAM_DOUT_READY(DDRAM_DOUT_READY), .DDRAM_RD(DDRAM_RD),
+    .DDRAM_DIN(DDRAM_DIN), .DDRAM_BE(DDRAM_BE), .DDRAM_WE(DDRAM_WE),
     .p0_req(p0_req), .p0_addr(p0_addr), .p0_dout(p0_dout), .p0_ack(p0_ack),
     .p1_req(p1_req), .p1_addr(p1_addr), .p1_dout(p1_dout), .p1_ack(p1_ack),
     .p2_req(p2_req), .p2_addr(p2_addr), .p2_dout(p2_dout), .p2_ack(p2_ack),

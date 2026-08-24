@@ -4,9 +4,9 @@ SRCS := rtl/xb_pkg.sv rtl/video/xb_video_timing.sv rtl/mem/xb_dpram.sv \
   rtl/cpu/xb_math_5248.sv rtl/cpu/xb_math_5249.sv rtl/cpu/xb_cmptimer_5250.sv \
   rtl/io/xb_cxd1095.sv rtl/io/xb_adc0804.sv rtl/cpu/xb_rom_cache.sv rtl/cpu/xb_m68k_bus.sv \
   rtl/cpu/fx68k/fx68k.sv rtl/cpu/fx68k/fx68kAlu.sv rtl/cpu/fx68k/uaddrPla.sv \
-  rtl/video/xb_tilerom.sv rtl/video/xb_tilemap_5197.sv rtl/video/xb_palette_5242.sv rtl/video/xb_mixer.sv \
-  rtl/xb_core.sv verif/board/sdram_model.sv verif/board/tb_board.sv
-VFLAGS := -Wno-fatal -Wno-lint -Wno-style -Wno-BLKANDNBLK -Wno-MULTIDRIVEN -Wno-UNOPTFLAT \
+  rtl/mem/xb_fb_if.sv rtl/video/xb_sprite_5211.sv rtl/video/xb_tilerom.sv rtl/video/xb_tilemap_5197.sv rtl/video/xb_palette_5242.sv rtl/video/xb_mixer.sv \
+  rtl/xb_core.sv verif/board/sdram_model.sv verif/board/ddram_model.sv verif/board/tb_board.sv
+VFLAGS := -Wno-fatal -Wno-lint -Wno-style -Werror-PINMISSING -Wno-BLKANDNBLK -Wno-MULTIDRIVEN -Wno-UNOPTFLAT \
   -DSIMULATION --timing -O2 --x-assign fast --x-initial fast \
   --no-assert-case --top-module tb_board -I$(ROOT)/rtl/cpu/fx68k -I$(ROOT)/rtl/video
 FRAMES ?= 10

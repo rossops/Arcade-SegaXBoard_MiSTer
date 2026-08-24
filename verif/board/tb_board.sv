@@ -47,8 +47,22 @@ wire ce_pix, hs, vs, hb, vb;
 wire signed [15:0] al, ar;
 wire [23:1] tm_addr, ts_addr; wire tm_start, ts_start; wire [2:0] tm_fc, ts_fc;
 
+wire        DDRAM_BUSY, DDRAM_DOUT_READY, DDRAM_RD, DDRAM_WE;
+wire  [7:0] DDRAM_BURSTCNT, DDRAM_BE;
+wire [28:0] DDRAM_ADDR;
+wire [63:0] DDRAM_DOUT, DDRAM_DIN;
+ddram_model ddram (
+    .clk(clk_ram), .DDRAM_BUSY(DDRAM_BUSY), .DDRAM_BURSTCNT(DDRAM_BURSTCNT), .DDRAM_ADDR(DDRAM_ADDR),
+    .DDRAM_DOUT(DDRAM_DOUT), .DDRAM_DOUT_READY(DDRAM_DOUT_READY), .DDRAM_RD(DDRAM_RD),
+    .DDRAM_DIN(DDRAM_DIN), .DDRAM_BE(DDRAM_BE), .DDRAM_WE(DDRAM_WE)
+);
+
 xb_core core (
     .clk_sys(clk_sys), .clk_ram(clk_ram), .reset(reset), .pause(1'b0), .board_desc(desc),
+    .tile_wr(1'b0), .tile_waddr(18'd0), .tile_wdata(8'd0),
+    .DDRAM_BUSY(DDRAM_BUSY), .DDRAM_BURSTCNT(DDRAM_BURSTCNT), .DDRAM_ADDR(DDRAM_ADDR),
+    .DDRAM_DOUT(DDRAM_DOUT), .DDRAM_DOUT_READY(DDRAM_DOUT_READY), .DDRAM_RD(DDRAM_RD),
+    .DDRAM_DIN(DDRAM_DIN), .DDRAM_BE(DDRAM_BE), .DDRAM_WE(DDRAM_WE),
     .p0_req(p0_req), .p0_addr(p0_addr), .p0_dout(p0_dout), .p0_ack(p0_ack),
     .p1_req(p1_req), .p1_addr(p1_addr), .p1_dout(p1_dout), .p1_ack(p1_ack),
     .p2_req(p2_req), .p2_addr(p2_addr), .p2_dout(p2_dout), .p2_ack(p2_ack),
@@ -116,11 +130,38 @@ task automatic dump_ram(input string name, input integer words, input integer wh
         case (which)
             0: $fwrite(fd, "%c%c", core.tileram.mem[k][7:0], core.tileram.mem[k][15:8]);
             1: $fwrite(fd, "%c%c", core.textram.mem[k][7:0], core.textram.mem[k][15:8]);
-            default: $fwrite(fd, "%c%c", core.palette.mem[k][7:0], core.palette.mem[k][15:8]);
+            2: $fwrite(fd, "%c%c", core.palette.mem[k][7:0], core.palette.mem[k][15:8]);
+            default: $fwrite(fd, "%c%c", core.spriteram.mem[k][7:0], core.spriteram.mem[k][15:8]);
         endcase
     end
     $fclose(fd);
 endtask
+
+// ---- sprite pipeline counters (printed around the dump frame)
+integer c_runs = 0, c_pix = 0, c_romreq = 0, c_romack = 0, c_erack = 0, c_rdack = 0, c_start = 0, c_vbl = 0, c_ends = 0;
+reg [3:0] rs_max = 0;
+always @(posedge clk_ram) begin
+    if (core.fbw_start) c_runs = c_runs + 1;
+    if (core.fbw_valid) c_pix = c_pix + 1;
+    if (core.fbw_end) c_ends = c_ends + 1;
+    if (core.p2_req) c_romreq = c_romreq + 1;
+    if (core.p2_ack) c_romack = c_romack + 1;
+    if (core.fbe_ack) c_erack = c_erack + 1;
+    if (core.fbr_ack) c_rdack = c_rdack + 1;
+    if (core.r_draw_req) c_start = c_start + 1;
+    if (core.r_vbl_start) c_vbl = c_vbl + 1;
+    if (core.sprites.rs > rs_max) rs_max = core.sprites.rs;
+end
+always @(posedge clk_sys) begin
+    if (vb && !vb_d && frame >= dumpframe - 2 && frame <= dumpframe && dumpframe >= 0) begin
+        $display("frame %0d: runs=%0d ends=%0d pix=%0d romreq=%0d romack=%0d erase_ack=%0d rd_ack=%0d draw_req=%0d vbl=%0d rs_max=%0d rs_now=%0d pending=%0d busy=%0d",
+            frame, c_runs, c_ends, c_pix, c_romreq, c_romack, c_erack, c_rdack, c_start, c_vbl, rs_max, core.sprites.rs, core.sprites.render_pending, core.fbw_busy);
+        $display("   fb: dst=%0d flush_req=%0d run_active=%0d run_any=%0d er_req=%0d er_ack=%0d rd_req=%0d rd_ack=%0d line_ready=%0d DDRAM_BUSY=%0d ddr_rd_left=%0d WE=%0d RD=%0d",
+            core.fb.dst, core.fb.flush_req, core.fb.run_active, core.fb.run_any, core.fbe_req, core.fbe_ack, core.fbr_req, core.fbr_ack,
+            core.fb.line_ready, DDRAM_BUSY, ddram.rd_left, DDRAM_WE, DDRAM_RD);
+        c_runs = 0; c_pix = 0; c_romreq = 0; c_romack = 0; c_erack = 0; c_rdack = 0; c_start = 0; c_vbl = 0; c_ends = 0; rs_max = 0;
+    end
+end
 
 // ---- frame dump: one PPM per frame (320x224)
 reg vb_d;
@@ -134,6 +175,11 @@ always @(posedge clk_sys) begin
             dump_ram("rtl_tileram.bin", 32768, 0);
             dump_ram("rtl_textram.bin", 2048, 1);
             dump_ram("rtl_paletteram.bin", 8192, 2);
+            dump_ram("rtl_spriteram.bin", 4096, 3);
+        end
+        if (frame + 1 == dumpframe && dumpframe >= 0) begin
+            dump_ram("rtl_spriteram_prev.bin", 4096, 3);
+            $display("sprite CPU bank = %0d (renderer reads the other)", core.spr_bank);
             $display("dumped RAMs at frame %0d", frame);
         end
         if (ppm_open) begin $fclose(fppm); ppm_open <= 0; end

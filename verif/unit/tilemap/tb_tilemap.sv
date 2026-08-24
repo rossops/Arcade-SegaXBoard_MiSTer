@@ -13,9 +13,9 @@ xb_video_timing timing(.clk(clk), .reset(reset), .ce_pix(ce_pix), .hcnt(hcnt), .
 wire [14:0] tile_addr; wire [15:0] tile_q; wire [10:0] text_addr; wire [15:0] text_q;
 wire [15:0] rom_addr; wire [7:0] p0, p1, p2;
 xb_dpram #(.AW(15)) tileram(.clk(clk), .a_addr(15'd0), .a_din(16'd0), .a_be(2'd0), .a_we(1'b0), .a_dout(),
-    .b_addr(tile_addr), .b_dout(tile_q));
+    .b_clk(clk), .b_addr(tile_addr), .b_dout(tile_q));
 xb_dpram #(.AW(11)) textram(.clk(clk), .a_addr(11'd0), .a_din(16'd0), .a_be(2'd0), .a_we(1'b0), .a_dout(),
-    .b_addr(text_addr), .b_dout(text_q));
+    .b_clk(clk), .b_addr(text_addr), .b_dout(text_q));
 xb_tilerom tilerom(.clk(clk), .wr(1'b0), .wr_addr(18'd0), .wr_data(8'd0), .rd_addr(rom_addr),
     .plane0(p0), .plane1(p1), .plane2(p2));
 wire [10:0] fg, bg; wire [6:0] tx;

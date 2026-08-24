@@ -17,18 +17,20 @@ end
 
 local test_mode = os.getenv("XB_TEST") == "1"
 local test_field = nil
--- also press the switch from machine start, before the first frame
-emu.register_start(function()
-    if test_mode then
-        local port = manager.machine.ioport.ports[":mainpcb:IO1PORTA"]
-        if port then
-            local f = port.fields["Service Mode"]
-            if f then f:set_value(1); test_field = f end
-        end
-    end
-end)
+-- The sprite list the chip renders is the one in sprite RAM at the moment
+-- of the $110000 write (MAME swaps buffers there). Capture it on every
+-- write; the last capture before the target frame is what the PNG shows.
+local main_space = nil
+local tap = nil
+
 emu.register_frame_done(function()
     frame = frame + 1
+    if tap == nil then
+        main_space = manager.machine.devices[":mainpcb:maincpu"].spaces["program"]
+        tap = main_space:install_write_tap(0x110000, 0x11ffff, "xb_sprswap", function(offset, data, mask)
+            if not done then dump(main_space, 0x100000, 0x800, outdir .. "/spritelist.bin") end
+        end)
+    end
     if test_mode then
         if test_field == nil then
             local f = io.open(outdir .. "/ports.txt", "w")

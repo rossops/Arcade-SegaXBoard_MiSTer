@@ -17,7 +17,7 @@ flow, the ROM stream tools and a stub board that shows colour bars.
 | M0 | Skeleton compiles, MRA/stream tools agree with MAME CRCs | done on the Mac side, Quartus build pending |
 | M1 | Both 68000s boot, math/timer/IO chips pass unit tests, PC traces track MAME | done in sim (self-test screen check moves to M2) |
 | M2 | Tilemap/text/palette pixel-exact against MAME | done in sim |
-| M3 | Sprites via DDR3 framebuffers | not started |
+| M3 | Sprites via DDR3 framebuffers | done in sim |
 | M4 | Road | not started |
 | M5 | Sound | not started |
 | M6 | Hardware bring-up and timing closure | not started |
@@ -62,6 +62,7 @@ python3 tools/trace_compare.py verif/golden/aburner2/trace_main_mame.txt verif/b
 python3 tools/mame_capture.py aburner2 --frame 60 --out verif/golden/aburner2/f60   # RAM dumps + PNG
 sh verif/board/check_m1.sh                    # CPU trace gate
 sh verif/board/check_m2.sh                    # tilemap/text/palette gate
+sh verif/board/check_m3.sh                    # sprite gate
 python3 tools/gen_mra.py                      # writes releases/*.mra
 python3 tools/pack_roms.py aburner2 --zip aburner2.zip --out stream.bin --hexdir verif/golden/aburner2
 ```

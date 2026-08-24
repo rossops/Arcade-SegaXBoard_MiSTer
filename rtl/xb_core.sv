@@ -18,6 +18,17 @@ module xb_core (
     input             pause,
     input board_desc_t board_desc,
 
+    // DDR3 (sprite framebuffers), clk_ram domain
+    input             DDRAM_BUSY,
+    output      [7:0] DDRAM_BURSTCNT,
+    output     [28:0] DDRAM_ADDR,
+    input      [63:0] DDRAM_DOUT,
+    input             DDRAM_DOUT_READY,
+    output            DDRAM_RD,
+    output     [63:0] DDRAM_DIN,
+    output      [7:0] DDRAM_BE,
+    output            DDRAM_WE,
+
     // SDRAM read ports (clk_ram domain, sdram.sv contract)
     output            p0_req, output [24:3] p0_addr, input  [63:0] p0_dout, input p0_ack,
     output            p1_req, output [24:3] p1_addr, input  [63:0] p1_dout, input p1_ack,
@@ -160,30 +171,32 @@ assign p0_addr = SDR_MAIN_BASE[24:3] + {5'd0, m_rom_addr};
 // ---- backup RAMs (16K each, main only)
 wire [15:0] bk1_q, bk2_q;
 xb_dpram #(.AW(13)) backup1 (.clk(clk_sys), .a_addr(ma[13:1]), .a_din(m_dout), .a_be(m_be),
-    .a_we(m_valid && m_wr && m_sel_bk1 && m_start), .a_dout(bk1_q), .b_addr(13'd0), .b_dout());
+    .a_we(m_valid && m_wr && m_sel_bk1 && m_start), .a_dout(bk1_q), .b_clk(clk_sys), .b_addr(13'd0), .b_dout());
 xb_dpram #(.AW(13)) backup2 (.clk(clk_sys), .a_addr(ma[13:1]), .a_din(m_dout), .a_be(m_be),
-    .a_we(m_valid && m_wr && m_sel_bk2 && m_start), .a_dout(bk2_q), .b_addr(13'd0), .b_dout());
+    .a_we(m_valid && m_wr && m_sel_bk2 && m_start), .a_dout(bk2_q), .b_clk(clk_sys), .b_addr(13'd0), .b_dout());
 
 // ---- video RAMs (CPU side only until M2/M3)
 wire [15:0] tile_q, text_q, spr_q, pal_q;
 wire [14:0] tm_tile_addr; wire [15:0] tm_tile_q;
 wire [10:0] tm_text_addr; wire [15:0] tm_text_q;
 xb_dpram #(.AW(15)) tileram (.clk(clk_sys), .a_addr(ma[15:1]), .a_din(m_dout), .a_be(m_be),
-    .a_we(m_valid && m_wr && m_sel_tile && m_start), .a_dout(tile_q), .b_addr(tm_tile_addr), .b_dout(tm_tile_q));
+    .a_we(m_valid && m_wr && m_sel_tile && m_start), .a_dout(tile_q), .b_clk(clk_sys), .b_addr(tm_tile_addr), .b_dout(tm_tile_q));
 xb_dpram #(.AW(11)) textram (.clk(clk_sys), .a_addr(ma[11:1]), .a_din(m_dout), .a_be(m_be),
-    .a_we(m_valid && m_wr && m_sel_text && m_start), .a_dout(text_q), .b_addr(tm_text_addr), .b_dout(tm_text_q));
+    .a_we(m_valid && m_wr && m_sel_text && m_start), .a_dout(text_q), .b_clk(clk_sys), .b_addr(tm_text_addr), .b_dout(tm_text_q));
 // sprite RAM: two 4K banks, CPU sees spr_bank; a write to 0x110000 swaps
 reg spr_bank;
+wire [10:0] spr_rd_addr; wire [15:0] spr_rd_q;
+reg         spr_draw_tgl;     // toggles on each $110000 write (clk_sys)
 xb_dpram #(.AW(12)) spriteram (.clk(clk_sys), .a_addr({spr_bank, ma[11:1]}), .a_din(m_dout), .a_be(m_be),
-    .a_we(m_valid && m_wr && m_sel_spr && m_start), .a_dout(spr_q), .b_addr(12'd0), .b_dout());
+    .a_we(m_valid && m_wr && m_sel_spr && m_start), .a_dout(spr_q), .b_clk(clk_ram), .b_addr({~spr_bank, spr_rd_addr}), .b_dout(spr_rd_q));
 wire [12:0] pal_idx; wire pal_effects;
 wire  [7:0] pal_r, pal_g, pal_b;
 xb_palette_5242 palette (.clk(clk_sys), .a_addr(ma[13:1]), .a_din(m_dout), .a_be(m_be),
     .a_we(m_valid && m_wr && m_sel_pal && m_start), .a_dout(pal_q),
     .b_addr(pal_idx), .b_effects(pal_effects), .r(pal_r), .g(pal_g), .b(pal_b));
 always @(posedge clk_sys) begin
-    if (reset) spr_bank <= 1'b0;
-    else if (m_valid && m_wr && m_sel_sprdraw && m_start) spr_bank <= ~spr_bank;
+    if (reset) begin spr_bank <= 1'b0; spr_draw_tgl <= 1'b0; end
+    else if (m_valid && m_wr && m_sel_sprdraw && m_start) begin spr_bank <= ~spr_bank; spr_draw_tgl <= ~spr_draw_tgl; end
 end
 
 // ---- main math / timer chips
@@ -323,11 +336,11 @@ wire [15:0] ram0_q, ram1_q, road_q;
 reg         road_bank;
 reg   [2:0] road_control;
 xb_dpram #(.AW(13)) subram0 (.clk(clk_sys), .a_addr(xa[13:1]), .a_din(x_dout), .a_be(x_be),
-    .a_we(x_valid && x_wr && x_sel_ram0 && x_start), .a_dout(ram0_q), .b_addr(13'd0), .b_dout());
+    .a_we(x_valid && x_wr && x_sel_ram0 && x_start), .a_dout(ram0_q), .b_clk(clk_sys), .b_addr(13'd0), .b_dout());
 xb_dpram #(.AW(13)) subram1 (.clk(clk_sys), .a_addr(xa[13:1]), .a_din(x_dout), .a_be(x_be),
-    .a_we(x_valid && x_wr && x_sel_ram1 && x_start), .a_dout(ram1_q), .b_addr(13'd0), .b_dout());
+    .a_we(x_valid && x_wr && x_sel_ram1 && x_start), .a_dout(ram1_q), .b_clk(clk_sys), .b_addr(13'd0), .b_dout());
 xb_dpram #(.AW(12)) roadram (.clk(clk_sys), .a_addr({road_bank, xa[11:1]}), .a_din(x_dout), .a_be(x_be),
-    .a_we(x_valid && x_wr && x_sel_road && x_start), .a_dout(road_q), .b_addr(12'd0), .b_dout());
+    .a_we(x_valid && x_wr && x_sel_road && x_start), .a_dout(road_q), .b_clk(clk_sys), .b_addr(12'd0), .b_dout());
 always @(posedge clk_sys) begin
     if (reset) begin road_bank <= 1'b0; road_control <= 3'd0; end
     else if (x_cs && x_sel_roadctl) begin
@@ -403,6 +416,62 @@ xb_tilemap_5197 tilemap (
     .fg_pix(fg_pix), .bg_pix(bg_pix), .tx_pix(tx_pix)
 );
 
+// ---------------------------------------------------------------- sprites
+// The renderer and the framebuffer interface run in clk_ram; timing pulses
+// and the $110000 toggle cross from clk_sys through 2-flop synchronisers.
+reg [1:0] r_vbl_s, r_line_s, r_draw_s;
+reg [8:0] r_vcnt_a, r_vcnt_b;
+reg       r_vbl_d, r_line_d, r_draw_d;
+always @(posedge clk_ram) begin
+    r_vbl_s  <= {r_vbl_s[0],  vbl_irq};
+    r_line_s <= {r_line_s[0], line_start_lvl};
+    r_draw_s <= {r_draw_s[0], spr_draw_tgl};
+    r_vcnt_a <= vcnt; r_vcnt_b <= r_vcnt_a;
+    r_vbl_d <= r_vbl_s[1]; r_line_d <= r_line_s[1]; r_draw_d <= r_draw_s[1];
+end
+wire r_vbl_start  = r_vbl_s[1] & ~r_vbl_d;
+wire r_line_start = r_line_s[1] & ~r_line_d;
+wire r_draw_req   = r_draw_s[1] ^ r_draw_d;
+// line_start as a level that toggles half a line (clean edge for the CDC)
+reg line_start_lvl;
+always @(posedge clk_sys) if (line_start) line_start_lvl <= 1'b1; else if (ce_pix && hcnt == 9'd200) line_start_lvl <= 1'b0;
+
+wire        fbw_start, fbw_valid, fbw_end, fbw_busy;
+wire        fbe_req, fbe_ack, fbr_req, fbr_ack;
+wire  [1:0] fbw_buf, fbe_buf, fbr_buf;
+wire  [8:0] fbw_x;
+wire  [7:0] fbw_y, fbe_y, fbr_y;
+wire [15:0] fbw_pix, fbr_pix;
+wire        spr_disp_buf;
+xb_sprite_5211 sprites (
+    .clk(clk_ram), .reset(reset), .num_banks(board_desc.sprite_banks),
+    .start_req(r_draw_req), .vbl_start(r_vbl_start), .vcnt(r_vcnt_b), .line_start(r_line_start),
+    .sram_addr(spr_rd_addr), .sram_q(spr_rd_q),
+    .rom_req(p2_req), .rom_addr(p2_addr), .rom_dout(p2_dout), .rom_ack(p2_ack),
+    .fb_wr_start(fbw_start), .fb_wr_buf(fbw_buf), .fb_wr_x(fbw_x), .fb_wr_y(fbw_y),
+    .fb_wr_valid(fbw_valid), .fb_wr_pix(fbw_pix), .fb_wr_end(fbw_end), .fb_wr_busy(fbw_busy),
+    .fb_er_req(fbe_req), .fb_er_buf(fbe_buf), .fb_er_y(fbe_y), .fb_er_ack(fbe_ack),
+    .fb_rd_req(fbr_req), .fb_rd_buf(fbr_buf), .fb_rd_y(fbr_y), .fb_rd_ack(fbr_ack),
+    .disp_buf(spr_disp_buf)
+);
+// scanout: framebuffer x = screen x + 190; read one pixel ahead of the mixer
+wire [8:0] fbr_x = hcnt + 9'd190;
+xb_fb_if #(.FB_BASE(32'h3000_0000)) fb (
+    .clk(clk_ram), .rst(reset),
+    .DDRAM_BUSY(DDRAM_BUSY), .DDRAM_BURSTCNT(DDRAM_BURSTCNT), .DDRAM_ADDR(DDRAM_ADDR),
+    .DDRAM_DOUT(DDRAM_DOUT), .DDRAM_DOUT_READY(DDRAM_DOUT_READY), .DDRAM_RD(DDRAM_RD),
+    .DDRAM_DIN(DDRAM_DIN), .DDRAM_BE(DDRAM_BE), .DDRAM_WE(DDRAM_WE),
+    .wr_start(fbw_start), .wr_buf(fbw_buf), .wr_x(fbw_x), .wr_y(fbw_y),
+    .wr_valid(fbw_valid), .wr_pix(fbw_pix), .wr_end(fbw_end), .wr_shadow(1'b0), .wr_busy(fbw_busy),
+    .er_req(fbe_req), .er_buf(fbe_buf), .er_y(fbe_y), .er_ack(fbe_ack),
+    .rd_req(fbr_req), .rd_buf(fbr_buf), .rd_y(fbr_y), .rd_ack(fbr_ack),
+    .rd_x(fbr_x), .rd_pix(fbr_pix)
+);
+// sample the sprite pixel with the tile pixels (one clk after ce_pix)
+reg [15:0] spr_pix_r;
+always @(posedge clk_sys) if (ce_pix) spr_pix_r <= fbr_pix;
+wire spr_v = (spr_pix_r != 16'hFFFF);
+
 // pixel pipeline: line buffer read (1) -> mixer (1, at ce_pix) -> palette (2).
 // The blanking/sync signals are delayed one pixel so the framework samples
 // the RGB of the same pixel.
@@ -412,7 +481,7 @@ xb_mixer mixer (
     .clk(clk_sys), .ce_pix(ce_pix_d1), .road_priority(board_desc.road_priority),
     .fg_pix(fg_pix), .bg_pix(bg_pix), .tx_pix(tx_pix),
     .road_bg_v(1'b0), .road_bg_idx(13'd0), .road_fg_v(1'b0), .road_fg_idx(13'd0),
-    .spr_v(1'b0), .spr_pix(16'd0),
+    .spr_v(spr_v), .spr_pix(spr_pix_r),
     .pal_idx(pal_idx), .pal_effects(pal_effects)
 );
 reg hb_d, vb_d2, hs_d, vs_d;
@@ -426,7 +495,6 @@ assign b = (hb | vb | !display_enable) ? 8'd0 : pal_b;
 assign audio_l = 16'sd0;
 assign audio_r = 16'sd0;
 
-assign p2_req = 1'b0; assign p2_addr = '0;
 assign p3_req = 1'b0; assign p3_addr = '0; assign p3_urgent = 1'b0;
 assign p4_req = 1'b0; assign p4_addr = '0; assign p4_urgent = 1'b0;
 assign p5_req = 1'b0; assign p5_addr = '0;

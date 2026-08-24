@@ -103,3 +103,7 @@ verif/unit/sim_build/
 verif/unit/tilemap/*.hex
 verif/unit/tilemap/*.vvp
 verif/unit/tilemap/layers.txt
+verif/unit/sprite/*.hex
+verif/unit/sprite/*.vvp
+verif/unit/sprite/fb.txt
+verif/unit/sprite/runs.txt
