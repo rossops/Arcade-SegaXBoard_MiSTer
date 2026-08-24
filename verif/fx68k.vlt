@@ -1,0 +1,18 @@
+`verilator_config
+// Vendored fx68k: waive its lint categories without hiding them in our RTL.
+lint_off -rule MULTIDRIVEN  -file "*fx68k*"
+lint_off -rule BLKANDNBLK   -file "*fx68k*"
+lint_off -rule VARHIDDEN    -file "*fx68k*"
+lint_off -rule ALWCOMBORDER -file "*fx68k*"
+lint_off -rule WIDTH        -file "*fx68k*"
+lint_off -rule CASEINCOMPLETE -file "*fx68k*"
+lint_off -rule BLKSEQ       -file "*fx68k*"
+lint_off -rule UNOPTFLAT    -file "*fx68k*"
+lint_off -rule CASEOVERLAP  -file "*fx68k*"
+lint_off -rule LATCH        -file "*fx68k*"
+lint_off -rule IMPLICIT     -file "*fx68k*"
+lint_off -rule UNDRIVEN     -file "*fx68k*"
+lint_off -rule SYNCASYNCNET -file "*fx68k*"
+lint_off -rule COMBDLY      -file "*fx68k*"
+lint_off -rule INITIALDLY   -file "*fx68k*"
+lint_off -rule TIMESCALEMOD -file "*fx68k*"

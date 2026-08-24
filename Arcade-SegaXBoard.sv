@@ -298,7 +298,9 @@ xb_core core (
     .coin1(joystick_0[7]), .coin2(1'b0),
     .r(r), .g(g), .b(b),
     .ce_pix(ce_pix), .hs(hs), .vs(vs), .hb(hb), .vb(vb),
-    .audio_l(aud_l), .audio_r(aud_r)
+    .audio_l(aud_l), .audio_r(aud_r),
+    .trace_main_addr(), .trace_main_start(), .trace_main_fc(),
+    .trace_sub_addr(), .trace_sub_start(), .trace_sub_fc()
 );
 
 assign AUDIO_L = aud_l;

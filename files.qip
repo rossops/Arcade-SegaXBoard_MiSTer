@@ -8,8 +8,18 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/xb_core.sv
 
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/xb_video_timing.sv
 
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/cpu/xb_m68k_bus.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/cpu/xb_rom_cache.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/cpu/xb_math_5248.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/cpu/xb_math_5249.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/cpu/xb_cmptimer_5250.sv
+
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/io/xb_cxd1095.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/io/xb_adc0804.sv
+
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/mem/sdram.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/mem/xb_rom_loader.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/mem/xb_dpram.sv
 
 set_global_assignment -name QIP_FILE rtl/cpu/fx68k/fx68k.qip
 set_global_assignment -name QIP_FILE rtl/audio/jt51/jt51.qip

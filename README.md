@@ -15,7 +15,7 @@ flow, the ROM stream tools and a stub board that shows colour bars.
 | Milestone | What it proves | State |
 | --- | --- | --- |
 | M0 | Skeleton compiles, MRA/stream tools agree with MAME CRCs | done on the Mac side, Quartus build pending |
-| M1 | Both 68000s boot, math/timer chips pass unit tests, self-test passes in sim | not started |
+| M1 | Both 68000s boot, math/timer/IO chips pass unit tests, PC traces track MAME | done in sim (self-test screen check moves to M2) |
 | M2 | Tilemap/text/palette pixel-exact against MAME | not started |
 | M3 | Sprites via DDR3 framebuffers | not started |
 | M4 | Road | not started |
@@ -53,7 +53,12 @@ on Python 3.14, so `verif/` keeps its own venv:
 ```
 python3.12 -m venv verif/.venv && verif/.venv/bin/pip install cocotb pytest
 sh verif/lint.sh                              # Verilator lint of the board
+sh verif/lint_emu.sh                          # elaborate the MiSTer top against the framework
 verif/.venv/bin/python -m pytest tools/tests  # MRA == packer stream, ROM CRCs
+(cd verif/unit && ../.venv/bin/python -m pytest -q chips)   # cocotb chip tests vs MAME models
+python3 tools/mame_trace.py aburner2 --seconds 2 --out verif/golden/aburner2
+make -C verif/board run FRAMES=30             # Verilator board sim: traces + PPM frames
+python3 tools/trace_compare.py verif/golden/aburner2/trace_main_mame.txt verif/board/out/trace_main_pc.txt --slack 2
 python3 tools/gen_mra.py                      # writes releases/*.mra
 python3 tools/pack_roms.py aburner2 --zip aburner2.zip --out stream.bin --hexdir verif/golden/aburner2
 ```

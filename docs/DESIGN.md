@@ -23,6 +23,49 @@ The main CPU reaches the sub CPU's whole address space; on the PCB the sub
 CPU is halted for the duration (MacDonald). The RTL models this as a bus
 request/grant on the sub bus rather than dual-porting the shared RAM.
 
+## CPU buses (M1)
+
+Both 68000s are fx68k behind `xb_m68k_bus`. A cycle is presented to the
+board once AS is low and, for writes, UDS/LDS too (the 68000 asserts the data
+strobes one state after AS on writes). Interrupt acknowledge cycles are
+autovectored (VPA). Program ROM sits behind a 4 KB direct-mapped cache per
+CPU (`xb_rom_cache`, 8-byte lines from a 4-word SDRAM burst); misses hold
+DTACK.
+
+The main 68000's `RESET` instruction resets the sub CPU (MAME
+`m68k_reset_callback`; fx68k `oRESETn`). After Burner II's main program does
+this three times during boot, so the sub restarts mid-initialisation exactly
+as on the PCB.
+
+Main accesses to 0x200000-0x2FFFFF go through the sub-space arbiter in
+`xb_core`: a sub cycle that has started completes first; a sub cycle that
+starts while the main holds the bus is deferred and replayed. The sub sees
+DTACK withheld meanwhile (MacDonald: "the sub CPU is halted while an access
+occurs").
+
+### M1 verification
+
+`tools/mame_trace.py` records MAME's executed PCs for both CPUs (MAME's
+`-debugger osx` backend runs the script; `none` does not). The Verilator
+harness (`verif/board`) logs each executed instruction's address by following
+fx68k's prefetch queue (the address of the word captured into Irc, shifted
+along with Ir and Ird), so the list is directly comparable to MAME's. `tools/trace_compare.py` then requires every MAME PC
+to appear in order in the RTL list, tolerating two things MAME does not model
+cycle-exactly: iteration counts of polling loops (collapsed on both sides)
+and the instruction at which an interrupt lands (resync with a report).
+Measured over 120 frames (2 s, 1.9M main / 2.3M sub instructions): main
+97.7% matched with 745 resyncs, sub 99.6% with 299. Every remaining main
+resync site reads data the sub CPU produces (`$014610` polls `$29C048`,
+`$008AF8` and `$00B67E` read shared RAM) or depends on interrupt counts
+(`$01461C` is the IRQ2 handler, `$014640` its ADC channel rotation); the sub's
+are its handshake loops (`$556`, `$568`) and IRQ4 placement. `verif/board/
+check_m1.sh` runs this gate. A note on the 315-5249: games read the quotient
+with the instruction after the trigger write, so the divider completes in
+8 clocks (4 bits/clock); the DTACK stall is only a safety net.
+
+The service-mode memory test needs the text layer to read its result, so
+that part of the M1 gate moves to M2.
+
 ## ROM stream
 
 `tools/pack_roms.py` and `tools/gen_mra.py` share `tools/romsets.py`. The
