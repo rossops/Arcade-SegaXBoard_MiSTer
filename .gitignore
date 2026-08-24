@@ -107,3 +107,6 @@ verif/unit/sprite/*.hex
 verif/unit/sprite/*.vvp
 verif/unit/sprite/fb.txt
 verif/unit/sprite/runs.txt
+verif/unit/road/*.hex
+verif/unit/road/*.vvp
+verif/unit/road/road.txt

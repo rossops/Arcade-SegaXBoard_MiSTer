@@ -209,6 +209,7 @@ wire [15:0] sw_din;
 wire  [1:0] sw_be;
 board_desc_t board_desc;
 wire        tile_wr; wire [17:0] tile_waddr; wire [7:0] tile_wdata;
+wire        road_wr; wire [15:0] road_waddr; wire [7:0] road_wdata;
 
 xb_rom_loader loader (
     .clk(clk_sys), .rst(~pll_locked),
@@ -220,6 +221,7 @@ xb_rom_loader loader (
     .sdr_wr_req(sw_req), .sdr_wr_addr(sw_addr), .sdr_wr_din(sw_din),
     .sdr_wr_be(sw_be), .sdr_wr_ack(sw_ack),
     .tile_wr(tile_wr), .tile_waddr(tile_waddr), .tile_wdata(tile_wdata),
+    .road_wr(road_wr), .road_waddr(road_waddr), .road_wdata(road_wdata),
     .rom_loaded(rom_loaded)
 );
 
@@ -281,6 +283,7 @@ xb_core core (
     .clk_sys(clk_sys), .clk_ram(clk_ram), .reset(reset), .pause(pause),
     .board_desc(board_desc),
     .tile_wr(tile_wr), .tile_waddr(tile_waddr), .tile_wdata(tile_wdata),
+    .road_wr(road_wr), .road_waddr(road_waddr), .road_wdata(road_wdata),
     .DDRAM_BUSY(DDRAM_BUSY), .DDRAM_BURSTCNT(DDRAM_BURSTCNT), .DDRAM_ADDR(DDRAM_ADDR),
     .DDRAM_DOUT(DDRAM_DOUT), .DDRAM_DOUT_READY(DDRAM_DOUT_READY), .DDRAM_RD(DDRAM_RD),
     .DDRAM_DIN(DDRAM_DIN), .DDRAM_BE(DDRAM_BE), .DDRAM_WE(DDRAM_WE),

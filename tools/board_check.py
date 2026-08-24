@@ -8,7 +8,7 @@ pixel-exact everywhere (tile layers and the black background).
 import os, sys, zipfile
 from PIL import Image
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "verif"))
-from models import tilemap16b as tm, palette5242 as pal, sprite5211 as sp
+from models import tilemap16b as tm, palette5242 as pal, sprite5211 as sp, road5275 as rd
 SPRITE_ROMS = ["mpr-10932.90", "mpr-10934.94", "mpr-10936.98", "mpr-10938.102",
                "mpr-10933.91", "mpr-10935.95", "mpr-10937.99", "mpr-10939.103",
                "epr-11103.92", "epr-11104.96", "epr-11105.100", "epr-11106.104",
@@ -44,13 +44,27 @@ def main(outdir, frame, zippath="/Volumes/roms/Arcade/MAME 0.289 ROMs (merged)/a
             allw = words(sprfile)
             fbs.append(sp.render(allw[0:2048], rom, 8))
             fbs.append(sp.render(allw[2048:4096], rom, 8))
+    # road: the renderer reads the bank the CPU is not writing (~road_bank)
+    road_bg = road_fg = None
+    ctlfile = os.path.join(outdir, "rtl_roadctl.txt")
+    if os.path.exists(ctlfile) and os.path.exists(os.path.join(outdir, "rtl_roadram.bin")):
+        control, road_bank = [int(v) for v in open(ctlfile).read().split()]
+        rr = words(os.path.join(outdir, "rtl_roadram.bin"))
+        rbuf = rr[2048:4096] if road_bank == 0 else rr[0:2048]
+        gfx = rd.decode(zf.read("epr-10922.40"))
+        road_bg, road_fg = rd.render(rbuf, control, gfx)
     best = None
     for bank, fb in enumerate(fbs):
         ok = opaque = 0
         first = None
+        mism = []
         for y in range(224):
             for x in range(320):
                 i, eff, op = idx[y][x], False, bool(mark[y][x])
+                if road_bg is not None:
+                    m = mark[y][x]
+                    if road_bg[y][x] is not None: op = True; i = road_bg[y][x] if not m else i
+                    if road_fg[y][x] is not None and not m: op = True; i = road_fg[y][x]
                 if fb is not None and fb[y][x] != 0xFFFF:
                     pix = fb[y][x]
                     if (1 << ((pix >> 12) & 3)) > mark[y][x]:
@@ -61,10 +75,14 @@ def main(outdir, frame, zippath="/Volumes/roms/Arcade/MAME 0.289 ROMs (merged)/a
                 opaque += 1 if op else 0
                 got = rtl.getpixel((x, y))
                 if got == exp: ok += 1
-                elif first is None: first = (x, y, exp, got)
-        if best is None or ok > best[0]: best = (ok, opaque, first, bank)
-    ok, opaque, first, bank = best
+                else:
+                    if first is None: first = (x, y, exp, got)
+                    mism.append((x, y, exp, got))
+        if best is None or ok > best[0]: best = (ok, opaque, first, bank, mism)
+    ok, opaque, first, bank, mism = best
     print(f"frame {frame}: {ok}/71680 pixels exact ({opaque} opaque, sprite bank {bank}); first mismatch {first}")
+    if os.environ.get("LIST"):
+        for m in mism[:60]: print("   ", m)
     return 0 if ok == 71680 else 1
 
 

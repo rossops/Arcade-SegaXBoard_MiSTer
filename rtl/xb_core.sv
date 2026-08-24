@@ -38,10 +38,13 @@ module xb_core (
     output            p5_req, output [24:3] p5_addr, input  [63:0] p5_dout, input p5_ack,
     output            p6_req, output [24:1] p6_addr, input  [15:0] p6_dout, input p6_ack,
 
-    // tile ROM load (from the ioctl loader)
+    // tile / road ROM load (from the ioctl loader)
     input             tile_wr,
     input      [17:0] tile_waddr,
     input       [7:0] tile_wdata,
+    input             road_wr,
+    input      [15:0] road_waddr,
+    input       [7:0] road_wdata,
 
     // inputs (active high)
     input      [15:0] p1_buttons,   // 0 right 1 left 2 down 3 up 4 vulcan 5 missile 6 start 7 coin 8 test 9 service
@@ -339,8 +342,10 @@ xb_dpram #(.AW(13)) subram0 (.clk(clk_sys), .a_addr(xa[13:1]), .a_din(x_dout), .
     .a_we(x_valid && x_wr && x_sel_ram0 && x_start), .a_dout(ram0_q), .b_clk(clk_sys), .b_addr(13'd0), .b_dout());
 xb_dpram #(.AW(13)) subram1 (.clk(clk_sys), .a_addr(xa[13:1]), .a_din(x_dout), .a_be(x_be),
     .a_we(x_valid && x_wr && x_sel_ram1 && x_start), .a_dout(ram1_q), .b_clk(clk_sys), .b_addr(13'd0), .b_dout());
+wire [10:0] road_rd_addr; wire [15:0] road_rd_q;
 xb_dpram #(.AW(12)) roadram (.clk(clk_sys), .a_addr({road_bank, xa[11:1]}), .a_din(x_dout), .a_be(x_be),
-    .a_we(x_valid && x_wr && x_sel_road && x_start), .a_dout(road_q), .b_clk(clk_sys), .b_addr(12'd0), .b_dout());
+    .a_we(x_valid && x_wr && x_sel_road && x_start), .a_dout(road_q), .b_clk(clk_sys),
+    .b_addr({~road_bank, road_rd_addr}), .b_dout(road_rd_q));
 always @(posedge clk_sys) begin
     if (reset) begin road_bank <= 1'b0; road_control <= 3'd0; end
     else if (x_cs && x_sel_roadctl) begin
@@ -472,6 +477,19 @@ reg [15:0] spr_pix_r;
 always @(posedge clk_sys) if (ce_pix) spr_pix_r <= fbr_pix;
 wire spr_v = (spr_pix_r != 16'hFFFF);
 
+// ---------------------------------------------------------------- road
+wire [15:0] road_rom_a0, road_rom_a1; wire [7:0] road_rom_q0, road_rom_q1;
+xb_roadrom roadrom (.clk(clk_sys), .wr(road_wr), .wr_addr(road_waddr), .wr_data(road_wdata),
+    .rd_addr0(road_rom_a0), .rd_addr1(road_rom_a1), .rd_q0(road_rom_q0), .rd_q1(road_rom_q1));
+wire        road_bg_v, road_fg_v; wire [12:0] road_bg_idx, road_fg_idx;
+xb_road_5275 road (
+    .clk(clk_sys), .reset(reset), .line_start(line_start), .vcnt(vcnt), .ce_pix(ce_pix), .hcnt(hcnt),
+    .control(road_control),
+    .ram_addr(road_rd_addr), .ram_q(road_rd_q),
+    .rom_addr0(road_rom_a0), .rom_addr1(road_rom_a1), .rom_q0(road_rom_q0), .rom_q1(road_rom_q1),
+    .bg_v(road_bg_v), .bg_idx(road_bg_idx), .fg_v(road_fg_v), .fg_idx(road_fg_idx)
+);
+
 // pixel pipeline: line buffer read (1) -> mixer (1, at ce_pix) -> palette (2).
 // The blanking/sync signals are delayed one pixel so the framework samples
 // the RGB of the same pixel.
@@ -480,7 +498,7 @@ always @(posedge clk_sys) begin ce_pix_d1 <= ce_pix; ce_pix_d2 <= ce_pix_d1; end
 xb_mixer mixer (
     .clk(clk_sys), .ce_pix(ce_pix_d1), .road_priority(board_desc.road_priority),
     .fg_pix(fg_pix), .bg_pix(bg_pix), .tx_pix(tx_pix),
-    .road_bg_v(1'b0), .road_bg_idx(13'd0), .road_fg_v(1'b0), .road_fg_idx(13'd0),
+    .road_bg_v(road_bg_v), .road_bg_idx(road_bg_idx), .road_fg_v(road_fg_v), .road_fg_idx(road_fg_idx),
     .spr_v(spr_v), .spr_pix(spr_pix_r),
     .pal_idx(pal_idx), .pal_effects(pal_effects)
 );

@@ -35,6 +35,10 @@ module xb_rom_loader (
     output reg        tile_wr,
     output reg [17:0] tile_waddr,
     output reg  [7:0] tile_wdata,
+    // road ROM BRAM
+    output reg        road_wr,
+    output reg [15:0] road_waddr,
+    output reg  [7:0] road_wdata,
 
     output reg        rom_loaded
 );
@@ -43,10 +47,12 @@ reg [7:0] desc_bytes [0:7];
 reg       busy;
 reg       tile_hi_pend;      // second byte of a tile word still to write
 reg [7:0] tile_hi_byte;
+reg       road_hi_pend;
+reg [7:0] road_hi_byte;
 reg       index0_seen;
 integer   i;
 
-assign ioctl_wait = busy | tile_hi_pend | ~mem_ready;
+assign ioctl_wait = busy | tile_hi_pend | road_hi_pend | ~mem_ready;
 
 function automatic [24:0] map_addr(input [26:0] a);
     if      (a < OFF_SUB)    map_addr = SDR_MAIN_BASE   + (a[24:0] - OFF_MAIN[24:0]);
@@ -66,6 +72,7 @@ always @(posedge clk) begin
         sdr_wr_req <= 1'b0; sdr_wr_addr <= '0; sdr_wr_din <= '0; sdr_wr_be <= '0;
         rom_loaded <= 1'b0; busy <= 1'b0; index0_seen <= 1'b0;
         tile_wr <= 1'b0; tile_waddr <= '0; tile_wdata <= '0; tile_hi_pend <= 1'b0; tile_hi_byte <= '0;
+        road_wr <= 1'b0; road_waddr <= '0; road_wdata <= '0; road_hi_pend <= 1'b0; road_hi_byte <= '0;
         desc_r <= '0;
         for (i = 0; i < 8; i = i + 1) desc_bytes[i] <= 8'd0;
     end
@@ -75,6 +82,13 @@ always @(posedge clk) begin
             busy       <= 1'b0;
         end
         tile_wr <= 1'b0;
+        road_wr <= 1'b0;
+        if (road_hi_pend) begin
+            road_wr      <= 1'b1;
+            road_waddr   <= road_waddr + 16'd1;
+            road_wdata   <= road_hi_byte;
+            road_hi_pend <= 1'b0;
+        end
         if (tile_hi_pend) begin
             tile_wr      <= 1'b1;
             tile_waddr   <= tile_waddr + 18'd1;
@@ -97,6 +111,15 @@ always @(posedge clk) begin
                     desc_r.adc_reverse   <= desc_bytes[3];
                     desc_r.pcm_bankmask  <= desc_bytes[4];
                 end
+            end
+            else if (ioctl_addr >= OFF_ROAD && ioctl_addr < OFF_ROAD + 27'h1_0000) begin
+                logic [26:0] ra;
+                ra = ioctl_addr - OFF_ROAD;
+                road_wr      <= 1'b1;
+                road_waddr   <= ra[15:0];
+                road_wdata   <= ioctl_dout[7:0];
+                road_hi_byte <= ioctl_dout[15:8];
+                road_hi_pend <= 1'b1;
             end
             else if (ioctl_addr >= OFF_TILE && ioctl_addr < OFF_TILE + 27'h3_0000) begin
                 logic [26:0] ta;

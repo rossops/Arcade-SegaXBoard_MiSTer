@@ -60,6 +60,7 @@ ddram_model ddram (
 xb_core core (
     .clk_sys(clk_sys), .clk_ram(clk_ram), .reset(reset), .pause(1'b0), .board_desc(desc),
     .tile_wr(1'b0), .tile_waddr(18'd0), .tile_wdata(8'd0),
+    .road_wr(1'b0), .road_waddr(16'd0), .road_wdata(8'd0),
     .DDRAM_BUSY(DDRAM_BUSY), .DDRAM_BURSTCNT(DDRAM_BURSTCNT), .DDRAM_ADDR(DDRAM_ADDR),
     .DDRAM_DOUT(DDRAM_DOUT), .DDRAM_DOUT_READY(DDRAM_DOUT_READY), .DDRAM_RD(DDRAM_RD),
     .DDRAM_DIN(DDRAM_DIN), .DDRAM_BE(DDRAM_BE), .DDRAM_WE(DDRAM_WE),
@@ -131,6 +132,7 @@ task automatic dump_ram(input string name, input integer words, input integer wh
             0: $fwrite(fd, "%c%c", core.tileram.mem[k][7:0], core.tileram.mem[k][15:8]);
             1: $fwrite(fd, "%c%c", core.textram.mem[k][7:0], core.textram.mem[k][15:8]);
             2: $fwrite(fd, "%c%c", core.palette.mem[k][7:0], core.palette.mem[k][15:8]);
+            4: $fwrite(fd, "%c%c", core.roadram.mem[k][7:0], core.roadram.mem[k][15:8]);
             default: $fwrite(fd, "%c%c", core.spriteram.mem[k][7:0], core.spriteram.mem[k][15:8]);
         endcase
     end
@@ -176,6 +178,9 @@ always @(posedge clk_sys) begin
             dump_ram("rtl_textram.bin", 2048, 1);
             dump_ram("rtl_paletteram.bin", 8192, 2);
             dump_ram("rtl_spriteram.bin", 4096, 3);
+            dump_ram("rtl_roadram.bin", 4096, 4);
+            begin integer fc; fc = $fopen("rtl_roadctl.txt", "w");
+                  $fwrite(fc, "%0d %0d\n", core.road_control, core.road_bank); $fclose(fc); end
         end
         if (frame + 1 == dumpframe && dumpframe >= 0) begin
             dump_ram("rtl_spriteram_prev.bin", 4096, 3);

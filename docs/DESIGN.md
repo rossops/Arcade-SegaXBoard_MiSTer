@@ -142,6 +142,32 @@ all three. `tools/board_check.py` (with the RTL's sprite RAM dumped at the
 dump frame and the frame before) is exact on the whole board at frame 60.
 `verif/board/check_m3.sh` runs this.
 
+## Road, 315-5275 (M4)
+
+`xb_road_5275` is a per-line port of MAME's segaic16_road_outrun_draw with
+the X Board parameters (colour bases 0x1700/0x1720/0x1780, xoffs -166,
+control mask 7). Per line it reads the six road RAM words (line words,
+h positions, colours; direct scanline addressing when control bit 2 is set),
+builds MAME's colour table, then produces one pixel per two clocks from the
+two roads' bitplane bytes with the priority map. The 64 KB road ROM sits in
+BRAM (`xb_roadrom`, two read ports), filled by the loader. Road RAM is the
+double-buffered pair in `xb_core`, swapped on the control read; the renderer
+reads the bank the sub CPU is not writing. The background pass (solid line
+colour) and the foreground pass feed the mixer in MAME's order.
+
+### M4 verification
+
+The capture Lua taps the sub CPU's control read (`$EE000`; the main-CPU
+mirror is never used) to save the buffer that will be displayed, and the
+control write for its value. With `verif/models/road5275.py` the Python
+model of tiles + sprites + road reproduces MAME's PNG on **every pixel** of
+frames 60, 150 and 300 (`tools/road_check.py`). The standalone RTL bench
+(`verif/unit/road/run_road.py`) is exact on all three, and the whole board is
+exact at frame 60 (`tools/board_check.py`). `verif/board/check_m4.sh` runs
+all of it. Note for the board sim: `+roadrom` and `+tilerom` read hex files
+from the run directory, which `make run` links in; running the binary by
+hand without them silently renders from empty ROMs.
+
 ## ROM stream
 
 `tools/pack_roms.py` and `tools/gen_mra.py` share `tools/romsets.py`. The

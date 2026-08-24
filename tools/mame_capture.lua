@@ -22,6 +22,8 @@ local test_field = nil
 -- write; the last capture before the target frame is what the PNG shows.
 local main_space = nil
 local tap = nil
+local road_rtap = nil
+local road_wtap = nil
 
 emu.register_frame_done(function()
     frame = frame + 1
@@ -29,6 +31,18 @@ emu.register_frame_done(function()
         main_space = manager.machine.devices[":mainpcb:maincpu"].spaces["program"]
         tap = main_space:install_write_tap(0x110000, 0x11ffff, "xb_sprswap", function(offset, data, mask)
             if not done then dump(main_space, 0x100000, 0x800, outdir .. "/spritelist.bin") end
+        end)
+        -- road RAM is swapped into the display buffer on a control read; the
+        -- sub CPU owns the road ($EE000 in its map). Save the RAM at that
+        -- moment, and the control value on write.
+        local sub_space = manager.machine.devices[":mainpcb:subcpu"].spaces["program"]
+        road_rtap = sub_space:install_read_tap(0xee000, 0xeffff, "xb_roadswap", function(offset, data, mask)
+            if not done then dump(sub_space, 0xec000, 0x800, outdir .. "/roadbuf.bin") end
+        end)
+        road_wtap = sub_space:install_write_tap(0xee000, 0xeffff, "xb_roadctl", function(offset, data, mask)
+            if not done then
+                local f = io.open(outdir .. "/roadctl.txt", "w"); f:write(string.format("%d\n", data & 7)); f:close()
+            end
         end)
     end
     if test_mode then

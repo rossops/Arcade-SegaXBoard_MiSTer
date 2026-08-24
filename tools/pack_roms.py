@@ -103,6 +103,10 @@ def main():
         os.makedirs(a.hexdir, exist_ok=True)
         for r, d in regions.items():
             write_hex(os.path.join(a.hexdir, f"{r}.hex"), d)
+        # road ROM as a byte file for the BRAM road ROM ($readmemh)
+        with open(os.path.join(a.hexdir, "roadrom.hex"), "w") as f:
+            for i in range(0x10000):
+                f.write(f"{regions['road'][i]:02x}\n")
         # tile ROM planes as byte files for the BRAM tile ROM ($readmemh)
         t = regions["tile"]
         for p in range(3):
