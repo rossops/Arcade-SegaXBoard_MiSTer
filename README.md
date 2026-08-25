@@ -23,6 +23,7 @@ flow, the ROM stream tools and a stub board that shows colour bars.
 | M6 | Hardware bring-up and timing closure | done: DIPs, NVRAM, MAME analog ranges, pause; zero negative slack all corners, 49% ALMs; ROM cache fill defect fixed and confirmed on hardware (build #11) |
 | M7 | After Burner and Thunder Blade | done: aburner (1.32/1.31), thndrbld1, thndrbldd confirmed on hardware; Thunder Blade pixel-exact vs MAME; FD1094 parent sets need a decryption block (M8) |
 | M8 | Super Monaco GP | done: smgpd (decrypted bootleg) with the second sound board and driving inputs, pixel-exact vs MAME, confirmed on hardware; official FD1094 sets need M9 |
+| M9 | FD1094 | done: decryptor unit-verified against MAME; encrypted Thunder Blade and Super Monaco GP (World, Rev B) pixel-exact vs MAME and confirmed on hardware |
 
 ## Layout
 
@@ -45,6 +46,8 @@ compiles `Arcade-SegaXBoard` and copies the result to
 `releases\Arcade-SegaXBoard_YYYYMMDD.rbf`. `clean.bat` removes every generated
 file. If Quartus lives somewhere other than `C:\intelFPGA_lite\17.0\quartus`,
 set `QUARTUS_ROOTDIR` first.
+
+The OSD's version line is `v<yymmdd>-<git sha>`, generated into `build_id.v` at compile time by `sys/build_id.tcl` (a `*` after the SHA means the tree had uncommitted changes; `git` on the build machine is optional, the script falls back to reading `.git/HEAD`).
 
 ## Simulation and tests (macOS/Linux)
 

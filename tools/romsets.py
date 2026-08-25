@@ -26,10 +26,11 @@ SLOT = {
     "pcm":    0x080000,
     "sprite": 0x400000,
     "tile":   0x040000,
+    "key":    0x002000,   # FD1094 key RAM
     "z80b":   0x010000,   # SMGP second sound board Z80
     "pcm2":   0x080000,   # SMGP second 315-5218
 }
-ORDER = ["main", "sub", "z80", "road", "pcm", "sprite", "tile", "z80b", "pcm2"]
+ORDER = ["main", "sub", "z80", "road", "pcm", "sprite", "tile", "key", "z80b", "pcm2"]
 # the stream ends after the last region a set populates (old sets stay short)
 DESC_SIZE = 64
 
@@ -463,5 +464,163 @@ ROMSETS = {
                 ("mpr-12439.22", 0x20000, "13bf6de5"),
             ]),
         },
+    },
+    "thndrbld": {
+        "name": 'Thunder Blade (upright)',
+        "year": '1987',
+        "zip": 'thndrbld',
+        "zipfile": 'thndrbld',
+        "game_id": 2,
+        "road_priority": 1,
+        "thndrbld_hack": 1,
+        "has_throttle": 1,
+        "sprite_banks": 8,
+        "adc_reverse": 1,
+        "pcm_bankmask": 112,
+        "ana_mode": 1,
+        "dip_default": 'FF,FD',
+        "dips": [
+            (0, 3, 'Coin A', 'Free Play (if both) or 1C/1C,1C/1C 2/3,1C/1C 4/5,1C/1C 5/6,2C/1C 4/3,2C/1C 3/2 5/3 6/4,2C/3C,4C/1C,3C/1C,2C/1C,7C/1C,6C/1C,5C/1C,1C/3C,1C/2C,1C/1C'),
+            (4, 7, 'Coin B', 'Free Play (if both) or 1C/1C,1C/1C 2/3,1C/1C 4/5,1C/1C 5/6,2C/1C 4/3,2C/1C 3/2 5/3 6/4,2C/3C,4C/1C,3C/1C,2C/1C,7C/1C,6C/1C,5C/1C,1C/3C,1C/2C,1C/1C'),
+            (8, 8, 'Cabinet', 'Mini Upright,Econ Upright'),
+            (9, 9, 'Demo Sounds', 'On,Off'),
+            (10, 10, 'Time', '0 sec,30 sec'),
+            (11, 12, 'Lives', '5,2,4,3'),
+            (13, 13, 'Allow Continue', 'No,Yes'),
+            (14, 15, 'Difficulty', 'Hardest,Easy,Hard,Normal'),
+        ],
+        "buttons": ('Cannon,Missile,Start,Coin,Test,Service,Pause', 'A,B,Start,R,L,Select,X'),
+        "regions": {
+            "main": ("w16", [
+                ("epr-11405.ic58", 0x20000, "e057dd5a"),
+                ("epr-11406.ic63", 0x20000, "c6b994b8"),
+                ("epr-11306.ic57", 0x20000, "4b95f2b4"),
+                ("epr-11307.ic62", 0x20000, "2d6833e4"),
+            ]),
+            "sub": ("w16", [
+                ("epr-11390.ic20", 0x20000, "ed988fdb"),
+                ("epr-11391.ic29", 0x20000, "12523bc1"),
+                ("epr-11310.ic21", 0x20000, "5d9fa02c"),
+                ("epr-11311.ic30", 0x20000, "483de21b"),
+            ]),
+            "z80": ("flat", [
+                ("epr-11396.ic17", 0x10000, "d37b54a4"),
+            ]),
+            "road": ("flat", [
+                ("epr-11313.ic29", 0x10000, "6a56c4c3"),
+            ]),
+            "pcm": ("flat", [
+                ("epr-11317.ic11", 0x20000, "d4e7ac1f"),
+                ("epr-11318.ic12", 0x20000, "70d3f02c"),
+                ("epr-11319.ic13", 0x20000, "50d9242e"),
+            ]),
+            "sprite": ("x32", [
+                ("epr-11323.ic90", 0x20000, "27e40735"),
+                ("epr-11322.ic94", 0x20000, "10364d74"),
+                ("epr-11321.ic98", 0x20000, "8e738f58"),
+                ("epr-11320.ic102", 0x20000, "a95c76b8"),
+                ("epr-11327.ic91", 0x20000, "deae90f1"),
+                ("epr-11326.ic95", 0x20000, "29198403"),
+                ("epr-11325.ic99", 0x20000, "b9e98ae9"),
+                ("epr-11324.ic103", 0x20000, "9742b552"),
+                ("epr-11331.ic92", 0x20000, "3a2c042e"),
+                ("epr-11330.ic96", 0x20000, "aa7c70c5"),
+                ("epr-11329.ic100", 0x20000, "31b20257"),
+                ("epr-11328.ic104", 0x20000, "da39e89c"),
+                ("epr-11395.ic93", 0x20000, "90775579"),
+                ("epr-11394.ic97", 0x20000, "5f2783be"),
+                ("epr-11393.ic101", 0x20000, "525e2e1d"),
+                ("epr-11392.ic105", 0x20000, "b4a382f7"),
+            ]),
+            "tile": ("flat", [
+                ("epr-11314.ic154", 0x10000, "d4f954a9"),
+                ("epr-11315.ic153", 0x10000, "35813088"),
+                ("epr-11316.ic152", 0x10000, "84290dff"),
+            ]),
+            "key": ("flat", [
+                ("317-0056.key", 0x2000, "b40cd2c5"),
+            ]),
+        },
+        "fd1094": 1,
+    },
+    "smgp": {
+        "name": 'Super Monaco GP (World, Rev B)',
+        "year": '1989',
+        "zip": 'smgp',
+        "zipfile": 'smgp',
+        "game_id": 3,
+        "road_priority": 1,
+        "thndrbld_hack": 0,
+        "has_throttle": 1,
+        "sprite_banks": 8,
+        "adc_reverse": 0,
+        "pcm_bankmask": 112,
+        "ana_mode": 2,
+        "has_snd2": 1,
+        "motor_zero": 1,
+        "dip_default": 'FF,7F',
+        "dips": [
+            (0, 3, 'Coin A', 'Free Play (if both) or 1C/1C,1C/1C 2/3,1C/1C 4/5,1C/1C 5/6,2C/1C 4/3,2C/1C 3/2 5/3 6/4,2C/3C,4C/1C,3C/1C,2C/1C,7C/1C,6C/1C,5C/1C,1C/3C,1C/2C,1C/1C'),
+            (4, 7, 'Coin B', 'Free Play (if both) or 1C/1C,1C/1C 2/3,1C/1C 4/5,1C/1C 5/6,2C/1C 4/3,2C/1C 3/2 5/3 6/4,2C/3C,4C/1C,3C/1C,2C/1C,7C/1C,6C/1C,5C/1C,1C/3C,1C/2C,1C/1C'),
+            (8, 10, 'Machine ID', '8,7,6,5,4,3,2,1'),
+            (11, 13, 'Number of Machines', '8,7,6,5,4,3,2,1'),
+            (14, 15, 'Cabinet', 'Unused,Upright,Cockpit,Deluxe'),
+        ],
+        "buttons": ('Shift Down,Shift Up,Start,Coin,Test,Service,Pause,Gas,Brake', 'A,B,Start,R,L,Select,X,Y,L2'),
+        "regions": {
+            "main": ("w16", [
+                ("epr-12563b.58", 0x20000, "baf1f333"),
+                ("epr-12564b.63", 0x20000, "b5191af0"),
+            ]),
+            "sub": ("w16", [
+                ("epr-12576a.20", 0x20000, "2c9599c1"),
+                ("epr-12577a.29", 0x20000, "abf9a50b"),
+            ]),
+            "z80": ("flat", [
+                ("epr-12436.17", 0x10000, "16ec5f0a"),
+            ]),
+            "road": ("flat", [
+            ]),
+            "pcm": ("flat", [
+                ("mpr-12437.11", 0x20000, "a1c7e712"),
+                ("mpr-12438.12", 0x20000, "6573d46b"),
+                ("mpr-12439.13", 0x20000, "13bf6de5"),
+            ]),
+            "sprite": ("x32", [
+                ("mpr-12425.90", 0x20000, "14bf2a15"),
+                ("mpr-12426.94", 0x20000, "28b60dc0"),
+                ("mpr-12427.98", 0x20000, "0a367928"),
+                ("mpr-12428.102", 0x20000, "efa80ad5"),
+                ("mpr-12421.91", 0x20000, "25f46140"),
+                ("mpr-12422.95", 0x20000, "cb51c8f6"),
+                ("mpr-12423.99", 0x20000, "0be9818e"),
+                ("mpr-12424.103", 0x20000, "0ce00dfc"),
+                ("mpr-12417.92", 0x20000, "a806eabf"),
+                ("mpr-12418.96", 0x20000, "ed1a0f2b"),
+                ("mpr-12419.100", 0x20000, "ce4568cb"),
+                ("mpr-12420.104", 0x20000, "679442eb"),
+                ("epr-12609.93", 0x20000, "a867812f"),
+                ("epr-12610.97", 0x20000, "53b99417"),
+                ("epr-12611.101", 0x20000, "bd5c6ab0"),
+                ("epr-12612.105", 0x20000, "ac86e890"),
+            ]),
+            "tile": ("flat", [
+                ("epr-12429.154", 0x10000, "5851e614"),
+                ("epr-12430.153", 0x10000, "05e00134"),
+                ("epr-12431.152", 0x10000, "35572f4a"),
+            ]),
+            "key": ("flat", [
+                ("317-0126a.key", 0x2000, "2abc1982"),
+            ]),
+            "z80b": ("flat", [
+                ("epr-12535.8", 0x10000, "80453597"),
+            ]),
+            "pcm2": ("flat", [
+                ("mpr-12437.20", 0x20000, "a1c7e712"),
+                ("mpr-12438.21", 0x20000, "6573d46b"),
+                ("mpr-12439.22", 0x20000, "13bf6de5"),
+            ]),
+        },
+        "fd1094": 1,
     },
 }

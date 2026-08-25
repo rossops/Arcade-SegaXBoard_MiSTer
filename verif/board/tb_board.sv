@@ -67,6 +67,16 @@ always @(posedge clk_sys) begin
     if (core.sound2.mem_wr && core.sound2.sel_pcm && core.sound2.ce_z80) s2_pcmw = s2_pcmw + 1;
     if (core.sound.mem_wr && core.sound.sel_pcm && core.sound.ce_z80) s1_pcmw = s1_pcmw + 1;
 end
+reg trace_fd; initial trace_fd = $test$plusargs("trace_fd");
+integer fd_n = 0;
+reg fd_ack_d;
+always @(posedge clk_sys) begin
+    fd_ack_d <= core.m_fd_ack;
+    if (trace_fd && core.m_valid && core.m_sel_rom && core.m_fd_ack && !fd_ack_d && fd_n < 48) begin
+        fd_n = fd_n + 1;
+        $display("FD a=%06x fc=%0d enc=%04x dec=%04x st=%02x en=%0d key0=%02x gk=%02x%02x%02x", {core.m_addr, 1'b0}, core.m_fc, core.m_rom_data, core.m_fd_data, core.fd1094.st, core.board_desc.fd1094, core.fd1094.key_ram[0], core.fd1094.u_dec.gkey1, core.fd1094.u_dec.gkey2, core.fd1094.u_dec.gkey3);
+    end
+end
 reg trace_adc; initial trace_adc = $test$plusargs("trace_adc");
 always @(posedge clk_sys) if (trace_adc && core.m_cs && core.m_sel_adc && core.m_start) begin
     if (core.m_wr) $display("ADC wr f=%0d ch=%0d", frame, core.io0_out_c[4:2]);
@@ -81,6 +91,7 @@ initial begin
     if ($value$plusargs("ana_mode=%d", pa)) desc.ana_mode = pa[1:0];
     if ($value$plusargs("has_snd2=%d", pa)) desc.has_snd2 = pa[0];
     if ($value$plusargs("motor_zero=%d", pa)) desc.motor_zero = pa[0];
+    if ($value$plusargs("fd1094=%d", pa)) desc.fd1094 = pa[0];
 end
 
 wire p0_req, p1_req, p2_req, p3_req, p4_req, p5_req, p6_req, p3_urgent, p4_urgent;
@@ -123,6 +134,7 @@ xb_core core (
     .clk_sys(clk_sys), .clk_ram(clk_ram), .reset(reset), .pause(1'b0), .rear_en(rear_en), .board_desc(desc),
     .tile_wr(1'b0), .tile_waddr(18'd0), .tile_wdata(8'd0),
     .road_wr(1'b0), .road_waddr(16'd0), .road_wdata(8'd0),
+    .key_wr(1'b0), .key_waddr(13'd0), .key_wdata(8'd0),
     .DDRAM_BUSY(DDRAM_BUSY), .DDRAM_BURSTCNT(DDRAM_BURSTCNT), .DDRAM_ADDR(DDRAM_ADDR),
     .DDRAM_DOUT(DDRAM_DOUT), .DDRAM_DOUT_READY(DDRAM_DOUT_READY), .DDRAM_RD(DDRAM_RD),
     .DDRAM_DIN(DDRAM_DIN), .DDRAM_BE(DDRAM_BE), .DDRAM_WE(DDRAM_WE),

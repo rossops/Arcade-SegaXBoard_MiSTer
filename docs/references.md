@@ -18,6 +18,7 @@ schematic) and the disagreement is listed in `docs/DESIGN.md` under open questio
 | `sys/` | MiSTer framework, copied from `/Volumes/roms/s32/sys` | (as s32) | GPL-3 / mixed, see files |
 | `rtl/cpu/fx68k/` | https://github.com/ijor/fx68k | `0602ee4627b10f301298f2673d826cdd6baa9327` | GPL-3 |
 | `rtl/audio/jt51/` | https://github.com/jotego/jt51 (`hdl/`) | `985a573dcfc1ff135553a39f7eae21d18ba57cbe` | GPL-3 |
+| `rtl/cpu/fd1094/` | https://github.com/jotego/jtcores (`cores/s16/hdl/jts16_fd1094_{ctrl,dec}.v`) | `c96437c1eb2e2e99dfe6f523d9b6bfc45a74689f` | GPL-3 |
 | `rtl/audio/T80/` | copied from `/Volumes/roms/s32/rtl/audio/T80` (Wallner/MikeJ/Sorgelig) | (as s32) | BSD-style |
 | `rtl/mem/sdram.sv` | forked from `/Volumes/roms/s32/rtl/mem/sdram.sv` | 2026-08-23 | GPL-3 |
 | `rtl/mem/xb_fb_if.sv` | forked from `/Volumes/roms/s32/rtl/mem/s32_fb_if.sv` | 2026-08-23 | GPL-3 |

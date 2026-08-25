@@ -18,7 +18,8 @@ def descriptor(rs):
     d = bytearray(DESC_SIZE)
     d[0] = rs["game_id"]
     d[1] = ((rs["road_priority"] & 1) | ((rs["thndrbld_hack"] & 1) << 1) | ((rs["has_throttle"] & 1) << 2)
-            | ((rs.get("has_snd2", 0) & 1) << 3) | ((rs.get("motor_zero", 0) & 1) << 4))
+            | ((rs.get("has_snd2", 0) & 1) << 3) | ((rs.get("motor_zero", 0) & 1) << 4)
+            | ((rs.get("fd1094", 0) & 1) << 5))
     d[2] = rs["sprite_banks"]
     d[3] = rs["adc_reverse"]
     d[4] = rs["pcm_bankmask"]
@@ -120,6 +121,11 @@ def main():
         with open(os.path.join(a.hexdir, "roadrom.hex"), "w") as f:
             for i in range(0x10000):
                 f.write(f"{regions['road'][i]:02x}\n")
+        # FD1094 key as a byte file for the key RAM ($readmemh, +keyrom)
+        if rs["regions"].get("key", ("flat", []))[1]:
+            with open(os.path.join(a.hexdir, "keyrom.hex"), "w") as f:
+                for i in range(0x2000):
+                    f.write(f"{regions['key'][i]:02x}\n")
         # tile ROM planes as byte files for the BRAM tile ROM ($readmemh)
         t = regions["tile"]
         for p in range(3):

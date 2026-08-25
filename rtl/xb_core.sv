@@ -46,6 +46,9 @@ module xb_core (
     input             road_wr,
     input      [15:0] road_waddr,
     input       [7:0] road_wdata,
+    input             key_wr,         // FD1094 key RAM
+    input      [12:0] key_waddr,
+    input       [7:0] key_wdata,
 
     // NVRAM host port (backup RAM 1 then 2, 16-bit words; CPU is in reset
     // during a download, so the host borrows the CPU port)
@@ -157,6 +160,7 @@ reg         m_ack;
 wire        timer_irq;
 wire  [2:0] m_ipl = (timer_irq && vbl_irq) ? 3'd6 : vbl_irq ? 3'd4 : timer_irq ? 3'd2 : 3'd0;
 wire  [2:0] m_fc;
+wire        m_as_n;
 wire        m_reset_out;     // main 68000 RESET instruction -> sub CPU reset (MAME m68k_reset_callback)
 
 xb_m68k_bus main_cpu (
@@ -164,7 +168,7 @@ xb_m68k_bus main_cpu (
     .ipl(m_ipl), .halt_n(1'b1),
     .bus_addr(m_addr), .bus_valid(m_valid), .bus_start(m_start),
     .bus_rd(m_rd), .bus_wr(m_wr), .bus_be(m_be),
-    .bus_dout(m_dout), .bus_din(m_din), .bus_ack(m_ack), .reset_out(m_reset_out), .fc(m_fc)
+    .bus_dout(m_dout), .bus_din(m_din), .bus_ack(m_ack), .reset_out(m_reset_out), .fc(m_fc), .bus_as_n(m_as_n)
 );
 assign trace_main_addr = m_addr; assign trace_main_start = m_start; assign trace_main_fc = m_fc;
 
@@ -197,6 +201,14 @@ wire m_cs = m_start;   // chips act on the start pulse
 
 // ---- main ROM cache
 wire [15:0] m_rom_data; wire m_rom_ack;
+// FD1094 decryption on the main program ROM path (transparent unless the set has a key)
+wire [15:0] m_fd_data; wire m_fd_ack;
+xb_fd1094 fd1094 (
+    .clk(clk_sys), .reset(reset), .enable(board_desc.fd1094),
+    .key_wr(key_wr), .key_waddr(key_waddr), .key_wdata(key_wdata),
+    .fc(m_fc), .as_n(m_as_n), .addr(m_addr[23:1]), .enc(m_rom_data), .ack_in(m_rom_ack),
+    .dec(m_fd_data), .ack_out(m_fd_ack)
+);
 wire        m_rom_req; wire [19:3] m_rom_addr;
 xb_rom_cache #(.AW(19), .LINES(512)) main_cache (
     .clk(clk_sys), .reset(reset), .invalidate(reset),
@@ -373,7 +385,7 @@ xb_m68k_bus sub_cpu (
     .ipl(s_ipl), .halt_n(1'b1),
     .bus_addr(s_addr), .bus_valid(s_valid), .bus_start(s_start),
     .bus_rd(s_rd), .bus_wr(s_wr), .bus_be(s_be),
-    .bus_dout(s_dout), .bus_din(s_din), .bus_ack(s_ack), .reset_out(), .fc(s_fc)
+    .bus_dout(s_dout), .bus_din(s_din), .bus_ack(s_ack), .reset_out(), .fc(s_fc), .bus_as_n()
 );
 assign trace_sub_addr = s_addr; assign trace_sub_start = s_start; assign trace_sub_fc = s_fc;
 
@@ -496,7 +508,7 @@ end
 always @* begin
     m_din = 16'hFFFF;
     m_ack = 1'b0;
-    if (m_sel_rom)          begin m_din = m_rom_data; m_ack = m_rom_ack; end
+    if (m_sel_rom)          begin m_din = m_fd_data;  m_ack = m_fd_ack; end
     else if (m_sel_sub)     begin m_din = x_din;      m_ack = m_gnt && x_ack; end
     else if (m_sel_bk1)     begin m_din = bk1_q;      m_ack = m_ram_rdy; end
     else if (m_sel_bk2)     begin m_din = bk2_q;      m_ack = m_ram_rdy; end

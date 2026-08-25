@@ -117,6 +117,9 @@ assign DDRAM_CLK = clk_ram;
 `ifndef BUILD_DATE
 `define BUILD_DATE "SegaXB"
 `endif
+`ifndef BUILD_GIT
+`define BUILD_GIT "nogit"
+`endif
 
 localparam CONF_STR = {
     "SXB;;",
@@ -132,7 +135,7 @@ localparam CONF_STR = {
     "-;",
     "R[0],Reset;",
     "J1,Vulcan,Missile,Start,Coin,Test,Service,Pause,Gas,Brake;",
-    "V,v",`BUILD_DATE
+    "V,v",`BUILD_DATE,"-",`BUILD_GIT
 };
 
 ////////////////////////////   CLOCKS/PLL   ///////////////////////////////////
@@ -228,6 +231,7 @@ wire  [1:0] sw_be;
 board_desc_t board_desc;
 wire        tile_wr; wire [17:0] tile_waddr; wire [7:0] tile_wdata;
 wire        road_wr; wire [15:0] road_waddr; wire [7:0] road_wdata;
+wire        key_wr;  wire [12:0] key_waddr;  wire [7:0] key_wdata;
 
 xb_rom_loader loader (
     .clk(clk_sys), .rst(~pll_locked),
@@ -240,6 +244,7 @@ xb_rom_loader loader (
     .sdr_wr_be(sw_be), .sdr_wr_ack(sw_ack),
     .tile_wr(tile_wr), .tile_waddr(tile_waddr), .tile_wdata(tile_wdata),
     .road_wr(road_wr), .road_waddr(road_waddr), .road_wdata(road_wdata),
+    .key_wr(key_wr), .key_waddr(key_waddr), .key_wdata(key_wdata),
     .rom_loaded(rom_loaded)
 );
 
@@ -288,6 +293,7 @@ xb_core core (
     .board_desc(board_desc),
     .tile_wr(tile_wr), .tile_waddr(tile_waddr), .tile_wdata(tile_wdata),
     .road_wr(road_wr), .road_waddr(road_waddr), .road_wdata(road_wdata),
+    .key_wr(key_wr), .key_waddr(key_waddr), .key_wdata(key_wdata),
     .DDRAM_BUSY(DDRAM_BUSY), .DDRAM_BURSTCNT(DDRAM_BURSTCNT), .DDRAM_ADDR(DDRAM_ADDR),
     .DDRAM_DOUT(DDRAM_DOUT), .DDRAM_DOUT_READY(DDRAM_DOUT_READY), .DDRAM_RD(DDRAM_RD),
     .DDRAM_DIN(DDRAM_DIN), .DDRAM_BE(DDRAM_BE), .DDRAM_WE(DDRAM_WE),

@@ -35,7 +35,8 @@ module xb_m68k_bus (
     output            reset_out,       // 1 while the CPU executes RESET (drives /RESET to peripherals)
 
     // trace (sim)
-    output      [2:0] fc
+    output      [2:0] fc,
+    output            bus_as_n         // raw AS (interrupt acknowledge cycles too)
 );
 
 wire en1 = ce_phase && (phase == 2'd0);
@@ -47,6 +48,7 @@ wire [15:0] iEdb, oEdb;
 wire [23:1] eab;
 
 assign fc = {FC2, FC1, FC0};
+assign bus_as_n = ASn;
 assign reset_out = ~oRESETn;
 wire iack = (fc == 3'b111);
 

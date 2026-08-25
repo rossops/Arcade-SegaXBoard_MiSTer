@@ -1,17 +1,17 @@
 <misterromdescription>
-  <name>Super Monaco GP (World, bootleg decrypted)</name>
-  <setname>smgpd</setname>
+  <name>Super Monaco GP (World, Rev B)</name>
+  <setname>smgp</setname>
   <rbf>Arcade-SegaXBoard</rbf>
   <mameversion>0289</mameversion>
   <year>1989</year>
   <manufacturer>Sega</manufacturer>
   <category>Shooter / Flight</category>
-  <rom index="0" zip="smgpd.zip|smgp.zip" md5="None">
-    <part>03 1d 08 00 70 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00</part>
+  <rom index="0" zip="smgp.zip" md5="None">
+    <part>03 3d 08 00 70 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00</part>
     <!-- main -->
       <interleave output="16">
-        <part name="bootleg_epr-12563b.58" map="10"/>
-        <part name="bootleg_epr-12564b.63" map="01"/>
+        <part name="epr-12563b.58" map="10"/>
+        <part name="epr-12564b.63" map="01"/>
       </interleave>
       <part repeat="262144">00</part>
     <!-- sub -->
@@ -61,7 +61,7 @@
       <part name="epr-12431.152"/>
       <part repeat="65536">00</part>
     <!-- key -->
-      <part repeat="8192">00</part>
+      <part name="317-0126a.key"/>
     <!-- z80b -->
       <part name="epr-12535.8"/>
     <!-- pcm2 -->

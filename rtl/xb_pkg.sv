@@ -40,7 +40,8 @@ package xb_pkg;
     localparam [26:0] OFF_PCM    = OFF_ROAD   + 27'h01_0000;
     localparam [26:0] OFF_SPRITE = OFF_PCM    + 27'h08_0000;
     localparam [26:0] OFF_TILE   = OFF_SPRITE + 27'h40_0000;
-    localparam [26:0] OFF_Z80B   = OFF_TILE   + 27'h04_0000;
+    localparam [26:0] OFF_KEY    = OFF_TILE   + 27'h04_0000;   // 8 KB FD1094 key
+    localparam [26:0] OFF_Z80B   = OFF_KEY    + 27'h00_2000;
     localparam [26:0] OFF_PCM2   = OFF_Z80B   + 27'h01_0000;
     localparam [26:0] OFF_END    = OFF_PCM2   + 27'h08_0000;
 
@@ -56,6 +57,7 @@ package xb_pkg;
     //                 bit2 has throttle lever analog channel
     //                 bit3 second sound board (Z80 + 315-5218, SMGP deluxe)
     //                 bit4 I/O chip 0 port A bits 5:0 read 0 (SMGP motor) instead of 1
+    //                 bit5 main CPU is an FD1094 (key region present)
     //  byte 2: sprite ROM bank count (aburner2 = 8 x 256 KB)
     //  byte 3: ADC reverse mask (bit n: channel n = 255 - value)
     //  byte 4: PCM ROM bank mask (315-5218 bankmask, aburner2 = 0x70)
@@ -74,6 +76,7 @@ package xb_pkg;
         logic [1:0] ana_mode;
         logic       has_snd2;
         logic       motor_zero;
+        logic       fd1094;
     } board_desc_t;
 
 endpackage

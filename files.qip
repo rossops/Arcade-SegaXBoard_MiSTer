@@ -18,6 +18,9 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/xb_mixer.sv
 
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/cpu/xb_m68k_bus.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/cpu/xb_rom_cache.sv
+set_global_assignment -name VERILOG_FILE rtl/cpu/fd1094/jts16_fd1094_ctrl.v
+set_global_assignment -name VERILOG_FILE rtl/cpu/fd1094/jts16_fd1094_dec.v
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/cpu/xb_fd1094.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/cpu/xb_math_5248.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/cpu/xb_math_5249.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/cpu/xb_cmptimer_5250.sv

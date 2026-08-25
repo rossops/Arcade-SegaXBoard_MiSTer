@@ -288,6 +288,44 @@ different CPU timing drift in phase, so the gate uses the envelope (>= 0.9).
   Y axis (up = gas, down = brake) or the Gas/Brake buttons; Shift Down/Up
   on the first two buttons.
 
+## FD1094 (M9)
+
+- Several X Board sets run on a Hitachi FD1094, a 68000 with a decryptor
+  and an 8 KB battery-backed key: Thunder Blade (317-0056), Super Monaco
+  GP (317-0126a and friends), Racing Hero, AB Cop, Line of Fire, GP Rider
+  and Last Survivor. Only program-space fetches are decrypted; the mapping
+  is a per-word bitswap/XOR network driven by a key byte per address (the
+  key repeats every 0x2000 words), three global key bytes and an 8-bit
+  state. The state is 0 at reset, `key[0]` while in IRQ mode, and the
+  program changes it with `CMPI.L #$00xxFFFF,D0` ($01xx also leaves IRQ
+  mode, $02xx enters it, $03xx leaves it); an interrupt acknowledge enters
+  IRQ mode and RTE leaves it. A last step replaces PC-relative opcodes with
+  0xFFFF (a fixed list, plus the branch families when the key byte's F bit
+  is set). MAME's `fd1094.cpp` is the reference.
+- The RTL vendors jtcores' decryptor and control block (`rtl/cpu/fd1094/`,
+  Jose Tejada, GPL-3): the control block watches supervisor program-space
+  fetches on the bus and applies the state changes at fetch time, which is
+  what the real chip evidently does since that model runs the FD1094
+  System 16 games. `xb_fd1094` wraps them with the key RAM (filled from the
+  stream's 8 KB key region by the loader; `+keyrom` preloads it in
+  simulation), the function-code decode (program/data, supervisor,
+  interrupt acknowledge from the raw AS) and a one-clock ack delay for the
+  registered output. It sits between the main CPU's ROM cache and the bus
+  and is transparent, without added latency, unless the descriptor's
+  FD1094 flag is set.
+- Verification: `verif/models/fd1094.py` is a line-for-line port of MAME's
+  `decrypt_one` (the masked-opcode list is parsed from the vendored
+  Verilog so both share one table); `test_fd1094.py` checks the RTL
+  decryptor against it on 30k random address/state/value triples with the
+  real Thunder Blade key, then the encrypted `thndrbld` and `smgp` parents
+  run through the board against MAME frames and CPU traces. Results:
+  both parents boot through the block and are pixel-exact against MAME at
+  frames 60/150/300; Thunder Blade's main CPU trace matches 99.80%. Its
+  sub CPU (plain ROM, untouched by the FD1094) scores 93% on the M1 gate
+  in both the encrypted and the decrypted set: that game's boot is polling
+  loops the collapse heuristic handles poorly, so the sub gate is not part
+  of `check_m9.sh`.
+
 ## ROM stream
 
 `tools/pack_roms.py` and `tools/gen_mra.py` share `tools/romsets.py`. The
