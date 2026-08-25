@@ -30,10 +30,10 @@ module xb_rom_cache #(
 localparam IW = $clog2(LINES);
 localparam TW = AW - 2 - IW;
 
-reg [63:0] line_data [0:LINES-1];
-reg [TW-1:0] line_tag [0:LINES-1];
+// line storage: data and tags in RAM. Quartus 17 inferred flip-flops for
+// one of the two 68000 caches (16k ALMs), so the hardware build instantiates
+// altsyncram explicitly; simulation keeps the arrays.
 reg [LINES-1:0] line_valid;
-
 wire [IW-1:0] idx = cpu_addr[IW+2:3];
 wire [TW-1:0] tag = cpu_addr[AW:IW+3];
 
@@ -42,8 +42,59 @@ reg [IW-1:0] miss_idx;
 reg [TW-1:0] miss_tag;
 reg        hit_r;
 reg [AW:1] served_addr;
+wire       fill = rom_ack && miss_pending;
 
-wire hit_now = line_valid[idx] && (line_tag[idx] == tag);
+wire [63:0]   rd_line;     // line at idx, one clock after idx (registered read)
+wire [TW-1:0] rd_tag;
+`ifdef ALTERA_RESERVED_QIS
+altsyncram data_ram (
+    .clock0(clk), .address_a(miss_idx), .data_a(rom_data), .wren_a(fill),
+    .clock1(clk), .address_b(idx), .q_b(rd_line),
+    .aclr0(1'b0), .aclr1(1'b0), .addressstall_a(1'b0), .addressstall_b(1'b0),
+    .byteena_a(1'b1), .byteena_b(1'b1), .clocken0(1'b1), .clocken1(1'b1), .clocken2(1'b1), .clocken3(1'b1),
+    .data_b({64{1'b1}}), .eccstatus(), .q_a(), .rden_a(1'b1), .rden_b(1'b1), .wren_b(1'b0)
+);
+defparam data_ram.address_reg_b = "CLOCK1", data_ram.clock_enable_input_a = "BYPASS", data_ram.clock_enable_input_b = "BYPASS",
+    data_ram.clock_enable_output_b = "BYPASS", data_ram.intended_device_family = "Cyclone V", data_ram.lpm_type = "altsyncram",
+    data_ram.numwords_a = LINES, data_ram.numwords_b = LINES, data_ram.operation_mode = "DUAL_PORT",
+    data_ram.outdata_aclr_b = "NONE", data_ram.outdata_reg_b = "UNREGISTERED", data_ram.power_up_uninitialized = "FALSE",
+    data_ram.read_during_write_mode_mixed_ports = "DONT_CARE", data_ram.width_a = 64, data_ram.width_b = 64,
+    data_ram.widthad_a = IW, data_ram.widthad_b = IW, data_ram.width_byteena_a = 1;
+altsyncram tag_ram (
+    .clock0(clk), .address_a(miss_idx), .data_a(miss_tag), .wren_a(fill),
+    .clock1(clk), .address_b(idx), .q_b(rd_tag),
+    .aclr0(1'b0), .aclr1(1'b0), .addressstall_a(1'b0), .addressstall_b(1'b0),
+    .byteena_a(1'b1), .byteena_b(1'b1), .clocken0(1'b1), .clocken1(1'b1), .clocken2(1'b1), .clocken3(1'b1),
+    .data_b({TW{1'b1}}), .eccstatus(), .q_a(), .rden_a(1'b1), .rden_b(1'b1), .wren_b(1'b0)
+);
+defparam tag_ram.address_reg_b = "CLOCK1", tag_ram.clock_enable_input_a = "BYPASS", tag_ram.clock_enable_input_b = "BYPASS",
+    tag_ram.clock_enable_output_b = "BYPASS", tag_ram.intended_device_family = "Cyclone V", tag_ram.lpm_type = "altsyncram",
+    tag_ram.numwords_a = LINES, tag_ram.numwords_b = LINES, tag_ram.operation_mode = "DUAL_PORT",
+    tag_ram.outdata_aclr_b = "NONE", tag_ram.outdata_reg_b = "UNREGISTERED", tag_ram.power_up_uninitialized = "FALSE",
+    tag_ram.read_during_write_mode_mixed_ports = "DONT_CARE", tag_ram.width_a = TW, tag_ram.width_b = TW,
+    tag_ram.widthad_a = IW, tag_ram.widthad_b = IW, tag_ram.width_byteena_a = 1;
+`else
+reg [63:0]   line_data [0:LINES-1];
+reg [TW-1:0] line_tag  [0:LINES-1];
+reg [63:0]   rd_line_r;
+reg [TW-1:0] rd_tag_r;
+always @(posedge clk) begin
+    if (fill) begin line_data[miss_idx] <= rom_data; line_tag[miss_idx] <= miss_tag; end
+    rd_line_r <= line_data[idx];
+    rd_tag_r  <= line_tag[idx];
+end
+assign rd_line = rd_line_r;
+assign rd_tag  = rd_tag_r;
+`endif
+
+// the registered RAM read means the hit decision is for the address
+// presented one clock earlier; hold it and compare with the current one
+reg [IW-1:0] idx_d;
+reg [TW-1:0] tag_d;
+reg          req_d;
+reg [AW:1]   addr_d;
+always @(posedge clk) begin idx_d <= idx; tag_d <= tag; req_d <= cpu_req; addr_d <= cpu_addr; end
+wire hit_now = req_d && line_valid[idx_d] && (rd_tag == tag_d) && !(fill && miss_idx == idx_d);
 
 function automatic [15:0] sel(input [63:0] l, input [1:0] w);
     case (w)
@@ -68,31 +119,38 @@ always @(posedge clk) begin
     else begin
         if (invalidate) line_valid <= '0;
 
-        if (rom_ack && miss_pending) begin
+        if (fill) begin
             miss_pending <= 1'b0;
-            line_data[miss_idx]  <= rom_data;
-            line_tag[miss_idx]   <= miss_tag;
             line_valid[miss_idx] <= 1'b1;
         end
 
-        if (cpu_req) begin
-            if (hit_now) begin
-                cpu_data    <= sel(line_data[idx], cpu_addr[2:1]);
+        // decision for the request presented one clock ago (RAM read latency).
+        // A request already served is not re-decided: the RAM read right after
+        // a fill is stale for a clock and would otherwise restart the miss.
+        if (req_d && cpu_req && addr_d == cpu_addr && !(hit_r && served_addr == addr_d)) begin
+            if (fill && miss_idx == idx_d && miss_tag == tag_d) begin
+                // the line being filled is the one requested: serve it from the fill
+                cpu_data    <= sel(rom_data, addr_d[2:1]);
                 hit_r       <= 1'b1;
-                served_addr <= cpu_addr;
+                served_addr <= addr_d;
+            end
+            else if (hit_now) begin
+                cpu_data    <= sel(rd_line, addr_d[2:1]);
+                hit_r       <= 1'b1;
+                served_addr <= addr_d;
             end
             else begin
                 hit_r <= 1'b0;
                 if (!miss_pending) begin
                     miss_pending <= 1'b1;
-                    miss_idx     <= idx;
-                    miss_tag     <= tag;
-                    rom_addr     <= cpu_addr[AW:3];
+                    miss_idx     <= idx_d;
+                    miss_tag     <= tag_d;
+                    rom_addr     <= addr_d[AW:3];
                     rom_req      <= 1'b1;
                 end
             end
         end
-        else hit_r <= 1'b0;
+        else if (!cpu_req) hit_r <= 1'b0;
     end
 end
 endmodule

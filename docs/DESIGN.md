@@ -196,6 +196,36 @@ correlation is only 0.43 because two FM implementations with slightly
 different CPU timing drift in phase, so the gate uses the envelope (>= 0.9).
 `verif/board/check_m5.sh` runs it.
 
+## Playability (M6)
+
+- DIP switches come from the MRA `<switches>` block, delivered by the HPS
+  as ioctl index 254 (byte 0 = SWA coinage, byte 1 = SWB). Defaults FF,DD
+  are MAME's (1C/1C, upright 1, throttle lever, 3 lives, continue, normal).
+  The `DIP;` line in the config string exposes them in the OSD.
+- Backup RAM (2 x 16 KB) is NVRAM index 3: written from the host during a
+  download (the CPU is in reset), read back through the RAMs' second ports
+  on upload; the core raises `ioctl_upload_req` when the game writes the
+  RAM, at most once every ~2 s.
+- Analog: MiSTer's signed axes map to MAME's After Burner ranges (X
+  0x20..0xE0, Y 0x40..0xC0 with PORT_REVERSE so stick up reads high),
+  throttle on the right stick's Y; the D-pad emulates full deflection.
+- Pause: a mapped button or "OSD open" freezes both 68000s and the sound
+  section's clock enables.
+- ROM caches: Quartus 17 built the sub-CPU cache out of flip-flops (16k
+  ALMs), so `xb_rom_cache` instantiates `altsyncram` for its line and tag
+  storage with a one-clock read pipeline. The first version of that pipeline
+  re-decided the held request on the clock after a fill, reading a line the
+  RAM had just been written with; the read is stale for a clock, so every
+  miss became two fetches and the design depended on the RAM's
+  read-during-write behaviour, which is where the behavioural simulation
+  and the M10K differ. On hardware the Z80 ran but produced no sound (build
+  #9); the 68000s got away with it. The cache now serves the held request
+  straight from the fill data and never re-decides a served request.
+  Confirmed on hardware with build #11 (2026-08-25): the previous
+  implementation ran next to the fixed one on the Z80 as a shadow with
+  divergence flags; both produced sound and never diverged. The scaffolding
+  was removed afterwards; git history has it (`xb_rom_cache_ff`).
+
 ## ROM stream
 
 `tools/pack_roms.py` and `tools/gen_mra.py` share `tools/romsets.py`. The

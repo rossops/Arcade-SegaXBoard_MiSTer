@@ -20,7 +20,7 @@ flow, the ROM stream tools and a stub board that shows colour bars.
 | M3 | Sprites via DDR3 framebuffers | done in sim |
 | M4 | Road | done in sim |
 | M5 | Sound | done in sim |
-| M6 | Hardware bring-up and timing closure | not started |
+| M6 | Hardware bring-up and timing closure | done: DIPs, NVRAM, MAME analog ranges, pause; zero negative slack all corners, 49% ALMs; ROM cache fill defect fixed and confirmed on hardware (build #11) |
 | M7 | After Burner and Thunder Blade | not started |
 
 ## Layout

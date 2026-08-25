@@ -72,7 +72,21 @@ def make_mra(key, rs):
         L.append(f'    <!-- {region} -->')
         L += region_parts(loader, files, SLOT[region], "FF" if region == "pcm" else "00")
     L.append('  </rom>')
-    L.append('  <buttons names="Vulcan,Missile,Start,Coin,Test,Service" default="A,B,Start,R,L,Select"/>')
+    # backup RAM (two 16 KB banks) saved as NVRAM index 3
+    L.append('  <nvram index="3" size="32768"/>')
+    # DIP switches: raw port values (1 = off). Defaults are MAME's.
+    L.append('  <switches default="FF,DD" base="0">')
+    coin = ("Free Play (if both) or 1C/1C,1C/1C 2/3,1C/1C 4/5,1C/1C 5/6,2C/1C 4/3,2C/1C 3/2 5/3 6/4,"
+            "2C/3C,4C/1C,3C/1C,2C/1C,7C/1C,6C/1C,5C/1C,1C/3C,1C/2C,1C/1C")
+    L.append(f'    <dip bits="0,3" name="Coin A" ids="{coin}"/>')
+    L.append(f'    <dip bits="4,7" name="Coin B" ids="{coin}"/>')
+    L.append('    <dip bits="8,9" name="Cabinet" ids="Upright 2,Upright 1,Moving Standard,Moving Deluxe"/>')
+    L.append('    <dip bits="10" name="Throttle Lever" ids="No,Yes"/>')
+    L.append('    <dip bits="11,12" name="Lives" ids="4x Credits,3x Credits,4,3"/>')
+    L.append('    <dip bits="13" name="Allow Continue" ids="Yes,No"/>')
+    L.append('    <dip bits="14,15" name="Difficulty" ids="Hardest,Hard,Easy,Normal"/>')
+    L.append('  </switches>')
+    L.append('  <buttons names="Vulcan,Missile,Start,Coin,Test,Service,Pause" default="A,B,Start,R,L,Select,X"/>')
     L.append('</misterromdescription>')
     return "\n".join(L) + "\n"
 

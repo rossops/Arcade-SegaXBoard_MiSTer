@@ -46,6 +46,17 @@ module xb_core (
     input      [15:0] road_waddr,
     input       [7:0] road_wdata,
 
+    // NVRAM host port (backup RAM 1 then 2, 16-bit words; CPU is in reset
+    // during a download, so the host borrows the CPU port)
+    input             nv_download,
+    input             nv_upload,
+    input             nv_wr,
+    input             nv_rd,
+    input      [14:0] nv_addr,        // word address 0..0x3FFF
+    input      [15:0] nv_din,
+    output reg [15:0] nv_dout,
+    output reg        nv_modified,
+
     // inputs (active high)
     input      [15:0] p1_buttons,   // 0 right 1 left 2 down 3 up 4 vulcan 5 missile 6 start 7 coin 8 test 9 service
     input       [7:0] adc_x, adc_y, adc_throttle,
@@ -89,12 +100,13 @@ reg [6:0] pcm_div;
 always @(posedge clk_sys) begin
     if (reset) begin snd_div <= 5'd0; ce_z80 <= 1'b0; ce_z80x2 <= 1'b0; ce_fm_p1 <= 1'b0; pcm_div <= 7'd0; pcm_tick <= 1'b0; end
     else begin
+        // pause freezes the sound section with the CPUs (no hanging notes)
         snd_div  <= (snd_div == 5'd24) ? 5'd0 : snd_div + 5'd1;
-        ce_z80   <= (snd_div == 5'd0) || (snd_div == 5'd12);
-        ce_z80x2 <= (snd_div == 5'd0) || (snd_div == 5'd6) || (snd_div == 5'd12) || (snd_div == 5'd18);
-        ce_fm_p1 <= (snd_div == 5'd0);
+        ce_z80   <= !pause && ((snd_div == 5'd0) || (snd_div == 5'd12));
+        ce_z80x2 <= !pause && ((snd_div == 5'd0) || (snd_div == 5'd6) || (snd_div == 5'd12) || (snd_div == 5'd18));
+        ce_fm_p1 <= !pause && (snd_div == 5'd0);
         pcm_tick <= 1'b0;
-        if (snd_div == 5'd0 || snd_div == 5'd12) begin
+        if (!pause && (snd_div == 5'd0 || snd_div == 5'd12)) begin
             if (pcm_div == 7'd127) begin pcm_div <= 7'd0; pcm_tick <= 1'b1; end
             else pcm_div <= pcm_div + 7'd1;
         end
@@ -193,11 +205,33 @@ assign p0_req  = m_rom_req;
 assign p0_addr = SDR_MAIN_BASE[24:3] + {5'd0, m_rom_addr};
 
 // ---- backup RAMs (16K each, main only)
-wire [15:0] bk1_q, bk2_q;
-xb_dpram #(.AW(13)) backup1 (.clk(clk_sys), .a_addr(ma[13:1]), .a_din(m_dout), .a_be(m_be),
-    .a_we(m_valid && m_wr && m_sel_bk1 && m_start), .a_dout(bk1_q), .b_clk(clk_sys), .b_addr(13'd0), .b_dout());
-xb_dpram #(.AW(13)) backup2 (.clk(clk_sys), .a_addr(ma[13:1]), .a_din(m_dout), .a_be(m_be),
-    .a_we(m_valid && m_wr && m_sel_bk2 && m_start), .a_dout(bk2_q), .b_clk(clk_sys), .b_addr(13'd0), .b_dout());
+wire [15:0] bk1_q, bk2_q, bk1_hq, bk2_hq;
+wire        bk_we1 = m_valid && m_wr && m_sel_bk1 && m_start;
+wire        bk_we2 = m_valid && m_wr && m_sel_bk2 && m_start;
+wire [12:0] bk_a   = nv_download ? nv_addr[12:0] : ma[13:1];
+wire [15:0] bk_d   = nv_download ? nv_din : m_dout;
+wire  [1:0] bk_be  = nv_download ? 2'b11 : m_be;
+xb_dpram #(.AW(13)) backup1 (.clk(clk_sys), .a_addr(bk_a), .a_din(bk_d), .a_be(bk_be),
+    .a_we(nv_download ? (nv_wr && !nv_addr[13]) : bk_we1), .a_dout(bk1_q),
+    .b_clk(clk_sys), .b_addr(nv_addr[12:0]), .b_dout(bk1_hq));
+xb_dpram #(.AW(13)) backup2 (.clk(clk_sys), .a_addr(bk_a), .a_din(bk_d), .a_be(bk_be),
+    .a_we(nv_download ? (nv_wr && nv_addr[13]) : bk_we2), .a_dout(bk2_q),
+    .b_clk(clk_sys), .b_addr(nv_addr[12:0]), .b_dout(bk2_hq));
+// upload: word for the host's address (port B, one clock behind the address)
+always @(posedge clk_sys) nv_dout <= nv_addr[13] ? bk2_hq : bk1_hq;
+// modified flag: set on a CPU write, cleared when an upload starts; held off
+// for ~2 s after each request so the host is not flooded with saves
+reg [7:0] nv_hold;
+reg       vb_t_d;
+always @(posedge clk_sys) begin
+    vb_t_d <= vb_t;
+    if (reset) begin nv_modified <= 1'b0; nv_hold <= 8'd0; end
+    else begin
+        if (nv_upload) nv_modified <= 1'b0;
+        else if ((bk_we1 || bk_we2) && nv_hold == 8'd0) begin nv_modified <= 1'b1; nv_hold <= 8'd120; end
+        if (vb_t && !vb_t_d && nv_hold != 8'd0) nv_hold <= nv_hold - 8'd1;
+    end
+end
 
 // ---- video RAMs (CPU side only until M2/M3)
 wire [15:0] tile_q, text_q, spr_q, pal_q;

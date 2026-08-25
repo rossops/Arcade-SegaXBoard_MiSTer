@@ -125,9 +125,12 @@ localparam CONF_STR = {
     "O[5:3],Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
     "O[7],Service Mode,Off,On;",
     "O[9:8],Stick,Analog,D-Pad,Analog+D-Pad;",
+    "O[10],Pause when OSD open,Off,On;",
+    "-;",
+    "DIP;",
     "-;",
     "R[0],Reset;",
-    "J1,Vulcan,Missile,Start,Coin,Test,Service;",
+    "J1,Vulcan,Missile,Start,Coin,Test,Service,Pause;",
     "V,v",`BUILD_DATE
 };
 
@@ -184,7 +187,7 @@ hps_io #(.CONF_STR(CONF_STR), .WIDE(1)) hps_io (
 
     .ioctl_download(ioctl_download),
     .ioctl_upload(ioctl_upload),
-    .ioctl_upload_req(1'b0),
+    .ioctl_upload_req(nv_modified),
     .ioctl_upload_index(8'd3),
     .ioctl_wr(ioctl_wr),
     .ioctl_rd(ioctl_rd),
@@ -200,7 +203,21 @@ hps_io #(.CONF_STR(CONF_STR), .WIDE(1)) hps_io (
     .joystick_r_analog_0(joystick_r_analog_0),
     .paddle_0(paddle_0)
 );
-assign ioctl_din = 16'd0;   // NVRAM upload arrives with the backup RAM (M1)
+// DIP switches arrive from the MRA <switches> block as ioctl index 254:
+// byte 0 = SWA (coinage), byte 1 = SWB (cabinet/lives/difficulty)
+reg [7:0] dsw_a = 8'hFF, dsw_b = 8'hDD;
+always @(posedge clk_sys) begin
+    if (ioctl_download && ioctl_wr && ioctl_index == 16'd254 && ioctl_addr == 27'd0) begin
+        dsw_a <= ioctl_dout[7:0];
+        dsw_b <= ioctl_dout[15:8];
+    end
+end
+
+// NVRAM (backup RAM, 32 KB) as ioctl index 3: download at load, upload on
+// request; the core asserts nv_modified when the game writes the RAM.
+wire        nv_modified;
+wire        nv_download = ioctl_download && (ioctl_index[7:0] == 8'd3);
+wire        nv_upload   = ioctl_upload   && (ioctl_index[7:0] == 8'd3);
 
 ////////////////////////////   ROM LOADING   //////////////////////////////////
 wire        sw_req, sw_ack;
@@ -258,21 +275,24 @@ wire [1:0] stick_mode = status[9:8];
 wire       use_analog = (stick_mode != 2'd1);
 wire       use_dpad   = (stick_mode != 2'd0);
 // MiSTer analog: signed 8-bit per axis, X in [7:0], Y in [15:8].
-wire [7:0] ana_x = joystick_l_analog_0[7:0]  ^ 8'h80;
-wire [7:0] ana_y = joystick_l_analog_0[15:8] ^ 8'h80;
+// MiSTer analog axes are signed -128..127. MAME's After Burner ranges:
+// X 0x20..0xE0, Y 0x40..0xC0 with PORT_REVERSE (stick up = high value),
+// throttle the full 8 bits.
+wire signed [7:0] ax = joystick_l_analog_0[7:0];
+wire signed [7:0] ay = joystick_l_analog_0[15:8];
+wire signed [15:0] ax_s = ax * 8'sd96;      // +-0x60
+wire signed [15:0] ay_s = ay * 8'sd64;      // +-0x40
+wire [7:0] ana_x = 8'h80 + ax_s[14:7];
+wire [7:0] ana_y = 8'h80 - ay_s[14:7];      // reversed: up (negative) -> higher
 wire [7:0] dpad_x = joystick_0[0] ? 8'hE0 : joystick_0[1] ? 8'h20 : 8'h80;
-wire [7:0] dpad_y = joystick_0[2] ? 8'hC0 : joystick_0[3] ? 8'h40 : 8'h80;
+wire [7:0] dpad_y = joystick_0[3] ? 8'hC0 : joystick_0[2] ? 8'h40 : 8'h80;
 wire       dpad_active = |joystick_0[3:0];
 wire [7:0] adc_x = (use_dpad && dpad_active) ? dpad_x : use_analog ? ana_x : 8'h80;
 wire [7:0] adc_y = (use_dpad && dpad_active) ? dpad_y : use_analog ? ana_y : 8'h80;
 wire [7:0] adc_throttle = joystick_r_analog_0[15:8] ^ 8'h80;
 
-wire pause = 1'b0;
-
-// DIP switches: aburner2 defaults (MAME): SWA coinage 1C/1C, SWB upright,
-// no throttle lever, 3 lives, continue allowed, normal difficulty.
-wire [7:0] dsw_a = 8'hFF;
-wire [7:0] dsw_b = 8'hFD;   // bit1:0 = 01 upright 1 -> 0xFD keeps every other switch off
+// Pause: the mapped button (joystick bit 10) or the OSD open with the option set
+wire pause = joystick_0[10] | (status[10] & OSD_STATUS);
 
 //////////////////////////////   CORE   ///////////////////////////////////////
 wire  [7:0] r, g, b;
@@ -299,6 +319,8 @@ xb_core core (
     .dsw_a(dsw_a), .dsw_b(dsw_b),
     .service(joystick_0[9]), .test(status[7] | joystick_0[8]),
     .coin1(joystick_0[7]), .coin2(1'b0),
+    .nv_download(nv_download), .nv_upload(nv_upload), .nv_wr(ioctl_wr), .nv_rd(ioctl_rd),
+    .nv_addr(ioctl_addr[15:1]), .nv_din(ioctl_dout), .nv_dout(ioctl_din), .nv_modified(nv_modified),
     .r(r), .g(g), .b(b),
     .ce_pix(ce_pix), .hs(hs), .vs(vs), .hb(hb), .vb(vb),
     .audio_l(aud_l), .audio_r(aud_r),

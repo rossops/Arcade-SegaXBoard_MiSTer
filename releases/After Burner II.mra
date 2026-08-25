@@ -61,5 +61,15 @@
       <part name="epr-11113.152"/>
       <part repeat="65536">00</part>
   </rom>
-  <buttons names="Vulcan,Missile,Start,Coin,Test,Service" default="A,B,Start,R,L,Select"/>
+  <nvram index="3" size="32768"/>
+  <switches default="FF,DD" base="0">
+    <dip bits="0,3" name="Coin A" ids="Free Play (if both) or 1C/1C,1C/1C 2/3,1C/1C 4/5,1C/1C 5/6,2C/1C 4/3,2C/1C 3/2 5/3 6/4,2C/3C,4C/1C,3C/1C,2C/1C,7C/1C,6C/1C,5C/1C,1C/3C,1C/2C,1C/1C"/>
+    <dip bits="4,7" name="Coin B" ids="Free Play (if both) or 1C/1C,1C/1C 2/3,1C/1C 4/5,1C/1C 5/6,2C/1C 4/3,2C/1C 3/2 5/3 6/4,2C/3C,4C/1C,3C/1C,2C/1C,7C/1C,6C/1C,5C/1C,1C/3C,1C/2C,1C/1C"/>
+    <dip bits="8,9" name="Cabinet" ids="Upright 2,Upright 1,Moving Standard,Moving Deluxe"/>
+    <dip bits="10" name="Throttle Lever" ids="No,Yes"/>
+    <dip bits="11,12" name="Lives" ids="4x Credits,3x Credits,4,3"/>
+    <dip bits="13" name="Allow Continue" ids="Yes,No"/>
+    <dip bits="14,15" name="Difficulty" ids="Hardest,Hard,Easy,Normal"/>
+  </switches>
+  <buttons names="Vulcan,Missile,Start,Coin,Test,Service,Pause" default="A,B,Start,R,L,Select,X"/>
 </misterromdescription>

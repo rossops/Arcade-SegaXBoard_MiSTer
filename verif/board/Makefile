@@ -12,6 +12,7 @@ VFLAGS := -Wno-fatal -Wno-lint -Wno-style -Werror-PINMISSING -Wno-BLKANDNBLK -Wn
 FRAMES ?= 10
 DUMPFRAME ?= -1
 COIN ?= -1
+PLUSARGS ?=
 
 EXTRA := $(wildcard $(ROOT)/rtl/audio/jt51/*.v) $(wildcard $(ROOT)/verif/board/tv80/*.v)
 
@@ -24,7 +25,7 @@ run: obj_dir/Vtb_board
 	mkdir -p out/verif && rm -f out/frame_*.ppm && ln -sfn $(ROOT)/verif/golden out/verif/golden; \
 	ln -sf $(ROOT)/verif/golden/aburner2/roadrom.hex out/roadrom.hex; ln -sf $(ROOT)/rtl/cpu/fx68k/microrom.mem out/microrom.mem; ln -sf $(ROOT)/rtl/cpu/fx68k/nanorom.mem out/nanorom.mem; \
 	for p in 0 1 2; do ln -sf $(ROOT)/verif/golden/aburner2/tilerom$$p.hex out/tilerom$$p.hex; done; \
-	cd out && ../obj_dir/Vtb_board +frames=$(FRAMES) +tilerom +roadrom +dumpframe=$(DUMPFRAME) +coin=$(COIN)
+	cd out && ../obj_dir/Vtb_board +frames=$(FRAMES) +tilerom +roadrom +dumpframe=$(DUMPFRAME) +coin=$(COIN) $(PLUSARGS)
 
 clean:
 	rm -rf obj_dir out
