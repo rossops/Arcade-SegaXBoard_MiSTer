@@ -1,7 +1,7 @@
 <misterromdescription>
   <name>After Burner II</name>
   <setname>aburner2</setname>
-  <rbf>SegaXBoard</rbf>
+  <rbf>Arcade-SegaXBoard</rbf>
   <mameversion>0289</mameversion>
   <year>1987</year>
   <manufacturer>Sega</manufacturer>
@@ -28,7 +28,7 @@
       <part name="mpr-10931.11"/>
       <part name="mpr-10930.12"/>
       <part name="epr-11102.13"/>
-      <part repeat="131072">00</part>
+      <part repeat="131072">FF</part>
     <!-- sprite -->
       <interleave output="32">
         <part name="mpr-10932.90" map="0001"/>

@@ -19,7 +19,7 @@ flow, the ROM stream tools and a stub board that shows colour bars.
 | M2 | Tilemap/text/palette pixel-exact against MAME | done in sim |
 | M3 | Sprites via DDR3 framebuffers | done in sim |
 | M4 | Road | done in sim |
-| M5 | Sound | not started |
+| M5 | Sound | done in sim |
 | M6 | Hardware bring-up and timing closure | not started |
 | M7 | After Burner and Thunder Blade | not started |
 
@@ -64,6 +64,7 @@ sh verif/board/check_m1.sh                    # CPU trace gate
 sh verif/board/check_m2.sh                    # tilemap/text/palette gate
 sh verif/board/check_m3.sh                    # sprite gate
 sh verif/board/check_m4.sh                    # road gate (full-frame exact vs MAME)
+sh verif/board/check_m5.sh                    # sound gate (PCM cocotb + audio envelope vs MAME)
 python3 tools/gen_mra.py                      # writes releases/*.mra
 python3 tools/pack_roms.py aburner2 --zip aburner2.zip --out stream.bin --hexdir verif/golden/aburner2
 ```
@@ -74,8 +75,10 @@ expects is the one the MiSTer host actually sends.
 
 ## Installing
 
-Copy the `.rbf` and `.mra` to `/media/fat/_Arcade/` and the MAME
-`aburner2.zip` to `/media/fat/games/mame/`. Commercial ROMs are not included.
+Copy `releases/Arcade-SegaXBoard_<date>.rbf` to `/media/fat/_Arcade/cores/`,
+the `.mra` to `/media/fat/_Arcade/` and the MAME `aburner2.zip` to
+`/media/fat/games/mame/`. The MRA's `<rbf>` is `Arcade-SegaXBoard`, the same
+convention as the System 32 core. Commercial ROMs are not included.
 
 ## References
 

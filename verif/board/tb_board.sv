@@ -72,7 +72,7 @@ xb_core core (
     .p5_req(p5_req), .p5_addr(p5_addr), .p5_dout(p5_dout), .p5_ack(p5_ack),
     .p6_req(p6_req), .p6_addr(p6_addr), .p6_dout(p6_dout), .p6_ack(p6_ack),
     .p1_buttons(16'd0), .adc_x(8'h80), .adc_y(8'h80), .adc_throttle(8'h80),
-    .dsw_a(8'hFF), .dsw_b(8'hFD), .service(1'b0), .test(1'b0), .coin1(1'b0), .coin2(1'b0),
+    .dsw_a(8'hFF), .dsw_b(8'hFD), .service(1'b0), .test(1'b0), .coin1(coin1), .coin2(1'b0),
     .r(r), .g(g), .b(b), .ce_pix(ce_pix), .hs(hs), .vs(vs), .hb(hb), .vb(vb),
     .audio_l(al), .audio_r(ar),
     .trace_main_addr(tm_addr), .trace_main_start(tm_start), .trace_main_fc(tm_fc),
@@ -164,6 +164,23 @@ always @(posedge clk_sys) begin
         c_runs = 0; c_pix = 0; c_romreq = 0; c_romack = 0; c_erack = 0; c_rdack = 0; c_start = 0; c_vbl = 0; c_ends = 0; rs_max = 0;
     end
 end
+
+// ---- +coin=N: press Coin 1 for four frames from frame N (matches tools/mame_coin.lua)
+integer coin_frame = -1;
+initial begin if (!$value$plusargs("coin=%d", coin_frame)) coin_frame = -1; end
+wire coin1 = (coin_frame >= 0) && (frame >= coin_frame) && (frame < coin_frame + 4);
+
+// ---- audio: 48 kHz stereo, raw little-endian 16-bit (audio.raw)
+integer faud;
+reg [15:0] aud_acc;      // 48000/50e6 = 0.00096 -> add 63 per clock (16-bit phase acc: 65536*0.00096=62.9)
+initial faud = $fopen("audio.raw", "wb");
+always @(posedge clk_sys) begin
+    if (!reset) begin
+        {aud_ovf, aud_acc} <= aud_acc + 16'd63;
+        if (aud_ovf) $fwrite(faud, "%c%c%c%c", al[7:0], al[15:8], ar[7:0], ar[15:8]);
+    end
+end
+reg aud_ovf;
 
 // ---- frame dump: one PPM per frame (320x224)
 reg vb_d;

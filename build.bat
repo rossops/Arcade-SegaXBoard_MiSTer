@@ -17,6 +17,9 @@ if errorlevel 1 (
 )
 
 set STAMP=
+rem worst timing paths in a text file (readable from the Mac share)
+quartus_sta -t tools\sta_paths.tcl %PROJECT%
+
 for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd"') do set STAMP=%%i
 if "%STAMP%"=="" for /f "tokens=2 delims==" %%i in ('wmic os get localdatetime /value') do set STAMP=%%i
 if "%STAMP%"=="" set STAMP=build

@@ -12,14 +12,14 @@ sys.path.insert(0, os.path.dirname(__file__))
 from romsets import ROMSETS, SLOT, ORDER, DESC_SIZE
 from pack_roms import descriptor
 
-RBF = "SegaXBoard"
+RBF = "Arcade-SegaXBoard"
 
 
 def hexbytes(b):
     return " ".join(f"{x:02x}" for x in b)
 
 
-def region_parts(loader, files, slot):
+def region_parts(loader, files, slot, fill="00"):
     lines = []
     total = 0
     if loader == "flat":
@@ -51,7 +51,7 @@ def region_parts(loader, files, slot):
     if pad < 0:
         raise SystemExit("region exceeds slot")
     if pad:
-        lines.append(f'      <part repeat="{pad}">00</part>')
+        lines.append(f'      <part repeat="{pad}">{fill}</part>')
     return lines
 
 
@@ -70,7 +70,7 @@ def make_mra(key, rs):
     for region in ORDER:
         loader, files = rs["regions"][region]
         L.append(f'    <!-- {region} -->')
-        L += region_parts(loader, files, SLOT[region])
+        L += region_parts(loader, files, SLOT[region], "FF" if region == "pcm" else "00")
     L.append('  </rom>')
     L.append('  <buttons names="Vulcan,Missile,Start,Coin,Test,Service" default="A,B,Start,R,L,Select"/>')
     L.append('</misterromdescription>')

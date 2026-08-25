@@ -80,6 +80,27 @@ always @(posedge clk_sys) begin
 end
 wire ce_cpu = ~pause;
 
+// sound clocks: 4 MHz = 2 pulses per 25 clk_sys (12/13 spacing), 8 MHz = 4
+// pulses per 25 (for the simulation Z80 clock), jt51 cen_p1 = 2 MHz,
+// PCM tick = 4 MHz / 128
+reg [4:0] snd_div;
+reg       ce_z80, ce_z80x2, ce_fm_p1, pcm_tick;
+reg [6:0] pcm_div;
+always @(posedge clk_sys) begin
+    if (reset) begin snd_div <= 5'd0; ce_z80 <= 1'b0; ce_z80x2 <= 1'b0; ce_fm_p1 <= 1'b0; pcm_div <= 7'd0; pcm_tick <= 1'b0; end
+    else begin
+        snd_div  <= (snd_div == 5'd24) ? 5'd0 : snd_div + 5'd1;
+        ce_z80   <= (snd_div == 5'd0) || (snd_div == 5'd12);
+        ce_z80x2 <= (snd_div == 5'd0) || (snd_div == 5'd6) || (snd_div == 5'd12) || (snd_div == 5'd18);
+        ce_fm_p1 <= (snd_div == 5'd0);
+        pcm_tick <= 1'b0;
+        if (snd_div == 5'd0 || snd_div == 5'd12) begin
+            if (pcm_div == 7'd127) begin pcm_div <= 7'd0; pcm_tick <= 1'b1; end
+            else pcm_div <= pcm_div + 7'd1;
+        end
+    end
+end
+
 // ---------------------------------------------------------------- timing
 wire [8:0] hcnt, vcnt;
 wire       v0, line_start, vbl_irq, latch_pulse;
@@ -213,7 +234,8 @@ xb_math_5249 main_div (.clk(clk_sys), .reset(cpu_reset), .cs(m_cs && m_sel_div),
 xb_cmptimer_5250 main_cmp (.clk(clk_sys), .reset(cpu_reset), .cs(m_cs && m_sel_cmp), .we(m_wr),
     .addr(ma[4:1]), .din(m_dout), .be(m_be), .dout(m_cmp_q),
     .exck(v0), .timer_irq(timer_irq),
-    .snd_latch(snd_latch), .snd_nmi(snd_nmi), .snd_read(1'b0));
+    .snd_latch(snd_latch), .snd_nmi(snd_nmi), .snd_read(snd_read));
+wire snd_read;
 
 // ---- I/O chips (odd byte lane), ADC, /ODEN latch
 reg        oden_n;
@@ -510,12 +532,18 @@ assign r = (hb | vb | !display_enable) ? 8'd0 : pal_r;
 assign g = (hb | vb | !display_enable) ? 8'd0 : pal_g;
 assign b = (hb | vb | !display_enable) ? 8'd0 : pal_b;
 
-assign audio_l = 16'sd0;
-assign audio_r = 16'sd0;
+// ---------------------------------------------------------------- sound
+xb_soundsys sound (
+    .clk(clk_sys), .reset(reset), .z80_reset_n(snd_reset_n),
+    .ce_z80(ce_z80), .ce_z80x2(ce_z80x2), .ce_fm(ce_z80), .ce_fm_p1(ce_fm_p1), .pcm_tick(pcm_tick),
+    .mute_n(mute_n), .pcm_bankmask(board_desc.pcm_bankmask),
+    .snd_latch(snd_latch), .snd_nmi(snd_nmi), .snd_read(snd_read),
+    .zrom_req(p5_req), .zrom_addr(p5_addr), .zrom_dout(p5_dout), .zrom_ack(p5_ack),
+    .pcm_req(p6_req), .pcm_addr(p6_addr), .pcm_dout(p6_dout), .pcm_ack(p6_ack),
+    .audio_l(audio_l), .audio_r(audio_r)
+);
 
 assign p3_req = 1'b0; assign p3_addr = '0; assign p3_urgent = 1'b0;
 assign p4_req = 1'b0; assign p4_addr = '0; assign p4_urgent = 1'b0;
-assign p5_req = 1'b0; assign p5_addr = '0;
-assign p6_req = 1'b0; assign p6_addr = '0;
 
 endmodule

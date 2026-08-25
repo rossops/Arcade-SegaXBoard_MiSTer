@@ -168,6 +168,34 @@ all of it. Note for the board sim: `+roadrom` and `+tilerom` read hex files
 from the run directory, which `make run` links in; running the binary by
 hand without them silently renders from empty ROMs.
 
+## Sound (M5)
+
+`xb_soundsys`: T80s Z80 with a 4 MHz enable (2 pulses per 25 clk_sys),
+jt51 (cen 4 MHz, cen_p1 2 MHz), `xb_segapcm_5218` ticked at 4 MHz/128, a
+1 KB ROM cache over SDRAM p5 (WAIT_n on a miss), 2 KB work RAM, the
+315-5250 sound latch on port 0x40 (read clears NMI), YM2151 IRQ to INT,
+Z80 reset from I/O chip port C bit 0, mute from port D bit 7. Mix is MAME's:
+PCM x 0.35 + YM x 0.15 (90/256 and 38/256). The PCM engine is a sequential
+port of MAME's per-channel loop (loop/end/stop semantics, bank bits 6:4,
+address write-back and the 8-bit fraction), reading ROM bytes from SDRAM
+port p6; the stream pads the PCM slot with 0xFF like MAME's ERASEFF region.
+Simulation builds use the Verilog tv80 (`verif/board/tv80`, sim only,
+behind XB_Z80_TV80, clocked from an 8 MHz enable toggle) because Verilator
+and Icarus cannot compile the VHDL T80.
+
+### M5 verification
+
+`test_segapcm.py` (cocotb) matches the Python port of MAME's SegaPCM tick
+for tick over 600 ticks of random channel programming, including register
+write-back. The board test presses Coin 1 at frame 30 (`+coin`, and
+`tools/mame_coin.lua` for MAME) so sound starts immediately; `tools/
+wav_compare.py` compares the tb's 48 kHz capture with MAME's `-wavwrite`.
+Result: per-second RMS 997/679/671 vs 953/668/648, identical dominant
+tones, envelope (5 ms RMS) correlation 0.96 at 0 ms lag; sample-level
+correlation is only 0.43 because two FM implementations with slightly
+different CPU timing drift in phase, so the gate uses the envelope (>= 0.9).
+`verif/board/check_m5.sh` runs it.
+
 ## ROM stream
 
 `tools/pack_roms.py` and `tools/gen_mra.py` share `tools/romsets.py`. The

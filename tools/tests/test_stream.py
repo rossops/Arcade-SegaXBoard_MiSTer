@@ -22,9 +22,9 @@ def expand_mra(text, zf):
         return zf.read(c[0])
     while i < len(lines):
         s = lines[i].strip()
-        m = re.match(r'<part repeat="(\d+)">00</part>', s)
+        m = re.match(r'<part repeat="(\d+)">([0-9A-Fa-f]{2})</part>', s)
         if m:
-            out += bytes(int(m.group(1)))
+            out += bytes([int(m.group(2), 16)]) * int(m.group(1))
         elif s.startswith("<part>") and s.endswith("</part>"):
             out += bytes.fromhex(s[6:-7].replace(" ", ""))
         elif s.startswith('<part name="') and s.endswith('/>') and "map=" not in s:

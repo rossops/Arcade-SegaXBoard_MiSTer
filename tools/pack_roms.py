@@ -78,7 +78,9 @@ def build_stream(setname, zippath):
             data = build_region(loader, roms)
             if len(data) > SLOT[region]:
                 raise SystemExit(f"{region}: {len(data):#x} exceeds slot {SLOT[region]:#x}")
-            regions[region] = data + bytes(SLOT[region] - len(data))
+            # MAME's PCM region is ROMREGION_ERASEFF: unpopulated ROM reads 0xFF
+            fill = b"\xff" if region == "pcm" else b"\x00"
+            regions[region] = data + fill * (SLOT[region] - len(data))
     stream = descriptor(rs) + b"".join(regions[r] for r in ORDER)
     return stream, regions
 
