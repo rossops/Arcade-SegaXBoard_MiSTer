@@ -406,6 +406,26 @@ timing). No timing-closure impact, `clk_sys` is unchanged.
   (Upright/Ride On), ID No. (Main/Slave), Demo Sounds, Difficulty
   (default `FF,FE`). The analog mode field is now 3 bits.
 
+## Last Survivor (M12)
+
+- Sets `lastsurv` (FD1094 317-0083) and `lastsurvd` (decrypted bootleg,
+  `lastsurvd/` in the merged zip). Plain X Board configuration without a
+  road ROM; the network board is not modelled (Network DIP off).
+- Inputs go through a multiplexer (descriptor byte 1 bit 7): I/O chip 0
+  port D bits 6:5 select what I/O chip 1 port B returns - group 0 = P2
+  stick and aim, 1 = P1 stick and aim, 2 = the two attack buttons, 3 =
+  nothing (MAME `lastsurv_muxer_w` / `lastsurv_port_r`; bit 7 of the same
+  port is the mute the core already models). Each player's aim is an
+  8-position rotary read back as a 4-bit active-low direction pattern
+  (MAME `lastsurv_position_table`); the core derives it from the player's
+  right stick and holds the last direction when the stick is released
+  (up after reset). Player 2 comes from the second controller; the top
+  level now takes both players' analog sticks from `hps_io`.
+- DIPs: I.D. No, Network, Difficulty, Demo Sounds, Coin Chute (default
+  `FF,BF`). MAME maps this game's I/O chip 1 port A bit 3 to Service 2
+  rather than Start; the core keeps Start there, which acts as that
+  service input.
+
 ## Planned: Line of Fire gun control (M13)
 
 Line of Fire's two guns are four ADC channels (P1 X/Y, P2 X/Y; the Y axes

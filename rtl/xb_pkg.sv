@@ -59,6 +59,7 @@ package xb_pkg;
     //                 bit4 I/O chip 0 port A bits 5:0 read 0 (SMGP motor) instead of 1
     //                 bit5 main CPU is an FD1094 (key region present)
     //                 bit6 GP Rider link hack: timer+vblank present IPL 4, never 6 (MAME m_gprider_hack)
+    //                 bit7 Last Survivor input multiplexer on I/O chip 1 port B (select: chip 0 port D bits 6:5)
     //  byte 2: sprite ROM bank count (aburner2 = 8 x 256 KB)
     //  byte 3: ADC reverse mask (bit n: channel n = 255 - value)
     //  byte 4: PCM ROM bank mask (315-5218 bankmask, aburner2 = 0x70)
@@ -81,6 +82,7 @@ package xb_pkg;
         logic       motor_zero;
         logic       fd1094;
         logic       irq_hack;
+        logic       mux_inputs;
     } board_desc_t;
 
 endpackage

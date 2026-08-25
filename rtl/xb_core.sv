@@ -63,6 +63,8 @@ module xb_core (
 
     // inputs (active high)
     input      [15:0] p1_buttons,   // 0 right 1 left 2 down 3 up 4 vulcan 5 missile 6 start 7 coin 8 test 9 service
+    input      [15:0] p2_buttons,   // second controller, same layout (Last Survivor)
+    input signed [7:0] aim1_x, aim1_y, aim2_x, aim2_y,   // right sticks: Last Survivor aim rotaries
     input signed [7:0] stick_x, stick_y,    // MiSTer analog axes, -128..127
     input       [7:0] throttle,             // 0..255
     input       [1:0] stick_mode,           // 0 analog, 1 d-pad, 2 both
@@ -313,6 +315,32 @@ wire [7:0] io0_in_b = 8'hFF;    // motor board absent (upright)
 // IO1 port A: 0 unused, 1 test, 2 service, 3 start, 4 vulcan, 5 missile, 6 coin1, 7 coin2 (active low)
 wire [7:0] io1_in_a = ~{coin2 | p1_buttons[7] & 1'b0, coin1 | p1_buttons[7], p1_buttons[5], p1_buttons[4],
                         p1_buttons[6], service | p1_buttons[9], test | p1_buttons[8], 1'b0};
+// Last Survivor: I/O chip 1 port B reads one of four input groups selected by
+// I/O chip 0 port D bits 6:5 (MAME lastsurv_muxer_w / lastsurv_port_r):
+// 0 = P2 stick + aim, 1 = P1 stick + aim, 2 = attack buttons (P1 bit 4, P2
+// bit 0), 3 = nothing. The aim rotary is an 8-position encoder read back as
+// a 4-bit active-low direction pattern (MAME lastsurv_position_table); it
+// follows the right stick and keeps its last direction when released.
+function automatic [3:0] dirpat(input [3:0] rldu);   // {down, up, right, left} active high -> active-low pattern
+    dirpat = ~rldu;
+endfunction
+function automatic [3:0] stickdir(input signed [7:0] x, input signed [7:0] y);
+    stickdir = {y > 8'sd48, y < -8'sd48, x > 8'sd48, x < -8'sd48};
+endfunction
+reg [3:0] aim1, aim2;
+always @(posedge clk_sys) begin
+    if (reset) begin aim1 <= 4'b0100; aim2 <= 4'b0100; end   // up
+    else begin
+        if (stickdir(aim1_x, aim1_y) != 4'd0) aim1 <= stickdir(aim1_x, aim1_y);
+        if (stickdir(aim2_x, aim2_y) != 4'd0) aim2 <= stickdir(aim2_x, aim2_y);
+    end
+end
+wire [3:0] p1_dirs = {p1_buttons[2], p1_buttons[3], p1_buttons[0], p1_buttons[1]};
+wire [3:0] p2_dirs = {p2_buttons[2], p2_buttons[3], p2_buttons[0], p2_buttons[1]};
+wire [7:0] mux_q = (io0_out_d[6:5] == 2'd0) ? {dirpat(aim2), dirpat(p2_dirs)} :
+                   (io0_out_d[6:5] == 2'd1) ? {dirpat(aim1), dirpat(p1_dirs)} :
+                   (io0_out_d[6:5] == 2'd2) ? ~{3'b000, p1_buttons[4], 3'b000, p2_buttons[4]} : 8'hFF;
+wire [7:0] io1_in_b = board_desc.mux_inputs ? mux_q : 8'hFF;
 xb_cxd1095 io0 (.clk(clk_sys), .reset(cpu_reset), .cs(m_cs && m_sel_io0 && m_be[0]), .we(m_wr),
     .addr(ma[3:1]), .din(m_dout[7:0]), .dout(io0_q), .oden_n(oden_n),
     .in_a(io0_in_a), .in_b(io0_in_b), .in_c(8'hFF), .in_d(8'hFF), .in_e(4'hF),
@@ -320,7 +348,7 @@ xb_cxd1095 io0 (.clk(clk_sys), .reset(cpu_reset), .cs(m_cs && m_sel_io0 && m_be[
     .dir_a(), .dir_b(), .dir_c(), .dir_d());
 xb_cxd1095 io1 (.clk(clk_sys), .reset(cpu_reset), .cs(m_cs && m_sel_io1 && m_be[0]), .we(m_wr),
     .addr(ma[3:1]), .din(m_dout[7:0]), .dout(io1_q), .oden_n(oden_n),
-    .in_a(io1_in_a), .in_b(8'hFF), .in_c(dsw_a), .in_d(dsw_b), .in_e(4'hF),
+    .in_a(io1_in_a), .in_b(io1_in_b), .in_c(dsw_a), .in_d(dsw_b), .in_e(4'hF),
     .out_a(), .out_b(), .out_c(), .out_d(), .out_e(),
     .dir_a(), .dir_b(), .dir_c(), .dir_d());
 xb_adc0804 adc (.clk(clk_sys), .reset(cpu_reset), .ce_adc(ce_adc),

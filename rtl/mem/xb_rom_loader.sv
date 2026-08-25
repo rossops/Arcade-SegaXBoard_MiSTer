@@ -131,6 +131,7 @@ always @(posedge clk) begin
                     desc_r.motor_zero    <= desc_bytes[1][4];
                     desc_r.fd1094        <= desc_bytes[1][5];
                     desc_r.irq_hack      <= desc_bytes[1][6];
+                    desc_r.mux_inputs    <= desc_bytes[1][7];
                 end
             end
             else if (ioctl_addr >= OFF_ROAD && ioctl_addr < OFF_ROAD + 27'h1_0000) begin

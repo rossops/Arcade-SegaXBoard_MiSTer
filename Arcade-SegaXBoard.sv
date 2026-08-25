@@ -162,6 +162,7 @@ wire [15:0] ioctl_dout, ioctl_din;
 wire [31:0] joystick_0, joystick_1;
 wire [15:0] joystick_l_analog_0;
 wire [15:0] joystick_r_analog_0;
+wire [15:0] joystick_l_analog_1, joystick_r_analog_1;
 wire  [7:0] paddle_0;
 
 wire video_reset = RESET | status[0] | buttons[1] | ~pll_locked;
@@ -205,6 +206,8 @@ hps_io #(.CONF_STR(CONF_STR), .WIDE(1)) hps_io (
     .joystick_1(joystick_1),
     .joystick_l_analog_0(joystick_l_analog_0),
     .joystick_r_analog_0(joystick_r_analog_0),
+    .joystick_l_analog_1(joystick_l_analog_1),
+    .joystick_r_analog_1(joystick_r_analog_1),
     .paddle_0(paddle_0)
 );
 // DIP switches arrive from the MRA <switches> block as ioctl index 254:
@@ -304,7 +307,9 @@ xb_core core (
     .p4_req(p4_req), .p4_addr(p4_addr), .p4_dout(p4_dout), .p4_ack(p4_ack), .p4_urgent(p4_urgent),
     .p5_req(p5_req), .p5_addr(p5_addr), .p5_dout(p5_dout), .p5_ack(p5_ack),
     .p6_req(p6_req), .p6_addr(p6_addr), .p6_dout(p6_dout), .p6_ack(p6_ack),
-    .p1_buttons(joystick_0[15:0]),
+    .p1_buttons(joystick_0[15:0]), .p2_buttons(joystick_1[15:0]),
+    .aim1_x(joystick_r_analog_0[7:0]), .aim1_y(joystick_r_analog_0[15:8]),
+    .aim2_x(joystick_r_analog_1[7:0]), .aim2_y(joystick_r_analog_1[15:8]),
     .stick_x(joystick_l_analog_0[7:0]), .stick_y(joystick_l_analog_0[15:8]),
     .throttle(joystick_r_analog_0[15:8] ^ 8'h80), .stick_mode(stick_mode),
     .dsw_a(dsw_a), .dsw_b(dsw_b),
