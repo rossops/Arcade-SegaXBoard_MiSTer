@@ -326,6 +326,70 @@ different CPU timing drift in phase, so the gate uses the envelope (>= 0.9).
   loops the collapse heuristic handles poorly, so the sub gate is not part
   of `check_m9.sh`.
 
+## Racing Hero and A.B. Cop (M10)
+
+- Sets: `rachero` (FD1094 317-0144) with its decrypted bootleg `racherod`;
+  `abcop` / `abcopj` (317-0169b) with `abcopd` / `abcopjd`. Plain X Board
+  configurations: default road priority, no motor, no second sound board;
+  Racing Hero has no road ROM (zero slot, as Super Monaco GP), A.B. Cop has
+  one. The merged `abcop.zip` stores the bootleg odd ROM shared by both
+  bootlegs under `abcopd`'s name, so `abcopjd` references that name.
+- Analog mode 3: steering 0x20..0xE0 reversed on ADC0 (MAME's PORT_REVERSE
+  paddle, done in the mapping rather than through `adc_reverse` so the
+  centre stays 0x80), gas 0x00..0xFF on ADC1 and brake on ADC2 from the
+  right stick's Y axis or the Gas/Brake buttons. A.B. Cop's Jump is the
+  second button; Racing Hero has none.
+- DIP layout shared by both: Credits, Demo Sounds, Allow Continue, Time,
+  Difficulty (MAME defaults `FF,F9`).
+
+## Long-term: enhanced sprite resolution (parked)
+
+An opt-in OSD mode rendering at 640x448 without touching gameplay timing.
+The tile, text and road layers carry no detail beyond 320x224 (8x8 bitmaps
+and per-line patterns at integer positions), so a 2x render of those is
+plain pixel doubling; the gain is in the sprites, whose zoom accumulators
+step through source pixels in 1/512 units: sampling at half steps makes
+shrunk sprites sharper and steadier (magnified ones get smoother steps).
+What it needs: a 2x video timing (800x524 at 12.5 MHz, same 262-line frame
+and 59.64 Hz so the CPUs, interrupts and handshakes keep the hardware
+timing), a sprite renderer sampling at 2x into 1024x512 DDR3 framebuffers
+with two pixels per clock (the heaviest frame today takes ~4.9 ms of the
+16.7 ms budget at one pixel per clock), `xb_fb_if` runs and line buffers at
+the 2x rate, doublers for the other layers. Estimate: +4-6k ALMs. No MAME
+reference exists for the 2x sprites; verification would compare against a
+2x mode of `verif/models/sprite5211.py`. The accurate 320x224 path stays
+the default and unchanged.
+
+## Later: framework gamma correction (parked)
+
+`arcade_video` is instantiated with `GAMMA(0)` since the first hardware
+build (M5/M6): Quartus 17 could not see the `gamma_bus` port through the
+framework's `.*` connection, and disabling gamma was the quick way past it.
+Re-enabling it (wire `gamma_bus` from `hps_io` explicitly, `GAMMA(1)`)
+gives the standard per-core "Gamma correction" OSD curves at the cost of a
+few hundred ALMs and one M10K for the LUT. Scaling and interpolation
+themselves stay with the framework's scaler filters; a core-side
+"improved scaling" mode would only re-interpolate the same 320x224 pixels.
+
+## Later: CPU overclock (parked)
+
+An opt-in OSD "CPU speed" (12.5 / 15 / 18.75 / 25 MHz) for both 68000s,
+default 12.5. The CPU clock enables come from `clk_sys`: 25 MHz is the /2
+pattern (fx68k's documented maximum, two clocks per phase, which the ROM
+caches and SDRAM already serve), 15 and 18.75 MHz are uneven patterns
+(3-in-10, 3-in-8) of the kind the sound section already uses. Everything
+else keeps the hardware rate: the 262-line frame and vblank, the 315-5250
+scanline timer, the sound section, the ADC conversion enable (kept
+independent of the CPU clock), sprite and road generators. The games run
+their logic once per frame, so the visible effect is the removal of
+slowdown in scenes that overrun a frame on the PCB; nothing else changes.
+Risk: cross-CPU races and timing assumptions can flip (After Burner's
+stick-sampling race is an example), the usual "may cause glitches" caveat.
+Both CPUs change together. Work: the enable generator in `xb_core`, a
+check that `xb_m68k_bus` is enable-agnostic at two clocks per phase, and
+boot/self-consistency sims at each speed (no MAME reference for the
+timing). No timing-closure impact, `clk_sys` is unchanged.
+
 ## ROM stream
 
 `tools/pack_roms.py` and `tools/gen_mra.py` share `tools/romsets.py`. The

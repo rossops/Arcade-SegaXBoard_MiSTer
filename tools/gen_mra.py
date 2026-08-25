@@ -65,7 +65,8 @@ def make_mra(key, rs):
     L.append(f'  <year>{rs["year"]}</year>')
     L.append('  <manufacturer>Sega</manufacturer>')
     L.append('  <category>Shooter / Flight</category>')
-    zips = rs["zipfile"] + ".zip" if rs["zipfile"] == key else f'{key}.zip|{rs["zipfile"]}.zip'
+    zips = rs["zipfile"] + ".zip" if rs["zipfile"] == key else "|".join(
+        f"{z}.zip" for z in [key] + rs.get("extra_zips", []) + [rs["zipfile"]])
     L.append(f'  <rom index="0" zip="{zips}" md5="None">')
     L.append(f'    <part>{hexbytes(descriptor(rs))}</part>')
     for region in ORDER[:last_region(rs) + 1]:

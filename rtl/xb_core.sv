@@ -357,15 +357,21 @@ wire [7:0] thr_up   = (throttle < 8'h80) ? (8'h80 - throttle) : 8'd0;   // 0..0x
 wire [7:0] thr_down = (throttle > 8'h80) ? (throttle - 8'h80) : 8'd0;   // 0..0x7F
 wire [7:0] gas_v    = p1_buttons[11] ? 8'h80 : thr_up;
 wire [7:0] brake_v  = p1_buttons[12] ? 8'h80 : thr_down;
-wire [7:0] sel_x  = (am == 2'd2) ? dr_x  : (am == 2'd1) ? fr_x  : ab_x;
-wire [7:0] sel_dx = (am == 2'd2) ? dr_dx : (am == 2'd1) ? fr_dx : ab_dx;
+// driving with full-range pedals (Racing Hero, A.B. Cop): steering
+// 0x20..0xE0 reversed on ADC0, gas 0x00..0xFF on ADC1, brake on ADC2
+wire [7:0] rh_x  = 8'h80 - ab_xs[14:7];
+wire [7:0] rh_dx = p1_buttons[0] ? 8'h20 : p1_buttons[1] ? 8'hE0 : 8'h80;
+wire [7:0] gas_f   = p1_buttons[11] ? 8'hFF : {thr_up[6:0], thr_up[7]};      // 0..0x80 -> 0..0xFF
+wire [7:0] brake_f = p1_buttons[12] ? 8'hFF : {thr_down[6:0], 1'b0};
+wire [7:0] sel_x  = (am == 2'd3) ? rh_x  : (am == 2'd2) ? dr_x  : (am == 2'd1) ? fr_x  : ab_x;
+wire [7:0] sel_dx = (am == 2'd3) ? rh_dx : (am == 2'd2) ? dr_dx : (am == 2'd1) ? fr_dx : ab_dx;
 wire [7:0] sel_y  = (am == 2'd1) ? fr_y  : ab_y;
 wire [7:0] sel_dy = (am == 2'd1) ? fr_dy : ab_dy;
 wire [7:0] ana_x = (use_dpad && dpad_active) ? sel_dx : use_analog ? sel_x : 8'h80;
 wire [7:0] ana_y = (use_dpad && dpad_active) ? sel_dy : use_analog ? sel_y : 8'h80;
 wire [7:0] adc_ch0 = ana_x;
-wire [7:0] adc_ch1 = (am == 2'd2) ? (8'h38 + gas_v) : (am == 2'd1) ? throttle : ana_y;
-wire [7:0] adc_ch2 = (am == 2'd2) ? (8'h28 + brake_v) : (am == 2'd1) ? ana_y : throttle;
+wire [7:0] adc_ch1 = (am == 2'd3) ? gas_f   : (am == 2'd2) ? (8'h38 + gas_v)   : (am == 2'd1) ? throttle : ana_y;
+wire [7:0] adc_ch2 = (am == 2'd3) ? brake_f : (am == 2'd2) ? (8'h28 + brake_v) : (am == 2'd1) ? ana_y : throttle;
 wire snd_reset_n    = io0_out_c[0];
 wire mute_n         = io0_out_d[7];
 

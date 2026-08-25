@@ -496,7 +496,8 @@ defparam
     ram.outdata_reg_b = "UNREGISTERED",
     ram.power_up_uninitialized = "TRUE",
     ram.read_during_write_mode_mixed_ports = "DONT_CARE",
-    ram.width_byteena_a = 1;
+    ram.width_byteena_a = 1,
+    ram.ram_block_type = "M10K";
 `else
 reg [63:0] mem [0:127];
 reg [63:0] rd_q_r;

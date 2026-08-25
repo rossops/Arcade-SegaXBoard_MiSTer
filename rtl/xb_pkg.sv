@@ -63,7 +63,8 @@ package xb_pkg;
     //  byte 4: PCM ROM bank mask (315-5218 bankmask, aburner2 = 0x70)
     //  byte 5: bits 1:0 analog mode (0: After Burner ranges, throttle on ADC2;
     //          1: full range, throttle on ADC1 and stick Y on ADC2 - Thunder Blade;
-    //          2: driving - steering ADC0, gas ADC1, brake ADC2 - Super Monaco GP)
+    //          2: driving - steering ADC0, gas ADC1, brake ADC2 - Super Monaco GP;
+    //          3: driving, steering 0x20..0xE0 reversed, full-range pedals - Racing Hero, A.B. Cop)
     //  bytes 6..63: reserved (0)
     typedef struct packed {
         logic [7:0] game_id;
