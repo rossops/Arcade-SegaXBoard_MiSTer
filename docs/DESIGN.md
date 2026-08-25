@@ -426,25 +426,28 @@ timing). No timing-closure impact, `clk_sys` is unchanged.
   rather than Start; the core keeps Start there, which acts as that
   service input.
 
-## Planned: Line of Fire gun control (M13)
+## Line of Fire (M13)
 
-Line of Fire's two guns are four ADC channels (P1 X/Y, P2 X/Y; the Y axes
-reversed through the descriptor's `adc_reverse`, MAME `install_loffire`)
-with trigger and bomb buttons. Planned OSD "Gun control" modes:
-
-- Lightgun: the mapped player's analog X/Y taken as an absolute screen
-  position and scaled to the game's ranges; this is how MiSTer's USB gun
-  support delivers coordinates, so real guns need no core-side calibration.
-- Gamepad: the stick or D-pad moves a persistent crosshair whose position
-  feeds the ADC channels, trigger/bomb on the face buttons, two players
-  from two controllers. A per-player "Cursor speed" option: the request was
-  a 1-100 slider, but the MiSTer OSD only offers fixed option lists, so it
-  is a list in steps (10, 20, ... 100, default 50) driving a fine internal
-  velocity scale. An optional crosshair overlay drawn by the core (a small
-  cross before the palette) for gamepad mode, unless the game draws its own
-  sight (to be checked at bring-up).
-- MAME's `loffire_sync0_w` is a cross-CPU synchronisation hack; the traces
-  will show whether our timing needs anything.
+- Sets: `loffire` (World, FD1094 317-0136), `loffireu` (US, 317-0135),
+  `loffirej` (Japan, 317-0134) and their decrypted bootlegs `loffired`,
+  `loffireud`, `loffirejd`. Plain X Board configuration without a road
+  ROM. MAME's `loffire_sync0_w` only tightens its scheduler on writes to
+  shared RAM; a cycle-based board needs nothing there.
+- Two guns on the ADC: P1 X/Y on channels 0/1, P2 X/Y on 2/3, the Y
+  channels reversed through the descriptor's `adc_reverse` (MAME
+  `install_loffire`); trigger and bomb for both players on I/O chip 1 port
+  B bits 7:4 (descriptor byte 6 bit 0). MAME maps I/O chip 1 port A bits 3
+  and 2 to Service 1 and 2; the core's Start button lands on bit 3, so it
+  acts as that service input.
+- OSD "Gun control": Lightgun takes the mapped player's analog X/Y as an
+  absolute 0..255 position (how MiSTer's USB gun support delivers
+  coordinates); Gamepad keeps a per-player cursor in 1/16 pixel units,
+  moved once per frame by the stick or D-pad at the "cursor speed" option
+  (the request was a 1..100 slider; the OSD only offers lists, so it is
+  10..100 in steps of 10, default 50, ordered so the default is the first
+  entry). "Crosshair" draws a small cross per player (P1 white, P2
+  yellow) in gamepad mode, mapping the 0..255 positions to 320x224 the
+  way MAME's crosshairs do. Player 2 uses the second controller.
 
 ## ROM stream
 

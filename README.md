@@ -7,9 +7,6 @@ the 315-5211A sprite generator with its double framebuffer, the 315-5275 road
 generator, the 315-5248/5249/5250 math and timer chips, two CXD1095 port
 expanders, a YM2151 and a 315-5218 PCM chip.
 
-Nothing playable yet. This is milestone 0: the repository layout, the build
-flow, the ROM stream tools and a stub board that shows colour bars.
-
 ## Status
 
 | Milestone | What it proves | State |
@@ -27,9 +24,40 @@ flow, the ROM stream tools and a stub board that shows colour bars.
 | M10 | Racing Hero and A.B. Cop | done: six sets (bootlegs pixel-exact vs MAME, FD1094 parents), confirmed on hardware |
 | M11 | GP Rider | done: three single-board FD1094 sets, confirmed on hardware |
 | M12 | Last Survivor | done: input multiplexer, two players, bootleg and FD1094 sets, confirmed on hardware |
+| M13 | Line of Fire | done: six sets, lightgun/gamepad gun control with cursor speed and crosshair, confirmed on hardware |
 | later | Enhanced sprites (640x448 sprite rendering, opt-in) | parked, see docs/DESIGN.md |
 | later | Gamma correction (framework option, disabled since M5) | parked, see docs/DESIGN.md |
 | later | CPU overclock (12.5/15/18.75/25 MHz, opt-in) | parked, see docs/DESIGN.md |
+
+## Supported games
+
+| Game | MAME set | ROM zips (MAME 0.289) | Main CPU |
+|---|---|---|---|
+| After Burner II | `aburner2` | `aburner2.zip` | plain |
+| After Burner (Ver 1.32) | `aburner` | `aburner.zip` | plain |
+| After Burner (Ver 1.31) | `aburner131` | `aburner.zip` + `aburner131.zip` | plain |
+| Thunder Blade (deluxe, standing) | `thndrbld1` | `thndrbld.zip` + `thndrbld1.zip` | plain |
+| Thunder Blade (upright, bootleg decrypted) | `thndrbldd` | `thndrbld.zip` + `thndrbldd.zip` | plain |
+| Super Monaco GP (World, bootleg decrypted) | `smgpd` | `smgp.zip` + `smgpd.zip` | plain |
+| Thunder Blade (upright) | `thndrbld` | `thndrbld.zip` | FD1094 |
+| Super Monaco GP (World, Rev B) | `smgp` | `smgp.zip` | FD1094 |
+| Racing Hero | `rachero` | `rachero.zip` | FD1094 |
+| Racing Hero (bootleg decrypted) | `racherod` | `rachero.zip` + `racherod.zip` | plain |
+| A.B. Cop (World) | `abcop` | `abcop.zip` | FD1094 |
+| A.B. Cop (Japan) | `abcopj` | `abcop.zip` + `abcopj.zip` | FD1094 |
+| A.B. Cop (World, bootleg decrypted) | `abcopd` | `abcop.zip` + `abcopd.zip` | plain |
+| A.B. Cop (Japan, bootleg decrypted) | `abcopjd` | `abcop.zip` + `abcopjd.zip` | plain |
+| GP Rider (World) | `gpriders` | `gprider.zip` + `gpriders.zip` | FD1094 |
+| GP Rider (US) | `gpriderus` | `gprider.zip` + `gpriderus.zip` | FD1094 |
+| GP Rider (Japan) | `gpriderjs` | `gprider.zip` + `gpriderjs.zip` | FD1094 |
+| Last Survivor | `lastsurv` | `lastsurv.zip` | FD1094 |
+| Last Survivor (bootleg decrypted) | `lastsurvd` | `lastsurv.zip` + `lastsurvd.zip` | plain |
+| Line of Fire (World) | `loffire` | `loffire.zip` | FD1094 |
+| Line of Fire (US) | `loffireu` | `loffire.zip` + `loffireu.zip` | FD1094 |
+| Line of Fire (Japan) | `loffirej` | `loffire.zip` + `loffirej.zip` | FD1094 |
+| Line of Fire (World, bootleg decrypted) | `loffired` | `loffire.zip` + `loffired.zip` | plain |
+| Line of Fire (US, bootleg decrypted) | `loffireud` | `loffire.zip` + `loffireud.zip` | plain |
+| Line of Fire (Japan, bootleg decrypted) | `loffirejd` | `loffire.zip` + `loffirejd.zip` | plain |
 
 ## Layout
 
@@ -85,18 +113,68 @@ expects is the one the MiSTer host actually sends.
 
 ## Installing
 
-Copy `releases/Arcade-SegaXBoard_<date>.rbf` to `/media/fat/_Arcade/cores/`,
-the `.mra` files to `/media/fat/_Arcade/` and the MAME 0.289 zips
-(`aburner2`, `aburner`, `aburner131`, `thndrbld`, `thndrbld1`, `thndrbldd`)
-to `/media/fat/games/mame/`. MiSTer needs split or non-merged sets: it opens
+Copy `releases/Arcade-SegaXBoard_<date>.rbf` to `_Arcade/cores/`,
+the `.mra` files to `_Arcade/` and the MAME 0.289 zips
+(`aburner2`, `aburner`, `aburner131`, `thndrbld`, `thndrbld1`, `thndrbldd`, `etc`)
+to `games/mame/`. MiSTer needs split or non-merged sets: it opens
 `games/mame/<zip>/<file>` literally and does not look inside a merged zip's
 clone folders. From merged sets, `tools/make_clone_zips.py --out DIR` builds
 the small clone zips (`aburner131`, `thndrbld1`, `thndrbldd`) that go next
-to the parent zips. The MRA's `<rbf>` is `Arcade-SegaXBoard`, the same
-convention as the System 32 core. Commercial ROMs are not included.
+to the parent zips. The MRA's `<rbf>` is `Arcade-SegaXBoard`. Commercial 
+ROMs are not included.
 
-## References
+## Audio filter
 
-See `docs/references.md` for the pinned MAME commit, Charles MacDonald's
-hardware notes and the vendored IP (fx68k, jt51, T80) with licences. The core
-is GPL-3.
+The MiSTer framework applies a selectable low-pass filter to the core's
+audio (OSD system page, "Audio filter", files under `/media/fat/Filters_Audio/`).
+The X Board's 315-5218 plays 8-bit samples at 31.25 kHz without
+interpolation, so its output carries staircase imaging above ~15 kHz that
+sounds gritty on a flat system, while the YM2151 side is clean; the PCB
+itself has an analog low-pass before the amplifier. Recommended:
+`General LPF/LPF 12khz 1st + AA.txt`, a gentle first-order roll-off that
+tames the PCM grit without dulling the FM. `Arcade LPF/Arcade LPF 8khz 2nd.txt`
+gives the warmer sound of a period cabinet speaker. To make one the core's
+default add to `MiSTer.ini`:
+
+```
+[Arcade-SegaXBoard]
+afilter_default=General LPF/LPF 12khz 1st + AA.txt
+```
+
+## Credits
+
+The Sega custom chips, the board glue, the loader and the tooling in this
+repository were written for this core from the references below. Several
+pieces are other people's work, vendored under their own licences (pinned
+commits in `docs/references.md`):
+
+- **MAME** (mamedev.org) — the behavioural reference for the whole board:
+  `segaxbd.cpp` and the 16-bit Sega device family (`segaic16`, `sega16sp`,
+  `segaic16_road`, `segaic16_m`), `segapcm.cpp`, `cxd1095.cpp`, and
+  `fd1094.cpp` by Nicola Salmoria, Andreas Naive and Charles MacDonald.
+  Every custom chip model in `verif/models/` is a port of the MAME code,
+  and MAME 0.289 produced the golden frames, traces and audio the RTL is
+  checked against. GPL-2.0+ / BSD-3.
+- **Charles MacDonald** — "Sega X-Board hardware notes" (2004), the
+  real-hardware description of the sprite sequencing, memory map and I/O
+  used where MAME simplifies (`docs/xboard_macdonald.txt`, via jtcores).
+- **Jose Tejada (jotego)** — the YM2151 (`jt51`) and the FD1094 decryptor
+  and control block from jtcores (`cores/s16`), GPL-3.
+- **Jorge Cwik (ijor)** — `fx68k`, the cycle-accurate 68000 used for both
+  CPUs, GPL-3.
+- **Daniel Wallner, MikeJ, Sorgelig** — the T80 Z80 core, BSD-style.
+- **Guy Hutchison** — `tv80`, the Verilog Z80 used by the Verilator
+  simulations in place of the VHDL T80, MIT-style.
+- **Alexey Melnikov (Sorgelig) and the MiSTer project** — the MiSTer
+  framework (`sys/`), the MRA/ROM loading conventions, the audio filter
+  and the DE10-Nano platform this runs on.
+- **Meathax** — the Sega System 32 MiSTer core
+  (https://github.com/meathax/s32), GPL-3: the repository layout follows
+  it, and the SDRAM controller (`rtl/mem/sdram.sv`) and the DDR3 sprite
+  framebuffer interface (`rtl/mem/xb_fb_if.sv`) are forks of its
+  `sdram.sv` and `s32_fb_if.sv`; the `sys/` framework copy and the T80
+  came from it as well.
+- **Tools**: Verilator, Icarus Verilog, cocotb, capstone, numpy and Pillow
+  for the verification flow; Quartus Prime 17.0 Lite for the FPGA build.
+
+The core itself is GPL-3. Commercial ROMs are not included.

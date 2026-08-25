@@ -67,8 +67,10 @@ package xb_pkg;
     //          1: full range, throttle on ADC1 and stick Y on ADC2 - Thunder Blade;
     //          2: driving - steering ADC0, gas ADC1, brake ADC2 - Super Monaco GP;
     //          3: driving, steering 0x20..0xE0 reversed, full-range pedals - Racing Hero, A.B. Cop;
-    //          4: driving, steering full range, pedals 0x10..0xEF - GP Rider)
-    //  bytes 6..63: reserved (0)
+    //          4: driving, steering full range, pedals 0x10..0xEF - GP Rider;
+    //          5: lightguns - P1 X/Y on ADC0/1, P2 X/Y on ADC2/3 - Line of Fire)
+    //  byte 6: bit0 Line of Fire gun inputs: I/O chip 1 port B bits 7:4 = P1 trigger, P1 bomb, P2 trigger, P2 bomb
+    //  bytes 7..63: reserved (0)
     typedef struct packed {
         logic [7:0] game_id;
         logic       road_priority;
@@ -83,6 +85,7 @@ package xb_pkg;
         logic       fd1094;
         logic       irq_hack;
         logic       mux_inputs;
+        logic       gun_inputs;
     } board_desc_t;
 
 endpackage

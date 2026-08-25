@@ -25,6 +25,7 @@ def descriptor(rs):
     d[3] = rs["adc_reverse"]
     d[4] = rs["pcm_bankmask"]
     d[5] = rs.get("ana_mode", 0) & 7
+    d[6] = rs.get("gun_inputs", 0) & 1
     return bytes(d)
 
 

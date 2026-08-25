@@ -65,6 +65,10 @@ module xb_core (
     input      [15:0] p1_buttons,   // 0 right 1 left 2 down 3 up 4 vulcan 5 missile 6 start 7 coin 8 test 9 service
     input      [15:0] p2_buttons,   // second controller, same layout (Last Survivor)
     input signed [7:0] aim1_x, aim1_y, aim2_x, aim2_y,   // right sticks: Last Survivor aim rotaries
+    input signed [7:0] stick2_x, stick2_y,  // second controller's left stick (Line of Fire P2)
+    input             gun_mode,       // 0: lightgun (absolute stick), 1: gamepad cursor
+    input       [3:0] speed1, speed2, // OSD cursor speed values (0..9 -> 50..100,10..40)
+    input             xhair_en,       // draw crosshairs in gamepad mode
     input signed [7:0] stick_x, stick_y,    // MiSTer analog axes, -128..127
     input       [7:0] throttle,             // 0..255
     input       [1:0] stick_mode,           // 0 analog, 1 d-pad, 2 both
@@ -340,7 +344,47 @@ wire [3:0] p2_dirs = {p2_buttons[2], p2_buttons[3], p2_buttons[0], p2_buttons[1]
 wire [7:0] mux_q = (io0_out_d[6:5] == 2'd0) ? {dirpat(aim2), dirpat(p2_dirs)} :
                    (io0_out_d[6:5] == 2'd1) ? {dirpat(aim1), dirpat(p1_dirs)} :
                    (io0_out_d[6:5] == 2'd2) ? ~{3'b000, p1_buttons[4], 3'b000, p2_buttons[4]} : 8'hFF;
-wire [7:0] io1_in_b = board_desc.mux_inputs ? mux_q : 8'hFF;
+// Line of Fire: I/O chip 1 port B bits 7:4 = P1 trigger, P1 bomb, P2 trigger, P2 bomb
+wire [7:0] gun_q = ~{p1_buttons[4], p1_buttons[5], p2_buttons[4], p2_buttons[5], 4'b0000};
+wire [7:0] io1_in_b = board_desc.gun_inputs ? gun_q : board_desc.mux_inputs ? mux_q : 8'hFF;
+
+// Line of Fire gun positions, one per player. Lightgun mode: the stick is
+// an absolute position (MiSTer's USB gun support delivers coordinates that
+// way). Gamepad mode: a persistent cursor moved by the stick or D-pad at the
+// OSD speed (values 0..9 stand for 50,60,..100,10,20,30,40 percent), in
+// 1/16 pixel units, advanced once per frame. Positions are 0..255 like
+// MAME's lightgun ports; the ADC reversal of the Y channels comes from the
+// descriptor (MAME install_loffire).
+function automatic [3:0] speed_idx(input [3:0] v);   // 1..10
+    speed_idx = (v < 4'd6) ? (v + 4'd5) : (v - 4'd5);
+endfunction
+function automatic signed [7:0] dpad_axis(input neg, input pos, input signed [7:0] stick);
+    dpad_axis = pos ? 8'sd100 : neg ? -8'sd100 : stick;
+endfunction
+function automatic [11:0] cursor_step(input [11:0] c, input signed [7:0] axis, input [3:0] idx);
+    reg signed [13:0] d; reg signed [13:0] n;
+    begin
+        d = ($signed({{6{axis[7]}}, axis}) * $signed({10'd0, idx})) >>> 3;
+        n = $signed({2'b00, c}) + d;
+        cursor_step = (n < 14'sd0) ? 12'd0 : (n > 14'sd4095) ? 12'd4095 : n[11:0];
+    end
+endfunction
+reg [11:0] cur1_x, cur1_y, cur2_x, cur2_y;
+reg        vbl_gun_d;
+always @(posedge clk_sys) begin
+    vbl_gun_d <= vbl_irq;
+    if (reset) begin cur1_x <= 12'd2048; cur1_y <= 12'd2048; cur2_x <= 12'd2048; cur2_y <= 12'd2048; end
+    else if (vbl_irq && !vbl_gun_d) begin
+        cur1_x <= cursor_step(cur1_x, dpad_axis(p1_buttons[1], p1_buttons[0], stick_x),  speed_idx(speed1));
+        cur1_y <= cursor_step(cur1_y, dpad_axis(p1_buttons[3], p1_buttons[2], stick_y),  speed_idx(speed1));
+        cur2_x <= cursor_step(cur2_x, dpad_axis(p2_buttons[1], p2_buttons[0], stick2_x), speed_idx(speed2));
+        cur2_y <= cursor_step(cur2_y, dpad_axis(p2_buttons[3], p2_buttons[2], stick2_y), speed_idx(speed2));
+    end
+end
+wire [7:0] gun1_x = gun_mode ? cur1_x[11:4] : {~stick_x[7],  stick_x[6:0]};
+wire [7:0] gun1_y = gun_mode ? cur1_y[11:4] : {~stick_y[7],  stick_y[6:0]};
+wire [7:0] gun2_x = gun_mode ? cur2_x[11:4] : {~stick2_x[7], stick2_x[6:0]};
+wire [7:0] gun2_y = gun_mode ? cur2_y[11:4] : {~stick2_y[7], stick2_y[6:0]};
 xb_cxd1095 io0 (.clk(clk_sys), .reset(cpu_reset), .cs(m_cs && m_sel_io0 && m_be[0]), .we(m_wr),
     .addr(ma[3:1]), .din(m_dout[7:0]), .dout(io0_q), .oden_n(oden_n),
     .in_a(io0_in_a), .in_b(io0_in_b), .in_c(8'hFF), .in_d(8'hFF), .in_e(4'hF),
@@ -354,7 +398,7 @@ xb_cxd1095 io1 (.clk(clk_sys), .reset(cpu_reset), .cs(m_cs && m_sel_io1 && m_be[
 xb_adc0804 adc (.clk(clk_sys), .reset(cpu_reset), .ce_adc(ce_adc),
     .cs(m_cs && m_sel_adc && m_be[0]), .we(m_wr), .dout(adc_q), .intr(adc_intr),
     .channel(io0_out_c[4:2]), .adc_reverse(board_desc.adc_reverse),
-    .ch0(adc_ch0), .ch1(adc_ch1), .ch2(adc_ch2), .ch3(8'h80), .ch4(8'h80),
+    .ch0(adc_ch0), .ch1(adc_ch1), .ch2(adc_ch2), .ch3(adc_ch3), .ch4(8'h80),
     .ch5(8'h10), .ch6(8'h00), .ch7(8'h00));
 wire display_enable = io0_out_c[5];   // MAME: set_display_enable(data & 0x20)
 
@@ -402,9 +446,10 @@ wire [7:0] sel_y  = (am == 3'd1) ? fr_y  : ab_y;
 wire [7:0] sel_dy = (am == 3'd1) ? fr_dy : ab_dy;
 wire [7:0] ana_x = (use_dpad && dpad_active) ? sel_dx : use_analog ? sel_x : 8'h80;
 wire [7:0] ana_y = (use_dpad && dpad_active) ? sel_dy : use_analog ? sel_y : 8'h80;
-wire [7:0] adc_ch0 = ana_x;
-wire [7:0] adc_ch1 = (am == 3'd4) ? gp_gas   : (am == 3'd3) ? gas_f   : (am == 3'd2) ? (8'h38 + gas_v)   : (am == 3'd1) ? throttle : ana_y;
-wire [7:0] adc_ch2 = (am == 3'd4) ? gp_brake : (am == 3'd3) ? brake_f : (am == 3'd2) ? (8'h28 + brake_v) : (am == 3'd1) ? ana_y : throttle;
+wire [7:0] adc_ch0 = (am == 3'd5) ? gun1_x : ana_x;
+wire [7:0] adc_ch3 = (am == 3'd5) ? gun2_y : 8'h80;
+wire [7:0] adc_ch1 = (am == 3'd5) ? gun1_y : (am == 3'd4) ? gp_gas   : (am == 3'd3) ? gas_f   : (am == 3'd2) ? (8'h38 + gas_v)   : (am == 3'd1) ? throttle : ana_y;
+wire [7:0] adc_ch2 = (am == 3'd5) ? gun2_x : (am == 3'd4) ? gp_brake : (am == 3'd3) ? brake_f : (am == 3'd2) ? (8'h28 + brake_v) : (am == 3'd1) ? ana_y : throttle;
 wire snd_reset_n    = io0_out_c[0];
 wire mute_n         = io0_out_d[7];
 
@@ -663,9 +708,29 @@ reg hb_d, vb_d2, hs_d, vs_d;
 wire hb_t, vb_t, hs_t, vs_t;
 always @(posedge clk_sys) if (ce_pix) begin hb_d <= hb_t; vb_d2 <= vb_t; hs_d <= hs_t; vs_d <= vs_t; end
 assign hb = hb_d; assign vb = vb_d2; assign hs = hs_d; assign vs = vs_d;
-assign r = (hb | vb | !display_enable) ? 8'd0 : pal_r;
-assign g = (hb | vb | !display_enable) ? 8'd0 : pal_g;
-assign b = (hb | vb | !display_enable) ? 8'd0 : pal_b;
+// crosshair overlay for the gamepad gun mode (P1 white, P2 yellow): the
+// 0..255 positions map to the 320x224 screen as MAME's crosshairs do
+wire        xh_on = xhair_en && gun_mode && board_desc.gun_inputs;
+// products need 11 bits (255*5 = 1275, 255*7 = 1785) before the shift
+wire [11:0] xh1_xm = {4'b0000, gun1_x} * 12'd5, xh1_ym = {4'b0000, gun1_y} * 12'd7;
+wire [11:0] xh2_xm = {4'b0000, gun2_x} * 12'd5, xh2_ym = {4'b0000, gun2_y} * 12'd7;
+wire  [9:0] xh1_x = xh1_xm[11:2];   // *1.25 -> 0..318
+wire  [9:0] xh1_y = xh1_ym[11:3];   // *0.875 -> 0..223
+wire  [9:0] xh2_x = xh2_xm[11:2];
+wire  [9:0] xh2_y = xh2_ym[11:3];
+function automatic cross_hit(input [8:0] hc, input [8:0] vc, input [9:0] cx, input [9:0] cy);
+    reg [9:0] dx, dy;
+    begin
+        dx = ({1'b0, hc} > cx) ? ({1'b0, hc} - cx) : (cx - {1'b0, hc});
+        dy = ({1'b0, vc} > cy) ? ({1'b0, vc} - cy) : (cy - {1'b0, vc});
+        cross_hit = (dx == 10'd0 && dy <= 10'd3) || (dy == 10'd0 && dx <= 10'd3);
+    end
+endfunction
+wire xh1 = xh_on && cross_hit(hcnt, vcnt, xh1_x, xh1_y);
+wire xh2 = xh_on && cross_hit(hcnt, vcnt, xh2_x, xh2_y);
+assign r = (hb | vb | !display_enable) ? 8'd0 : (xh1 | xh2) ? 8'hFF : pal_r;
+assign g = (hb | vb | !display_enable) ? 8'd0 : (xh1 | xh2) ? 8'hFF : pal_g;
+assign b = (hb | vb | !display_enable) ? 8'd0 : xh1 ? 8'hFF : xh2 ? 8'h00 : pal_b;
 
 // ---------------------------------------------------------------- sound
 xb_soundsys sound (

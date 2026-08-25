@@ -91,6 +91,7 @@ initial begin
     if ($value$plusargs("ana_mode=%d", pa)) desc.ana_mode = pa[2:0];
     if ($value$plusargs("irq_hack=%d", pa)) desc.irq_hack = pa[0];
     if ($value$plusargs("mux_inputs=%d", pa)) desc.mux_inputs = pa[0];
+    if ($value$plusargs("gun_inputs=%d", pa)) desc.gun_inputs = pa[0];
     if ($value$plusargs("has_snd2=%d", pa)) desc.has_snd2 = pa[0];
     if ($value$plusargs("motor_zero=%d", pa)) desc.motor_zero = pa[0];
     if ($value$plusargs("fd1094=%d", pa)) desc.fd1094 = pa[0];
@@ -147,7 +148,7 @@ xb_core core (
     .p4_req(p4_req), .p4_addr(p4_addr), .p4_dout(p4_dout), .p4_ack(p4_ack), .p4_urgent(p4_urgent),
     .p5_req(p5_req), .p5_addr(p5_addr), .p5_dout(p5_dout), .p5_ack(p5_ack),
     .p6_req(p6_req), .p6_addr(p6_addr), .p6_dout(p6_dout), .p6_ack(p6_ack),
-    .p1_buttons(16'd0), .p2_buttons(16'd0), .aim1_x(8'sd0), .aim1_y(8'sd0), .aim2_x(8'sd0), .aim2_y(8'sd0), .stick_x(8'sd0), .stick_y(8'sd0), .throttle(8'h80), .stick_mode(2'd0),
+    .p1_buttons(16'd0), .p2_buttons(16'd0), .aim1_x(8'sd0), .aim1_y(8'sd0), .aim2_x(8'sd0), .aim2_y(8'sd0), .stick2_x(8'sd0), .stick2_y(8'sd0), .gun_mode(1'b0), .speed1(4'd0), .speed2(4'd0), .xhair_en(1'b0), .stick_x(8'sd0), .stick_y(8'sd0), .throttle(8'h80), .stick_mode(2'd0),
     .dsw_a(dsw_a), .dsw_b(dsw_b), .service(1'b0), .test(1'b0), .coin1(coin1), .coin2(1'b0),
     .nv_download(1'b0), .nv_upload(1'b0), .nv_wr(1'b0), .nv_rd(1'b0), .nv_addr(15'd0), .nv_din(16'd0), .nv_dout(), .nv_modified(),
     .r(r), .g(g), .b(b), .ce_pix(ce_pix), .hs(hs), .vs(vs), .hb(hb), .vb(vb),
