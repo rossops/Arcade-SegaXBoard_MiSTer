@@ -28,15 +28,17 @@ task automatic load(input string f, input [24:0] base);
     $readmemh(f, mem, base >> 1);
 endtask
 
+string hexdir;
 initial begin
     ready = 1'b0;
-    load({HEXDIR, "/main.hex"},   SDR_MAIN_BASE);
-    load({HEXDIR, "/sub.hex"},    SDR_SUB_BASE);
-    load({HEXDIR, "/z80.hex"},    SDR_Z80_BASE);
-    load({HEXDIR, "/road.hex"},   SDR_ROAD_BASE);
-    load({HEXDIR, "/pcm.hex"},    SDR_PCM_BASE);
-    load({HEXDIR, "/sprite.hex"}, SDR_SPRITE_BASE);
-    load({HEXDIR, "/tile.hex"},   SDR_TILE_BASE);
+    if (!$value$plusargs("hexdir=%s", hexdir)) hexdir = HEXDIR;
+    load({hexdir, "/main.hex"},   SDR_MAIN_BASE);
+    load({hexdir, "/sub.hex"},    SDR_SUB_BASE);
+    load({hexdir, "/z80.hex"},    SDR_Z80_BASE);
+    load({hexdir, "/road.hex"},   SDR_ROAD_BASE);
+    load({hexdir, "/pcm.hex"},    SDR_PCM_BASE);
+    load({hexdir, "/sprite.hex"}, SDR_SPRITE_BASE);
+    load({hexdir, "/tile.hex"},   SDR_TILE_BASE);
 end
 
 function automatic [63:0] rd4(input [24:3] a);

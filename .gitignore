@@ -98,7 +98,7 @@ obj_dir/
 *.vcd
 *.fst
 verif/.venv/
-verif/board/out/
+verif/board/out*/
 verif/unit/sim_build/
 verif/unit/tilemap/*.hex
 verif/unit/tilemap/*.vvp

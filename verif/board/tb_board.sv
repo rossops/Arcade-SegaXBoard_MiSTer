@@ -15,10 +15,60 @@ module tb_board (
 );
 
 board_desc_t desc;
+integer pa;
+reg [7:0] dsw_a, dsw_b;
+initial begin dsw_a = 8'hFF; dsw_b = 8'hDD; if ($value$plusargs("dswa=%h", pa)) dsw_a = pa[7:0]; if ($value$plusargs("dswb=%h", pa)) dsw_b = pa[7:0]; end
+reg trace_math; initial trace_math = $test$plusargs("trace_math");
+wire math_sel = core.m_sel_mult | core.m_sel_div | core.m_sel_cmp;
+reg math_rd_pend;
+always @(posedge clk_sys) begin
+    if (trace_math && core.m_cs && math_sel && core.m_start) begin
+        if (core.m_wr) $display("MATH wr f=%0d a=%06x d=%04x", frame, {core.ma, 1'b0}, core.m_dout);
+        else math_rd_pend <= 1'b1;
+    end
+    if (math_rd_pend && core.m_valid && core.m_ack) begin
+        math_rd_pend <= 1'b0;
+        $display("MATH rd f=%0d a=%06x d=%04x", frame, {core.ma, 1'b0}, core.m_din);
+    end
+end
+wire smath_sel = core.x_sel_mult | core.x_sel_div | core.x_sel_cmp;
+reg smath_rd_pend;
+always @(posedge clk_sys) begin
+    if (trace_math && core.x_start && smath_sel && !core.m_gnt) begin
+        if (core.x_wr) $display("SMATH wr f=%0d a=%06x d=%04x", frame, {core.xa, 1'b0}, core.x_dout);
+        else smath_rd_pend <= 1'b1;
+    end
+    if (smath_rd_pend && core.s_valid && core.s_ack) begin
+        smath_rd_pend <= 1'b0;
+        $display("SMATH rd f=%0d a=%06x d=%04x", frame, {core.xa, 1'b0}, core.s_din);
+    end
+end
+reg trace_shr; initial trace_shr = $test$plusargs("trace_shr");
+reg shr_rd_pend;
+always @(posedge clk_sys) begin
+    if (trace_shr && core.m_gnt && core.x_start && (core.x_sel_ram0 | core.x_sel_ram1) && !core.x_wr) shr_rd_pend <= 1'b1;
+    if (shr_rd_pend && core.m_valid && core.m_ack) begin
+        shr_rd_pend <= 1'b0;
+        $display("SHR rd f=%0d a=%06x d=%04x", frame, {core.ma, 1'b0}, core.m_din);
+    end
+end
+// writes to shared RAM 1 words 0x1C0C0..0x1C0DF (sub map) from either CPU
+always @(posedge clk_sys) begin
+    if (trace_shr && core.x_start && core.x_wr && core.xa[19:5] == 15'h0E06)
+        $display("%s f=%0d a=%06x d=%04x", core.m_gnt ? "MAINW" : "SUBW", frame, {core.xa, 1'b0}, core.x_dout);
+end
+reg trace_adc; initial trace_adc = $test$plusargs("trace_adc");
+always @(posedge clk_sys) if (trace_adc && core.m_cs && core.m_sel_adc && core.m_start) begin
+    if (core.m_wr) $display("ADC wr f=%0d ch=%0d", frame, core.io0_out_c[4:2]);
+    else $display("ADC rd f=%0d ch=%0d val=%02x", frame, core.io0_out_c[4:2], core.adc_q);
+end
 initial begin
     desc = '0;
     desc.game_id = 8'd0; desc.road_priority = 1'b0; desc.sprite_banks = 8'd8;
     desc.pcm_bankmask = 8'h70; desc.has_throttle = 1'b1;
+    if ($value$plusargs("road_priority=%d", pa)) desc.road_priority = pa[0];
+    if ($value$plusargs("thndrbld_hack=%d", pa)) desc.thndrbld_hack = pa[0];
+    if ($value$plusargs("ana_mode=%d", pa)) desc.ana_mode = pa[0];
 end
 
 wire p0_req, p1_req, p2_req, p3_req, p4_req, p5_req, p6_req, p3_urgent, p4_urgent;
@@ -71,8 +121,8 @@ xb_core core (
     .p4_req(p4_req), .p4_addr(p4_addr), .p4_dout(p4_dout), .p4_ack(p4_ack), .p4_urgent(p4_urgent),
     .p5_req(p5_req), .p5_addr(p5_addr), .p5_dout(p5_dout), .p5_ack(p5_ack),
     .p6_req(p6_req), .p6_addr(p6_addr), .p6_dout(p6_dout), .p6_ack(p6_ack),
-    .p1_buttons(16'd0), .adc_x(8'h80), .adc_y(8'h80), .adc_throttle(8'h80),
-    .dsw_a(8'hFF), .dsw_b(8'hDD), .service(1'b0), .test(1'b0), .coin1(coin1), .coin2(1'b0),
+    .p1_buttons(16'd0), .stick_x(8'sd0), .stick_y(8'sd0), .throttle(8'h80), .stick_mode(2'd0),
+    .dsw_a(dsw_a), .dsw_b(dsw_b), .service(1'b0), .test(1'b0), .coin1(coin1), .coin2(1'b0),
     .nv_download(1'b0), .nv_upload(1'b0), .nv_wr(1'b0), .nv_rd(1'b0), .nv_addr(15'd0), .nv_din(16'd0), .nv_dout(), .nv_modified(),
     .r(r), .g(g), .b(b), .ce_pix(ce_pix), .hs(hs), .vs(vs), .hb(hb), .vb(vb),
     .audio_l(al), .audio_r(ar),

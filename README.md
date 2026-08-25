@@ -21,7 +21,7 @@ flow, the ROM stream tools and a stub board that shows colour bars.
 | M4 | Road | done in sim |
 | M5 | Sound | done in sim |
 | M6 | Hardware bring-up and timing closure | done: DIPs, NVRAM, MAME analog ranges, pause; zero negative slack all corners, 49% ALMs; ROM cache fill defect fixed and confirmed on hardware (build #11) |
-| M7 | After Burner and Thunder Blade | not started |
+| M7 | After Burner and Thunder Blade | done: aburner (1.32/1.31), thndrbld1, thndrbldd confirmed on hardware; Thunder Blade pixel-exact vs MAME; FD1094 parent sets need a decryption block (M8) |
 
 ## Layout
 
@@ -76,8 +76,13 @@ expects is the one the MiSTer host actually sends.
 ## Installing
 
 Copy `releases/Arcade-SegaXBoard_<date>.rbf` to `/media/fat/_Arcade/cores/`,
-the `.mra` to `/media/fat/_Arcade/` and the MAME `aburner2.zip` to
-`/media/fat/games/mame/`. The MRA's `<rbf>` is `Arcade-SegaXBoard`, the same
+the `.mra` files to `/media/fat/_Arcade/` and the MAME 0.289 zips
+(`aburner2`, `aburner`, `aburner131`, `thndrbld`, `thndrbld1`, `thndrbldd`)
+to `/media/fat/games/mame/`. MiSTer needs split or non-merged sets: it opens
+`games/mame/<zip>/<file>` literally and does not look inside a merged zip's
+clone folders. From merged sets, `tools/make_clone_zips.py --out DIR` builds
+the small clone zips (`aburner131`, `thndrbld1`, `thndrbldd`) that go next
+to the parent zips. The MRA's `<rbf>` is `Arcade-SegaXBoard`, the same
 convention as the System 32 core. Commercial ROMs are not included.
 
 ## References

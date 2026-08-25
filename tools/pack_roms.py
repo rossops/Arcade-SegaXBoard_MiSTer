@@ -21,6 +21,7 @@ def descriptor(rs):
     d[2] = rs["sprite_banks"]
     d[3] = rs["adc_reverse"]
     d[4] = rs["pcm_bankmask"]
+    d[5] = rs.get("ana_mode", 0) & 1
     return bytes(d)
 
 

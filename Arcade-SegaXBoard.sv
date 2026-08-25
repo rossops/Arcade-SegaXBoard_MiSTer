@@ -271,25 +271,8 @@ sdram sdram (
 //////////////////////////////   INPUTS   /////////////////////////////////////
 // joystick bits: 0 right 1 left 2 down 3 up 4 vulcan 5 missile 6 start
 //                7 coin 8 test 9 service
+// analog: raw MiSTer axes; the core maps them per game (descriptor analog mode)
 wire [1:0] stick_mode = status[9:8];
-wire       use_analog = (stick_mode != 2'd1);
-wire       use_dpad   = (stick_mode != 2'd0);
-// MiSTer analog: signed 8-bit per axis, X in [7:0], Y in [15:8].
-// MiSTer analog axes are signed -128..127. MAME's After Burner ranges:
-// X 0x20..0xE0, Y 0x40..0xC0 with PORT_REVERSE (stick up = high value),
-// throttle the full 8 bits.
-wire signed [7:0] ax = joystick_l_analog_0[7:0];
-wire signed [7:0] ay = joystick_l_analog_0[15:8];
-wire signed [15:0] ax_s = ax * 8'sd96;      // +-0x60
-wire signed [15:0] ay_s = ay * 8'sd64;      // +-0x40
-wire [7:0] ana_x = 8'h80 + ax_s[14:7];
-wire [7:0] ana_y = 8'h80 - ay_s[14:7];      // reversed: up (negative) -> higher
-wire [7:0] dpad_x = joystick_0[0] ? 8'hE0 : joystick_0[1] ? 8'h20 : 8'h80;
-wire [7:0] dpad_y = joystick_0[3] ? 8'hC0 : joystick_0[2] ? 8'h40 : 8'h80;
-wire       dpad_active = |joystick_0[3:0];
-wire [7:0] adc_x = (use_dpad && dpad_active) ? dpad_x : use_analog ? ana_x : 8'h80;
-wire [7:0] adc_y = (use_dpad && dpad_active) ? dpad_y : use_analog ? ana_y : 8'h80;
-wire [7:0] adc_throttle = joystick_r_analog_0[15:8] ^ 8'h80;
 
 // Pause: the mapped button (joystick bit 10) or the OSD open with the option set
 wire pause = joystick_0[10] | (status[10] & OSD_STATUS);
@@ -315,7 +298,8 @@ xb_core core (
     .p5_req(p5_req), .p5_addr(p5_addr), .p5_dout(p5_dout), .p5_ack(p5_ack),
     .p6_req(p6_req), .p6_addr(p6_addr), .p6_dout(p6_dout), .p6_ack(p6_ack),
     .p1_buttons(joystick_0[15:0]),
-    .adc_x(adc_x), .adc_y(adc_y), .adc_throttle(adc_throttle),
+    .stick_x(joystick_l_analog_0[7:0]), .stick_y(joystick_l_analog_0[15:8]),
+    .throttle(joystick_r_analog_0[15:8] ^ 8'h80), .stick_mode(stick_mode),
     .dsw_a(dsw_a), .dsw_b(dsw_b),
     .service(joystick_0[9]), .test(status[7] | joystick_0[8]),
     .coin1(joystick_0[7]), .coin2(1'b0),

@@ -89,7 +89,7 @@ def load_rom_dwords(zf, files):
     """files in ROM_LOAD32_BYTE order (4 per 512 KB group)."""
     out = []
     for i in range(0, len(files), 4):
-        parts = [zf.read(n) for n in files[i:i + 4]]
+        parts = [zf.read([m for m in zf.namelist() if m.split('/')[-1] == n][0]) for n in files[i:i + 4]]
         for j in range(len(parts[0])):
             out.append(parts[0][j] | (parts[1][j] << 8) | (parts[2][j] << 16) | (parts[3][j] << 24))
     return out

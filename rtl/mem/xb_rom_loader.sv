@@ -110,6 +110,7 @@ always @(posedge clk) begin
                     desc_r.sprite_banks  <= desc_bytes[2];
                     desc_r.adc_reverse   <= desc_bytes[3];
                     desc_r.pcm_bankmask  <= desc_bytes[4];
+                    desc_r.ana_mode      <= desc_bytes[5][0];
                 end
             end
             else if (ioctl_addr >= OFF_ROAD && ioctl_addr < OFF_ROAD + 27'h1_0000) begin

@@ -226,6 +226,48 @@ different CPU timing drift in phase, so the gate uses the envelope (>= 0.9).
   divergence flags; both produced sound and never diverged. The scaffolding
   was removed afterwards; git history has it (`xb_rom_cache_ff`).
 
+## More games (M7)
+
+- Sets: `aburner` (After Burner ver 1.32) and its clone `aburner131`,
+  `thndrbld1` (Thunder Blade deluxe/standing, unprotected) and `thndrbldd`
+  (the decrypted bootleg of the upright set). The parent `thndrbld` is an
+  FD1094 (317-0056) set and needs a decryption block the core does not have
+  yet; the same applies to Super Monaco GP, Racing Hero, AB Cop, Line of
+  Fire, GP Rider and Last Survivor.
+- After Burner is After Burner II's board configuration (road under the
+  tile layers) with its own DIP table: MAME's defaults are cabinet Upright,
+  demo sounds on, "3x credits" lives, continue allowed, normal difficulty.
+- Thunder Blade uses the default road priority (road over the bg/fg
+  tilemaps, under text), 256 KB main and sub ROMs (the 512 KB slots keep
+  the layout), and a different analog wiring: stick X on ADC0 reversed,
+  throttle on ADC1, stick Y on ADC2, all full range. The descriptor's
+  analog mode selects that mapping inside the core, which now does the
+  range shaping (the top level passes raw MiSTer axes). MAME's
+  `draw_write` writes 0xFFFF into word 0 of the sprite RAM bank handed back
+  to the CPU after the swap ("hack for thunderblade"); After Burner II is
+  pixel-exact without it, so it is enabled per game by the descriptor.
+- After Burner (1.32) frames are not compared against MAME pixel for pixel:
+  the game samples the stick in its timer interrupt and recomputes the
+  plane's bank only when the sample moves by more than 2. In MAME the main
+  loop runs between the first ADC read (0x00, the ADC0804's power-up value)
+  and the second (0x80), takes 0x00 as the stick position and banks the
+  plane by -127, and since every later sample is 0x80 it never recomputes,
+  so MAME's demo plane stays banked. In the RTL the second sample lands
+  first and the plane is level. A boot-time race on a power-up-undefined
+  value; the frames are otherwise identical (tiles, road, other sprites)
+  and the RTL frame is self-consistent with the models.
+- Clone ROMs sit in subdirectories of the parent's merged zip; the MRAs
+  name `clone.zip|parent.zip` and every tool matches ROM files by basename.
+- Verification: `verif/board` takes `GAME=` (hex images under
+  `verif/golden/<set>`, descriptor flags as plusargs), `board_check.py` and
+  `model_check.py` take the set name.
+- Frame comparisons against MAME now allow a small phase window
+  (`tools/frame_match.py`, best of +-3 frames, 99%): the M6 ROM cache fix
+  changed the CPUs' bus timing by a clock per access and After Burner II's
+  timeline now sits two frames behind MAME's frame numbering (99.2-99.8%
+  at the offset; the rest is blinking text and one frame of motion on fast
+  sprites). Thunder Blade matches at offset 0. `check_m7.sh` runs the gate.
+
 ## ROM stream
 
 `tools/pack_roms.py` and `tools/gen_mra.py` share `tools/romsets.py`. The

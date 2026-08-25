@@ -53,7 +53,9 @@ package xb_pkg;
     //  byte 2: sprite ROM bank count (aburner2 = 8 x 256 KB)
     //  byte 3: ADC reverse mask (bit n: channel n = 255 - value)
     //  byte 4: PCM ROM bank mask (315-5218 bankmask, aburner2 = 0x70)
-    //  bytes 5..63: reserved (0)
+    //  byte 5: bit0 analog mode (0: After Burner ranges, throttle on ADC2;
+    //          1: full range, throttle on ADC1 and stick Y on ADC2 - Thunder Blade)
+    //  bytes 6..63: reserved (0)
     typedef struct packed {
         logic [7:0] game_id;
         logic       road_priority;
@@ -62,6 +64,7 @@ package xb_pkg;
         logic [7:0] sprite_banks;
         logic [7:0] adc_reverse;
         logic [7:0] pcm_bankmask;
+        logic       ana_mode;
     } board_desc_t;
 
 endpackage

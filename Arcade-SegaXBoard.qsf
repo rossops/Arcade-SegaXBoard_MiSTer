@@ -48,7 +48,7 @@ set_global_assignment -name ALM_REGISTER_PACKING_EFFORT MEDIUM
 set_global_assignment -name SEED 1
 # Two workers: Quartus 17's parallel delay annotation was seen to crash at 8
 # on the s32 build host. Processor count changes wall-clock only.
-set_global_assignment -name NUM_PARALLEL_PROCESSORS 2
+set_global_assignment -name NUM_PARALLEL_PROCESSORS ALL
 
 set_global_assignment -name VERILOG_MACRO "SYNTHESIS=1"
 

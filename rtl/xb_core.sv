@@ -59,7 +59,9 @@ module xb_core (
 
     // inputs (active high)
     input      [15:0] p1_buttons,   // 0 right 1 left 2 down 3 up 4 vulcan 5 missile 6 start 7 coin 8 test 9 service
-    input       [7:0] adc_x, adc_y, adc_throttle,
+    input signed [7:0] stick_x, stick_y,    // MiSTer analog axes, -128..127
+    input       [7:0] throttle,             // 0..255
+    input       [1:0] stick_mode,           // 0 analog, 1 d-pad, 2 both
     input       [7:0] dsw_a, dsw_b,
     input             service, test,
     input             coin1, coin2,
@@ -245,14 +247,21 @@ xb_dpram #(.AW(11)) textram (.clk(clk_sys), .a_addr(ma[11:1]), .a_din(m_dout), .
 reg spr_bank;
 wire [10:0] spr_rd_addr; wire [15:0] spr_rd_q;
 reg         spr_draw_tgl;     // toggles on each $110000 write (clk_sys)
-xb_dpram #(.AW(12)) spriteram (.clk(clk_sys), .a_addr({spr_bank, ma[11:1]}), .a_din(m_dout), .a_be(m_be),
-    .a_we(m_valid && m_wr && m_sel_spr && m_start), .a_dout(spr_q), .b_clk(clk_ram), .b_addr({~spr_bank, spr_rd_addr}), .b_dout(spr_rd_q));
+// MAME writes 0xFFFF to word 0 of the bank handed back to the CPU after the
+// swap ("hack for thunderblade"); it is invisible on After Burner II, so it
+// is enabled per game through the descriptor.
+reg         spr_wipe;
+xb_dpram #(.AW(12)) spriteram (.clk(clk_sys), .a_addr(spr_wipe ? {spr_bank, 11'd0} : {spr_bank, ma[11:1]}),
+    .a_din(spr_wipe ? 16'hFFFF : m_dout), .a_be(spr_wipe ? 2'b11 : m_be),
+    .a_we(spr_wipe || (m_valid && m_wr && m_sel_spr && m_start)), .a_dout(spr_q),
+    .b_clk(clk_ram), .b_addr({~spr_bank, spr_rd_addr}), .b_dout(spr_rd_q));
 wire [12:0] pal_idx; wire pal_effects;
 wire  [7:0] pal_r, pal_g, pal_b;
 xb_palette_5242 palette (.clk(clk_sys), .a_addr(ma[13:1]), .a_din(m_dout), .a_be(m_be),
     .a_we(m_valid && m_wr && m_sel_pal && m_start), .a_dout(pal_q),
     .b_addr(pal_idx), .b_effects(pal_effects), .r(pal_r), .g(pal_g), .b(pal_b));
 always @(posedge clk_sys) begin
+    spr_wipe <= board_desc.thndrbld_hack && m_valid && m_wr && m_sel_sprdraw && m_start;
     if (reset) begin spr_bank <= 1'b0; spr_draw_tgl <= 1'b0; end
     else if (m_valid && m_wr && m_sel_sprdraw && m_start) begin spr_bank <= ~spr_bank; spr_draw_tgl <= ~spr_draw_tgl; end
 end
@@ -301,9 +310,34 @@ xb_cxd1095 io1 (.clk(clk_sys), .reset(cpu_reset), .cs(m_cs && m_sel_io1 && m_be[
 xb_adc0804 adc (.clk(clk_sys), .reset(cpu_reset), .ce_adc(ce_adc),
     .cs(m_cs && m_sel_adc && m_be[0]), .we(m_wr), .dout(adc_q), .intr(adc_intr),
     .channel(io0_out_c[4:2]), .adc_reverse(board_desc.adc_reverse),
-    .ch0(adc_x), .ch1(adc_y), .ch2(adc_throttle), .ch3(8'h80), .ch4(8'h80),
+    .ch0(adc_ch0), .ch1(adc_ch1), .ch2(adc_ch2), .ch3(8'h80), .ch4(8'h80),
     .ch5(8'h10), .ch6(8'h00), .ch7(8'h00));
 wire display_enable = io0_out_c[5];   // MAME: set_display_enable(data & 0x20)
+
+// ---- analog inputs to ADC channels, per the descriptor's analog mode.
+// After Burner: MAME's ranges X 0x20..0xE0, Y 0x40..0xC0 with PORT_REVERSE
+// (stick up reads high), throttle on channel 2. Thunder Blade: full range,
+// Y up reads low, throttle on channel 1 and Y on channel 2; X is reversed
+// through the descriptor's adc_reverse mask, which covers the D-pad too.
+wire use_analog  = (stick_mode != 2'd1);
+wire use_dpad    = (stick_mode != 2'd0);
+wire dpad_active = |p1_buttons[3:0];
+wire signed [15:0] ab_xs = stick_x * 8'sd96;      // +-0x60
+wire signed [15:0] ab_ys = stick_y * 8'sd64;      // +-0x40
+wire [7:0] ab_x  = 8'h80 + ab_xs[14:7];
+wire [7:0] ab_y  = 8'h80 - ab_ys[14:7];
+wire [7:0] ab_dx = p1_buttons[0] ? 8'hE0 : p1_buttons[1] ? 8'h20 : 8'h80;
+wire [7:0] ab_dy = p1_buttons[3] ? 8'hC0 : p1_buttons[2] ? 8'h40 : 8'h80;
+wire [7:0] fr_x  = {~stick_x[7], stick_x[6:0]};   // 0x80 + x
+wire [7:0] fr_y  = {~stick_y[7], stick_y[6:0]};   // up (negative) -> low
+wire [7:0] fr_dx = p1_buttons[0] ? 8'hFF : p1_buttons[1] ? 8'h01 : 8'h80;
+wire [7:0] fr_dy = p1_buttons[3] ? 8'h01 : p1_buttons[2] ? 8'hFF : 8'h80;
+wire       am    = board_desc.ana_mode;
+wire [7:0] ana_x = (use_dpad && dpad_active) ? (am ? fr_dx : ab_dx) : use_analog ? (am ? fr_x : ab_x) : 8'h80;
+wire [7:0] ana_y = (use_dpad && dpad_active) ? (am ? fr_dy : ab_dy) : use_analog ? (am ? fr_y : ab_y) : 8'h80;
+wire [7:0] adc_ch0 = ana_x;
+wire [7:0] adc_ch1 = am ? throttle : ana_y;
+wire [7:0] adc_ch2 = am ? ana_y : throttle;
 wire snd_reset_n    = io0_out_c[0];
 wire mute_n         = io0_out_d[7];
 

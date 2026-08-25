@@ -13,6 +13,7 @@ FRAMES ?= 10
 DUMPFRAME ?= -1
 COIN ?= -1
 PLUSARGS ?=
+GAME ?= aburner2
 
 EXTRA := $(wildcard $(ROOT)/rtl/audio/jt51/*.v) $(wildcard $(ROOT)/verif/board/tv80/*.v)
 
@@ -23,9 +24,9 @@ build: obj_dir/Vtb_board
 
 run: obj_dir/Vtb_board
 	mkdir -p out/verif && rm -f out/frame_*.ppm && ln -sfn $(ROOT)/verif/golden out/verif/golden; \
-	ln -sf $(ROOT)/verif/golden/aburner2/roadrom.hex out/roadrom.hex; ln -sf $(ROOT)/rtl/cpu/fx68k/microrom.mem out/microrom.mem; ln -sf $(ROOT)/rtl/cpu/fx68k/nanorom.mem out/nanorom.mem; \
-	for p in 0 1 2; do ln -sf $(ROOT)/verif/golden/aburner2/tilerom$$p.hex out/tilerom$$p.hex; done; \
-	cd out && ../obj_dir/Vtb_board +frames=$(FRAMES) +tilerom +roadrom +dumpframe=$(DUMPFRAME) +coin=$(COIN) $(PLUSARGS)
+	ln -sf $(ROOT)/verif/golden/$(GAME)/roadrom.hex out/roadrom.hex; ln -sf $(ROOT)/rtl/cpu/fx68k/microrom.mem out/microrom.mem; ln -sf $(ROOT)/rtl/cpu/fx68k/nanorom.mem out/nanorom.mem; \
+	for p in 0 1 2; do ln -sf $(ROOT)/verif/golden/$(GAME)/tilerom$$p.hex out/tilerom$$p.hex; done; \
+	cd out && ../obj_dir/Vtb_board +frames=$(FRAMES) +tilerom +roadrom +dumpframe=$(DUMPFRAME) +coin=$(COIN) +hexdir=verif/golden/$(GAME) $(PLUSARGS)
 
 clean:
 	rm -rf obj_dir out

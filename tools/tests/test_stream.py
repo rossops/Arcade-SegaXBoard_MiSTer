@@ -53,7 +53,7 @@ def expand_mra(text, zf):
 @pytest.mark.parametrize("key", list(romsets.ROMSETS))
 def test_mra_matches_packer(key):
     rs = romsets.ROMSETS[key]
-    zp = os.path.join(ZIPDIR, rs["zip"] + ".zip")
+    zp = os.path.join(ZIPDIR, rs["zipfile"] + ".zip")
     if not os.path.exists(zp):
         pytest.skip("ROM zip not available")
     stream, regions = pack_roms.build_stream(key, zp)
@@ -68,7 +68,7 @@ def test_mra_matches_packer(key):
 @pytest.mark.parametrize("key", list(romsets.ROMSETS))
 def test_region_crcs(key):
     rs = romsets.ROMSETS[key]
-    zp = os.path.join(ZIPDIR, rs["zip"] + ".zip")
+    zp = os.path.join(ZIPDIR, rs["zipfile"] + ".zip")
     if not os.path.exists(zp):
         pytest.skip("ROM zip not available")
     with zipfile.ZipFile(zp) as zf:

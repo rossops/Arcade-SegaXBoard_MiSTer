@@ -8,23 +8,30 @@ pixel-exact everywhere (tile layers and the black background).
 import os, sys, zipfile
 from PIL import Image
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "verif"))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from models import tilemap16b as tm, palette5242 as pal, sprite5211 as sp, road5275 as rd
-SPRITE_ROMS = ["mpr-10932.90", "mpr-10934.94", "mpr-10936.98", "mpr-10938.102",
-               "mpr-10933.91", "mpr-10935.95", "mpr-10937.99", "mpr-10939.103",
-               "epr-11103.92", "epr-11104.96", "epr-11105.100", "epr-11106.104",
-               "epr-11116.93", "epr-11117.97", "epr-11118.101", "epr-11119.105"]
+from romsets import ROMSETS
+ZIPDIR = "/Volumes/roms/Arcade/MAME 0.289 ROMs (merged)"
+
+
+def zread(zf, name):
+    c = [n for n in zf.namelist() if n.split("/")[-1] == name]
+    return zf.read(c[0])
 
 
 def words(p):
     b = open(p, "rb").read(); return [b[i] | (b[i + 1] << 8) for i in range(0, len(b), 2)]
 
 
-def main(outdir, frame, zippath="/Volumes/roms/Arcade/MAME 0.289 ROMs (merged)/aburner2.zip"):
+def main(outdir, frame, setname="aburner2"):
+    rs = ROMSETS[setname]
+    road_priority = rs["road_priority"]
     tileram = words(os.path.join(outdir, "rtl_tileram.bin"))
     textram = words(os.path.join(outdir, "rtl_textram.bin"))
     palram = words(os.path.join(outdir, "rtl_paletteram.bin"))
-    zf = zipfile.ZipFile(zippath)
-    planes = [zf.read("epr-11115.154"), zf.read("epr-11114.153"), zf.read("epr-11113.152")]
+    zf = zipfile.ZipFile(os.path.join(ZIPDIR, rs["zipfile"] + ".zip"))
+    planes = [zread(zf, n) for n, _, _ in rs["regions"]["tile"][1]]
+    SPRITE_ROMS = [n for n, _, _ in rs["regions"]["sprite"][1]]
     regs = tm.latch_regs(textram)
     fg = tm.render_layer(0, tileram, textram, planes, regs)
     bg = tm.render_layer(1, tileram, textram, planes, regs)
@@ -51,7 +58,7 @@ def main(outdir, frame, zippath="/Volumes/roms/Arcade/MAME 0.289 ROMs (merged)/a
         control, road_bank = [int(v) for v in open(ctlfile).read().split()]
         rr = words(os.path.join(outdir, "rtl_roadram.bin"))
         rbuf = rr[2048:4096] if road_bank == 0 else rr[0:2048]
-        gfx = rd.decode(zf.read("epr-10922.40"))
+        gfx = rd.decode(zread(zf, rs["regions"]["road"][1][0][0]))
         road_bg, road_fg = rd.render(rbuf, control, gfx)
     best = None
     for bank, fb in enumerate(fbs):
@@ -64,7 +71,10 @@ def main(outdir, frame, zippath="/Volumes/roms/Arcade/MAME 0.289 ROMs (merged)/a
                 if road_bg is not None:
                     m = mark[y][x]
                     if road_bg[y][x] is not None: op = True; i = road_bg[y][x] if not m else i
-                    if road_fg[y][x] is not None and not m: op = True; i = road_fg[y][x]
+                    # road_priority 0: road fg under every tile layer; 1: over the
+                    # bg/fg tilemaps, under the text layer (MAME screen_update)
+                    txt = tx[y][x] is not None
+                    if road_fg[y][x] is not None and (not m if road_priority == 0 else not txt): op = True; i = road_fg[y][x]
                 if fb is not None and fb[y][x] != 0xFFFF:
                     pix = fb[y][x]
                     if (1 << ((pix >> 12) & 3)) > mark[y][x]:
@@ -87,4 +97,4 @@ def main(outdir, frame, zippath="/Volumes/roms/Arcade/MAME 0.289 ROMs (merged)/a
 
 
 if __name__ == "__main__":
-    raise SystemExit(main(sys.argv[1], int(sys.argv[2])))
+    raise SystemExit(main(sys.argv[1], int(sys.argv[2]), sys.argv[3] if len(sys.argv) > 3 else "aburner2"))
