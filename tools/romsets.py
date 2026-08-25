@@ -26,8 +26,11 @@ SLOT = {
     "pcm":    0x080000,
     "sprite": 0x400000,
     "tile":   0x040000,
+    "z80b":   0x010000,   # SMGP second sound board Z80
+    "pcm2":   0x080000,   # SMGP second 315-5218
 }
-ORDER = ["main", "sub", "z80", "road", "pcm", "sprite", "tile"]
+ORDER = ["main", "sub", "z80", "road", "pcm", "sprite", "tile", "z80b", "pcm2"]
+# the stream ends after the last region a set populates (old sets stay short)
 DESC_SIZE = 64
 
 ROMSETS = {
@@ -383,6 +386,81 @@ ROMSETS = {
                 ("epr-11317.ic11", 0x20000, "d4e7ac1f"),
                 ("epr-11318.ic12", 0x20000, "70d3f02c"),
                 ("epr-11319.ic13", 0x20000, "50d9242e"),
+            ]),
+        },
+    },
+    "smgpd": {
+        "name": "Super Monaco GP (World, bootleg decrypted)",
+        "year": "1989",
+        "zip": "smgp",
+        "zipfile": "smgp",
+        "game_id": 3,
+        "road_priority": 1,
+        "thndrbld_hack": 0,
+        "has_throttle": 1,
+        "sprite_banks": 8,
+        "adc_reverse": 0x00,
+        "pcm_bankmask": 0x70,
+        "ana_mode": 2,
+        "has_snd2": 1,
+        "motor_zero": 1,
+        "dip_default": "FF,7F",
+        "dips": [
+            (0, 3, "Coin A", "Free Play (if both) or 1C/1C,1C/1C 2/3,1C/1C 4/5,1C/1C 5/6,2C/1C 4/3,2C/1C 3/2 5/3 6/4,2C/3C,4C/1C,3C/1C,2C/1C,7C/1C,6C/1C,5C/1C,1C/3C,1C/2C,1C/1C"),
+            (4, 7, "Coin B", "Free Play (if both) or 1C/1C,1C/1C 2/3,1C/1C 4/5,1C/1C 5/6,2C/1C 4/3,2C/1C 3/2 5/3 6/4,2C/3C,4C/1C,3C/1C,2C/1C,7C/1C,6C/1C,5C/1C,1C/3C,1C/2C,1C/1C"),
+            (8, 10, "Machine ID", "8,7,6,5,4,3,2,1"),
+            (11, 13, "Number of Machines", "8,7,6,5,4,3,2,1"),
+            (14, 15, "Cabinet", "Unused,Upright,Cockpit,Deluxe"),
+        ],
+        "buttons": ("Shift Down,Shift Up,Start,Coin,Test,Service,Pause,Gas,Brake", "A,B,Start,R,L,Select,X,Y,L2"),
+        "regions": {
+            "main": ("w16", [
+                ("bootleg_epr-12563b.58", 0x20000, "af30e3cd"),
+                ("bootleg_epr-12564b.63", 0x20000, "eb7cadfe"),
+            ]),
+            "sub": ("w16", [
+                ("epr-12576a.20", 0x20000, "2c9599c1"),
+                ("epr-12577a.29", 0x20000, "abf9a50b"),
+            ]),
+            "tile": ("flat", [
+                ("epr-12429.154", 0x10000, "5851e614"),
+                ("epr-12430.153", 0x10000, "05e00134"),
+                ("epr-12431.152", 0x10000, "35572f4a"),
+            ]),
+            "sprite": ("x32", [
+                ("mpr-12425.90", 0x20000, "14bf2a15"),
+                ("mpr-12426.94", 0x20000, "28b60dc0"),
+                ("mpr-12427.98", 0x20000, "0a367928"),
+                ("mpr-12428.102", 0x20000, "efa80ad5"),
+                ("mpr-12421.91", 0x20000, "25f46140"),
+                ("mpr-12422.95", 0x20000, "cb51c8f6"),
+                ("mpr-12423.99", 0x20000, "0be9818e"),
+                ("mpr-12424.103", 0x20000, "0ce00dfc"),
+                ("mpr-12417.92", 0x20000, "a806eabf"),
+                ("mpr-12418.96", 0x20000, "ed1a0f2b"),
+                ("mpr-12419.100", 0x20000, "ce4568cb"),
+                ("mpr-12420.104", 0x20000, "679442eb"),
+                ("epr-12609.93", 0x20000, "a867812f"),
+                ("epr-12610.97", 0x20000, "53b99417"),
+                ("epr-12611.101", 0x20000, "bd5c6ab0"),
+                ("epr-12612.105", 0x20000, "ac86e890"),
+            ]),
+            "road": ("flat", []),
+            "z80": ("flat", [
+                ("epr-12436.17", 0x10000, "16ec5f0a"),
+            ]),
+            "pcm": ("flat", [
+                ("mpr-12437.11", 0x20000, "a1c7e712"),
+                ("mpr-12438.12", 0x20000, "6573d46b"),
+                ("mpr-12439.13", 0x20000, "13bf6de5"),
+            ]),
+            "z80b": ("flat", [
+                ("epr-12535.8", 0x10000, "80453597"),
+            ]),
+            "pcm2": ("flat", [
+                ("mpr-12437.20", 0x20000, "a1c7e712"),
+                ("mpr-12438.21", 0x20000, "6573d46b"),
+                ("mpr-12439.22", 0x20000, "13bf6de5"),
             ]),
         },
     },

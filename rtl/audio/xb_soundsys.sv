@@ -9,7 +9,11 @@
 //============================================================================
 import xb_pkg::*;
 
-module xb_soundsys (
+module xb_soundsys #(
+    parameter HAS_YM   = 1,                  // 0: rear-speaker board (no YM2151)
+    parameter [24:0] ROM_BASE = SDR_Z80_BASE,
+    parameter [24:0] PCM_BASE = SDR_PCM_BASE
+) (
     input             clk,          // clk_sys
     input             reset,
     input             z80_reset_n,  // I/O chip port C bit 0
@@ -86,7 +90,7 @@ xb_rom_cache #(.AW(15), .LINES(128)) zcache (
     .cpu_data(rom_word), .cpu_ack(rom_hit),
     .rom_req(zrom_req), .rom_addr(zc_addr), .rom_data(zrom_dout), .rom_ack(zrom_ack)
 );
-assign zrom_addr = SDR_Z80_BASE[24:3] + {9'd0, zc_addr};
+assign zrom_addr = ROM_BASE[24:3] + {9'd0, zc_addr};
 assign z_wait_n  = !(mem_rd && sel_rom && !rom_hit);
 
 // ---- work RAM 2 KB
@@ -103,7 +107,7 @@ wire signed [15:0] pcm_l, pcm_r;
 reg pcm_cs_d;
 wire pcm_access = (mem_rd | mem_wr) && sel_pcm;
 always @(posedge clk) pcm_cs_d <= pcm_access;
-xb_segapcm_5218 pcm (
+xb_segapcm_5218 #(.PCM_BASE(PCM_BASE)) pcm (
     .clk(clk), .reset(reset), .tick(pcm_tick), .bankmask(pcm_bankmask),
     .cs(pcm_access && !pcm_cs_d), .we(mem_wr), .addr(z_addr[7:0]), .din(z_dout), .dout(pcm_q),
     .rom_req(pcm_req), .rom_addr(pcm_addr), .rom_dout(pcm_dout), .rom_ack(pcm_ack),
@@ -114,12 +118,16 @@ xb_segapcm_5218 pcm (
 wire ym_cs = (~z_iorq_n) && z_m1_n && (z_addr[7:6] == 2'b00);
 wire [7:0] ym_dout;
 wire signed [15:0] ym_l, ym_r;
+generate if (HAS_YM) begin : g_ym
 jt51 ym (
     .rst(~z_rst_n), .clk(clk), .cen(ce_fm), .cen_p1(ce_fm_p1),
     .cs_n(~ym_cs), .wr_n(z_wr_n), .a0(z_addr[0]), .din(z_dout), .dout(ym_dout),
     .ct1(), .ct2(), .irq_n(ym_irq_n), .sample(),
     .left(), .right(), .xleft(ym_l), .xright(ym_r)
 );
+end else begin : g_noym
+assign ym_dout = 8'hFF; assign ym_irq_n = 1'b1; assign ym_l = 16'sd0; assign ym_r = 16'sd0;
+end endgenerate
 wire latch_cs = io_rd && (z_addr[7:6] == 2'b01);
 reg latch_cs_d;
 always @(posedge clk) latch_cs_d <= latch_cs;

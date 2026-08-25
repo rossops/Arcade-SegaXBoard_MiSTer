@@ -17,11 +17,12 @@ from romsets import ROMSETS, SLOT, ORDER, DESC_SIZE
 def descriptor(rs):
     d = bytearray(DESC_SIZE)
     d[0] = rs["game_id"]
-    d[1] = (rs["road_priority"] & 1) | ((rs["thndrbld_hack"] & 1) << 1) | ((rs["has_throttle"] & 1) << 2)
+    d[1] = ((rs["road_priority"] & 1) | ((rs["thndrbld_hack"] & 1) << 1) | ((rs["has_throttle"] & 1) << 2)
+            | ((rs.get("has_snd2", 0) & 1) << 3) | ((rs.get("motor_zero", 0) & 1) << 4))
     d[2] = rs["sprite_banks"]
     d[3] = rs["adc_reverse"]
     d[4] = rs["pcm_bankmask"]
-    d[5] = rs.get("ana_mode", 0) & 1
+    d[5] = rs.get("ana_mode", 0) & 3
     return bytes(d)
 
 
@@ -70,11 +71,17 @@ def build_region(loader, roms):
     raise ValueError(loader)
 
 
+def last_region(rs):
+    """Index in ORDER of the last region the set populates; the stream ends there."""
+    return max(i for i, r in enumerate(ORDER) if rs["regions"].get(r, ("flat", []))[1])
+
+
 def build_stream(setname, zippath):
     rs = ROMSETS[setname]
     regions = {}
     with zipfile.ZipFile(zippath) as zf:
-        for region, (loader, files) in rs["regions"].items():
+        for region in ORDER:
+            loader, files = rs["regions"].get(region, ("flat", []))
             roms = [read_rom(zf, n, s, c) for n, s, c in files]
             data = build_region(loader, roms)
             if len(data) > SLOT[region]:
@@ -82,7 +89,7 @@ def build_stream(setname, zippath):
             # MAME's PCM region is ROMREGION_ERASEFF: unpopulated ROM reads 0xFF
             fill = b"\xff" if region == "pcm" else b"\x00"
             regions[region] = data + fill * (SLOT[region] - len(data))
-    stream = descriptor(rs) + b"".join(regions[r] for r in ORDER)
+    stream = descriptor(rs) + b"".join(regions[r] for r in ORDER[:last_region(rs) + 1])
     return stream, regions
 
 
@@ -100,11 +107,14 @@ def main():
     ap.add_argument("--hexdir")
     a = ap.parse_args()
     stream, regions = build_stream(a.set, a.zip)
+
+    rs = ROMSETS[a.set]
     with open(a.out, "wb") as f:
         f.write(stream)
     if a.hexdir:
         os.makedirs(a.hexdir, exist_ok=True)
-        for r, d in regions.items():
+        for r in ORDER[:last_region(rs) + 1]:
+            d = regions[r]
             write_hex(os.path.join(a.hexdir, f"{r}.hex"), d)
         # road ROM as a byte file for the BRAM road ROM ($readmemh)
         with open(os.path.join(a.hexdir, "roadrom.hex"), "w") as f:

@@ -61,7 +61,9 @@ function automatic [24:0] map_addr(input [26:0] a);
     else if (a < OFF_PCM)    map_addr = SDR_ROAD_BASE   + (a[24:0] - OFF_ROAD[24:0]);
     else if (a < OFF_SPRITE) map_addr = SDR_PCM_BASE    + (a[24:0] - OFF_PCM[24:0]);
     else if (a < OFF_TILE)   map_addr = SDR_SPRITE_BASE + (a[24:0] - OFF_SPRITE[24:0]);
-    else                     map_addr = SDR_TILE_BASE   + (a[24:0] - OFF_TILE[24:0]);
+    else if (a < OFF_Z80B)   map_addr = SDR_TILE_BASE   + (a[24:0] - OFF_TILE[24:0]);
+    else if (a < OFF_PCM2)   map_addr = SDR_Z80B_BASE   + (a[24:0] - OFF_Z80B[24:0]);
+    else                     map_addr = SDR_PCM2_BASE   + (a[24:0] - OFF_PCM2[24:0]);
 endfunction
 
 board_desc_t desc_r;
@@ -110,7 +112,9 @@ always @(posedge clk) begin
                     desc_r.sprite_banks  <= desc_bytes[2];
                     desc_r.adc_reverse   <= desc_bytes[3];
                     desc_r.pcm_bankmask  <= desc_bytes[4];
-                    desc_r.ana_mode      <= desc_bytes[5][0];
+                    desc_r.ana_mode      <= desc_bytes[5][1:0];
+                    desc_r.has_snd2      <= desc_bytes[1][3];
+                    desc_r.motor_zero    <= desc_bytes[1][4];
                 end
             end
             else if (ioctl_addr >= OFF_ROAD && ioctl_addr < OFF_ROAD + 27'h1_0000) begin

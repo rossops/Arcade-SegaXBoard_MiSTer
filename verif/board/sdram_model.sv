@@ -39,6 +39,11 @@ initial begin
     load({hexdir, "/pcm.hex"},    SDR_PCM_BASE);
     load({hexdir, "/sprite.hex"}, SDR_SPRITE_BASE);
     load({hexdir, "/tile.hex"},   SDR_TILE_BASE);
+    begin : opt
+        integer fd;
+        fd = $fopen({hexdir, "/z80b.hex"}, "r");
+        if (fd != 0) begin $fclose(fd); load({hexdir, "/z80b.hex"}, SDR_Z80B_BASE); load({hexdir, "/pcm2.hex"}, SDR_PCM2_BASE); end
+    end
 end
 
 function automatic [63:0] rd4(input [24:3] a);

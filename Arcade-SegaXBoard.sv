@@ -126,11 +126,12 @@ localparam CONF_STR = {
     "O[7],Service Mode,Off,On;",
     "O[9:8],Stick,Analog,D-Pad,Analog+D-Pad;",
     "O[10],Pause when OSD open,Off,On;",
+    "O[11],Rear speakers (SMGP),On,Off;",
     "-;",
     "DIP;",
     "-;",
     "R[0],Reset;",
-    "J1,Vulcan,Missile,Start,Coin,Test,Service,Pause;",
+    "J1,Vulcan,Missile,Start,Coin,Test,Service,Pause,Gas,Brake;",
     "V,v",`BUILD_DATE
 };
 
@@ -283,7 +284,7 @@ wire        ce_pix, hs, vs, hb, vb;
 wire signed [15:0] aud_l, aud_r;
 
 xb_core core (
-    .clk_sys(clk_sys), .clk_ram(clk_ram), .reset(reset), .pause(pause),
+    .clk_sys(clk_sys), .clk_ram(clk_ram), .reset(reset), .pause(pause), .rear_en(~status[11]),
     .board_desc(board_desc),
     .tile_wr(tile_wr), .tile_waddr(tile_waddr), .tile_wdata(tile_wdata),
     .road_wr(road_wr), .road_waddr(road_waddr), .road_wdata(road_wdata),

@@ -57,7 +57,7 @@ def test_mra_matches_packer(key):
     if not os.path.exists(zp):
         pytest.skip("ROM zip not available")
     stream, regions = pack_roms.build_stream(key, zp)
-    expected = romsets.DESC_SIZE + sum(romsets.SLOT[r] for r in romsets.ORDER)
+    expected = romsets.DESC_SIZE + sum(romsets.SLOT[r] for r in romsets.ORDER[:pack_roms.last_region(rs) + 1])
     assert len(stream) == expected
     with zipfile.ZipFile(zp) as zf:
         mra = expand_mra(gen_mra.make_mra(key, rs), zf)

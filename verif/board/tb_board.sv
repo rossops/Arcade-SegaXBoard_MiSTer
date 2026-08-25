@@ -16,6 +16,7 @@ module tb_board (
 
 board_desc_t desc;
 integer pa;
+reg rear_en; initial begin rear_en = 1'b1; if ($value$plusargs("rear=%d", pa)) rear_en = pa[0]; end
 reg [7:0] dsw_a, dsw_b;
 initial begin dsw_a = 8'hFF; dsw_b = 8'hDD; if ($value$plusargs("dswa=%h", pa)) dsw_a = pa[7:0]; if ($value$plusargs("dswb=%h", pa)) dsw_b = pa[7:0]; end
 reg trace_math; initial trace_math = $test$plusargs("trace_math");
@@ -57,6 +58,15 @@ always @(posedge clk_sys) begin
     if (trace_shr && core.x_start && core.x_wr && core.xa[19:5] == 15'h0E06)
         $display("%s f=%0d a=%06x d=%04x", core.m_gnt ? "MAINW" : "SUBW", frame, {core.xa, 1'b0}, core.x_dout);
 end
+// second sound board activity (SMGP): M1 cycles and PCM register writes
+integer s2_m1 = 0, s2_pcmw = 0, s1_pcmw = 0;
+reg s2_m1_d;
+always @(posedge clk_sys) begin
+    s2_m1_d <= core.sound2.z_m1_n;
+    if (core.sound2.z_m1_n && !s2_m1_d) s2_m1 = s2_m1 + 1;
+    if (core.sound2.mem_wr && core.sound2.sel_pcm && core.sound2.ce_z80) s2_pcmw = s2_pcmw + 1;
+    if (core.sound.mem_wr && core.sound.sel_pcm && core.sound.ce_z80) s1_pcmw = s1_pcmw + 1;
+end
 reg trace_adc; initial trace_adc = $test$plusargs("trace_adc");
 always @(posedge clk_sys) if (trace_adc && core.m_cs && core.m_sel_adc && core.m_start) begin
     if (core.m_wr) $display("ADC wr f=%0d ch=%0d", frame, core.io0_out_c[4:2]);
@@ -68,7 +78,9 @@ initial begin
     desc.pcm_bankmask = 8'h70; desc.has_throttle = 1'b1;
     if ($value$plusargs("road_priority=%d", pa)) desc.road_priority = pa[0];
     if ($value$plusargs("thndrbld_hack=%d", pa)) desc.thndrbld_hack = pa[0];
-    if ($value$plusargs("ana_mode=%d", pa)) desc.ana_mode = pa[0];
+    if ($value$plusargs("ana_mode=%d", pa)) desc.ana_mode = pa[1:0];
+    if ($value$plusargs("has_snd2=%d", pa)) desc.has_snd2 = pa[0];
+    if ($value$plusargs("motor_zero=%d", pa)) desc.motor_zero = pa[0];
 end
 
 wire p0_req, p1_req, p2_req, p3_req, p4_req, p5_req, p6_req, p3_urgent, p4_urgent;
@@ -108,7 +120,7 @@ ddram_model ddram (
 );
 
 xb_core core (
-    .clk_sys(clk_sys), .clk_ram(clk_ram), .reset(reset), .pause(1'b0), .board_desc(desc),
+    .clk_sys(clk_sys), .clk_ram(clk_ram), .reset(reset), .pause(1'b0), .rear_en(rear_en), .board_desc(desc),
     .tile_wr(1'b0), .tile_waddr(18'd0), .tile_wdata(8'd0),
     .road_wr(1'b0), .road_waddr(16'd0), .road_wdata(8'd0),
     .DDRAM_BUSY(DDRAM_BUSY), .DDRAM_BURSTCNT(DDRAM_BURSTCNT), .DDRAM_ADDR(DDRAM_ADDR),
@@ -257,7 +269,7 @@ always @(posedge clk_sys) begin
         end
         if (ppm_open) begin $fclose(fppm); ppm_open <= 0; end
         frame <= frame + 1;
-        if (frame + 1 == max_frames) $finish;
+        if (frame + 1 == max_frames) begin $display("SND2 m1=%0d pcm2_writes=%0d pcm1_writes=%0d", s2_m1, s2_pcmw, s1_pcmw); $finish; end
     end
     if (!vb && vb_d) begin
         $sformat(fname, "frame_%04d.ppm", frame);

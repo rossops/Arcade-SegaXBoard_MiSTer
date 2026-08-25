@@ -27,7 +27,9 @@ package xb_pkg;
     localparam [24:0] SDR_PCM_BASE     = 25'h012_0000;  // 512 KB slot
     localparam [24:0] SDR_SPRITE_BASE  = 25'h020_0000;  //   4 MB slot
     localparam [24:0] SDR_TILE_BASE    = 25'h060_0000;  // 256 KB slot
-    localparam [24:0] SDR_END          = 25'h064_0000;
+    localparam [24:0] SDR_Z80B_BASE    = 25'h064_0000;  //  64 KB slot (SMGP rear-speaker Z80)
+    localparam [24:0] SDR_PCM2_BASE    = 25'h065_0000;  // 512 KB slot (SMGP second 315-5218)
+    localparam [24:0] SDR_END          = 25'h06D_0000;
 
     // ---- ioctl index-0 stream layout (byte offsets; every region padded) ---
     localparam [26:0] OFF_DESC   = 27'h000_0000;   // 64-byte descriptor
@@ -38,7 +40,9 @@ package xb_pkg;
     localparam [26:0] OFF_PCM    = OFF_ROAD   + 27'h01_0000;
     localparam [26:0] OFF_SPRITE = OFF_PCM    + 27'h08_0000;
     localparam [26:0] OFF_TILE   = OFF_SPRITE + 27'h40_0000;
-    localparam [26:0] OFF_END    = OFF_TILE   + 27'h04_0000;
+    localparam [26:0] OFF_Z80B   = OFF_TILE   + 27'h04_0000;
+    localparam [26:0] OFF_PCM2   = OFF_Z80B   + 27'h01_0000;
+    localparam [26:0] OFF_END    = OFF_PCM2   + 27'h08_0000;
 
     // ---- DDR3 framebuffers (sprite generator 315-5211A) --------------------
     // Two 512x256x16-bit buffers, 256 KB each.
@@ -50,11 +54,14 @@ package xb_pkg;
     //  byte 1: flags: bit0 road_priority (0: road fg under tiles, 1: over)
     //                 bit1 thndrbld sprite-RAM wipe hack
     //                 bit2 has throttle lever analog channel
+    //                 bit3 second sound board (Z80 + 315-5218, SMGP deluxe)
+    //                 bit4 I/O chip 0 port A bits 5:0 read 0 (SMGP motor) instead of 1
     //  byte 2: sprite ROM bank count (aburner2 = 8 x 256 KB)
     //  byte 3: ADC reverse mask (bit n: channel n = 255 - value)
     //  byte 4: PCM ROM bank mask (315-5218 bankmask, aburner2 = 0x70)
-    //  byte 5: bit0 analog mode (0: After Burner ranges, throttle on ADC2;
-    //          1: full range, throttle on ADC1 and stick Y on ADC2 - Thunder Blade)
+    //  byte 5: bits 1:0 analog mode (0: After Burner ranges, throttle on ADC2;
+    //          1: full range, throttle on ADC1 and stick Y on ADC2 - Thunder Blade;
+    //          2: driving - steering ADC0, gas ADC1, brake ADC2 - Super Monaco GP)
     //  bytes 6..63: reserved (0)
     typedef struct packed {
         logic [7:0] game_id;
@@ -64,7 +71,9 @@ package xb_pkg;
         logic [7:0] sprite_banks;
         logic [7:0] adc_reverse;
         logic [7:0] pcm_bankmask;
-        logic       ana_mode;
+        logic [1:0] ana_mode;
+        logic       has_snd2;
+        logic       motor_zero;
     } board_desc_t;
 
 endpackage

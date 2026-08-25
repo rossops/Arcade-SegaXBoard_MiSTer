@@ -10,7 +10,7 @@ import argparse, os, sys
 
 sys.path.insert(0, os.path.dirname(__file__))
 from romsets import ROMSETS, SLOT, ORDER, DESC_SIZE
-from pack_roms import descriptor
+from pack_roms import descriptor, last_region
 
 RBF = "Arcade-SegaXBoard"
 
@@ -68,8 +68,8 @@ def make_mra(key, rs):
     zips = rs["zipfile"] + ".zip" if rs["zipfile"] == key else f'{key}.zip|{rs["zipfile"]}.zip'
     L.append(f'  <rom index="0" zip="{zips}" md5="None">')
     L.append(f'    <part>{hexbytes(descriptor(rs))}</part>')
-    for region in ORDER:
-        loader, files = rs["regions"][region]
+    for region in ORDER[:last_region(rs) + 1]:
+        loader, files = rs["regions"].get(region, ("flat", []))
         L.append(f'    <!-- {region} -->')
         L += region_parts(loader, files, SLOT[region], "FF" if region == "pcm" else "00")
     L.append('  </rom>')

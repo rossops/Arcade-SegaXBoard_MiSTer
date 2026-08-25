@@ -16,6 +16,7 @@ module xb_core (
     input             clk_ram,      // 100 MHz
     input             reset,
     input             pause,
+    input             rear_en,        // mix the SMGP rear-speaker board into L/R
     input board_desc_t board_desc,
 
     // DDR3 (sprite framebuffers), clk_ram domain
@@ -278,7 +279,8 @@ xb_cmptimer_5250 main_cmp (.clk(clk_sys), .reset(cpu_reset), .cs(m_cs && m_sel_c
     .addr(ma[4:1]), .din(m_dout), .be(m_be), .dout(m_cmp_q),
     .exck(v0), .timer_irq(timer_irq),
     .snd_latch(snd_latch), .snd_nmi(snd_nmi), .snd_read(snd_read));
-wire snd_read;
+wire snd_read1, snd_read2;
+wire snd_read = snd_read1 | (snd_read2 & board_desc.has_snd2);
 
 // ---- I/O chips (odd byte lane), ADC, /ODEN latch
 reg        oden_n;
@@ -292,7 +294,7 @@ wire       adc_intr;
 wire [7:0] adc_q;
 // IO0 port A: D5-D0 switches (unused, open = 0? MAME: active low unknown -> 1),
 // D6 = ADC /INTR (active high), D7 n/c
-wire [7:0] io0_in_a = {1'b1, adc_intr, 6'h3F};
+wire [7:0] io0_in_a = {1'b1, adc_intr, board_desc.motor_zero ? 6'h00 : 6'h3F};   // MAME aburner2_motor_r / smgp_motor_r
 wire [7:0] io0_in_b = 8'hFF;    // motor board absent (upright)
 // IO1 port A: 0 unused, 1 test, 2 service, 3 start, 4 vulcan, 5 missile, 6 coin1, 7 coin2 (active low)
 wire [7:0] io1_in_a = ~{coin2 | p1_buttons[7] & 1'b0, coin1 | p1_buttons[7], p1_buttons[5], p1_buttons[4],
@@ -332,12 +334,26 @@ wire [7:0] fr_x  = {~stick_x[7], stick_x[6:0]};   // 0x80 + x
 wire [7:0] fr_y  = {~stick_y[7], stick_y[6:0]};   // up (negative) -> low
 wire [7:0] fr_dx = p1_buttons[0] ? 8'hFF : p1_buttons[1] ? 8'h01 : 8'h80;
 wire [7:0] fr_dy = p1_buttons[3] ? 8'h01 : p1_buttons[2] ? 8'hFF : 8'h80;
-wire       am    = board_desc.ana_mode;
-wire [7:0] ana_x = (use_dpad && dpad_active) ? (am ? fr_dx : ab_dx) : use_analog ? (am ? fr_x : ab_x) : 8'h80;
-wire [7:0] ana_y = (use_dpad && dpad_active) ? (am ? fr_dy : ab_dy) : use_analog ? (am ? fr_y : ab_y) : 8'h80;
+// driving (Super Monaco GP): steering 0x38..0xC8 on ADC0, gas 0x38..0xB8 on
+// ADC1, brake 0x28..0xA8 on ADC2 (MAME ranges). Gas/brake come from the right
+// stick's Y axis (up = gas, down = brake) or the digital Gas/Brake buttons.
+wire [1:0] am    = board_desc.ana_mode;
+wire signed [15:0] dr_xs = stick_x * 8'sd72;      // +-0x48
+wire [7:0] dr_x  = 8'h80 + dr_xs[14:7];
+wire [7:0] dr_dx = p1_buttons[0] ? 8'hC8 : p1_buttons[1] ? 8'h38 : 8'h80;
+wire [7:0] thr_up   = (throttle < 8'h80) ? (8'h80 - throttle) : 8'd0;   // 0..0x80
+wire [7:0] thr_down = (throttle > 8'h80) ? (throttle - 8'h80) : 8'd0;   // 0..0x7F
+wire [7:0] gas_v    = p1_buttons[11] ? 8'h80 : thr_up;
+wire [7:0] brake_v  = p1_buttons[12] ? 8'h80 : thr_down;
+wire [7:0] sel_x  = (am == 2'd2) ? dr_x  : (am == 2'd1) ? fr_x  : ab_x;
+wire [7:0] sel_dx = (am == 2'd2) ? dr_dx : (am == 2'd1) ? fr_dx : ab_dx;
+wire [7:0] sel_y  = (am == 2'd1) ? fr_y  : ab_y;
+wire [7:0] sel_dy = (am == 2'd1) ? fr_dy : ab_dy;
+wire [7:0] ana_x = (use_dpad && dpad_active) ? sel_dx : use_analog ? sel_x : 8'h80;
+wire [7:0] ana_y = (use_dpad && dpad_active) ? sel_dy : use_analog ? sel_y : 8'h80;
 wire [7:0] adc_ch0 = ana_x;
-wire [7:0] adc_ch1 = am ? throttle : ana_y;
-wire [7:0] adc_ch2 = am ? ana_y : throttle;
+wire [7:0] adc_ch1 = (am == 2'd2) ? (8'h38 + gas_v) : (am == 2'd1) ? throttle : ana_y;
+wire [7:0] adc_ch2 = (am == 2'd2) ? (8'h28 + brake_v) : (am == 2'd1) ? ana_y : throttle;
 wire snd_reset_n    = io0_out_c[0];
 wire mute_n         = io0_out_d[7];
 
@@ -605,13 +621,43 @@ xb_soundsys sound (
     .clk(clk_sys), .reset(reset), .z80_reset_n(snd_reset_n),
     .ce_z80(ce_z80), .ce_z80x2(ce_z80x2), .ce_fm(ce_z80), .ce_fm_p1(ce_fm_p1), .pcm_tick(pcm_tick),
     .mute_n(mute_n), .pcm_bankmask(board_desc.pcm_bankmask),
-    .snd_latch(snd_latch), .snd_nmi(snd_nmi), .snd_read(snd_read),
+    .snd_latch(snd_latch), .snd_nmi(snd_nmi), .snd_read(snd_read1),
     .zrom_req(p5_req), .zrom_addr(p5_addr), .zrom_dout(p5_dout), .zrom_ack(p5_ack),
     .pcm_req(p6_req), .pcm_addr(p6_addr), .pcm_dout(p6_dout), .pcm_ack(p6_ack),
-    .audio_l(audio_l), .audio_r(audio_r)
+    .audio_l(aud1_l), .audio_r(aud1_r)
 );
 
-assign p3_req = 1'b0; assign p3_addr = '0; assign p3_urgent = 1'b0;
-assign p4_req = 1'b0; assign p4_addr = '0; assign p4_urgent = 1'b0;
+// Super Monaco GP's second sound board (deluxe cabinet rear speakers): the
+// same Z80 + 315-5218 without the YM2151, fed by the same 315-5250 latch and
+// NMI (MAME appends soundcpu2 to the zint line; either Z80's port 0x40 read
+// clears it). ROM through SDRAM p3, PCM through the 128-bit p4 port.
+wire signed [15:0] aud1_l, aud1_r, aud2_l, aud2_r;
+wire        pcm2_req, pcm2_ack;
+wire [24:1] pcm2_addr;
+wire [15:0] pcm2_dout;
+xb_soundsys #(.HAS_YM(0), .ROM_BASE(SDR_Z80B_BASE), .PCM_BASE(SDR_PCM2_BASE)) sound2 (
+    .clk(clk_sys), .reset(reset || !board_desc.has_snd2), .z80_reset_n(snd_reset_n),
+    .ce_z80(ce_z80), .ce_z80x2(ce_z80x2), .ce_fm(ce_z80), .ce_fm_p1(ce_fm_p1), .pcm_tick(pcm_tick),
+    .mute_n(mute_n), .pcm_bankmask(board_desc.pcm_bankmask),
+    .snd_latch(snd_latch), .snd_nmi(snd_nmi), .snd_read(snd_read2),
+    .zrom_req(p3_req), .zrom_addr(p3_addr), .zrom_dout(p3_dout), .zrom_ack(p3_ack),
+    .pcm_req(pcm2_req), .pcm_addr(pcm2_addr), .pcm_dout(pcm2_dout), .pcm_ack(pcm2_ack),
+    .audio_l(aud2_l), .audio_r(aud2_r)
+);
+assign p3_urgent = 1'b0;
+assign p4_req    = pcm2_req;
+assign p4_addr   = pcm2_addr[24:4];
+assign p4_urgent = 1'b0;
+reg [2:0] pcm2_sel;
+always @(posedge clk_sys) if (pcm2_req) pcm2_sel <= pcm2_addr[3:1];
+assign pcm2_dout = p4_dout[pcm2_sel*16 +: 16];
+assign pcm2_ack  = p4_ack;
+
+// front + rear, saturated
+wire        rear_on = rear_en && board_desc.has_snd2;
+wire signed [16:0] sum_l = aud1_l + (rear_on ? aud2_l : 16'sd0);
+wire signed [16:0] sum_r = aud1_r + (rear_on ? aud2_r : 16'sd0);
+assign audio_l = (sum_l > 17'sd32767) ? 16'sd32767 : (sum_l < -17'sd32768) ? -16'sd32768 : sum_l[15:0];
+assign audio_r = (sum_r > 17'sd32767) ? 16'sd32767 : (sum_r < -17'sd32768) ? -16'sd32768 : sum_r[15:0];
 
 endmodule

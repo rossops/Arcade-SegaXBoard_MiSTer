@@ -13,7 +13,9 @@
 //============================================================================
 import xb_pkg::*;
 
-module xb_segapcm_5218 (
+module xb_segapcm_5218 #(
+    parameter [24:0] PCM_BASE = SDR_PCM_BASE
+) (
     input             clk,          // clk_sys
     input             reset,
     input             tick,         // one pulse per 128 chip clocks (31.25 kHz)
@@ -97,7 +99,7 @@ always @(posedge clk) begin
             // byte address: (bank << 12) + addr[23:8]; bank field in bits 6:4 -> <<12 gives 64 KB units
             logic [24:0] ba;
             // offset = (flags & bankmask) << 12; bank bits 6:4 -> 64 KB units
-            ba = SDR_PCM_BASE + {6'd0, bank, 12'd0} + {9'd0, a[23:8]};
+            ba = PCM_BASE + {6'd0, bank, 12'd0} + {9'd0, a[23:8]};
             rom_addr <= ba[24:1];
             rom_odd  <= ba[0];
             rom_req  <= 1'b1;

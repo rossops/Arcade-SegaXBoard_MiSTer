@@ -58,7 +58,8 @@ def main(outdir, frame, setname="aburner2"):
         control, road_bank = [int(v) for v in open(ctlfile).read().split()]
         rr = words(os.path.join(outdir, "rtl_roadram.bin"))
         rbuf = rr[2048:4096] if road_bank == 0 else rr[0:2048]
-        gfx = rd.decode(zread(zf, rs["regions"]["road"][1][0][0]))
+        road_files = rs["regions"]["road"][1]
+        gfx = rd.decode(zread(zf, road_files[0][0]) if road_files else bytes(0x10000))   # SMGP has no road ROM
         road_bg, road_fg = rd.render(rbuf, control, gfx)
     best = None
     for bank, fb in enumerate(fbs):

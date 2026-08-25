@@ -268,6 +268,26 @@ different CPU timing drift in phase, so the gate uses the envelope (>= 0.9).
   at the offset; the rest is blinking text and one frame of motion on fast
   sprites). Thunder Blade matches at offset 0. `check_m7.sh` runs the gate.
 
+## Super Monaco GP (M8)
+
+- Set: `smgpd`, MAME 0.289's decrypted bootleg of the World Rev B set; the
+  official sets are FD1094 317-0126a and wait for the decryption block.
+- Board differences, all selected by the descriptor: a second sound board
+  (Z80 + 315-5218, the deluxe cabinet's rear speakers) fed by the same
+  315-5250 latch and NMI, with its own 64 KB ROM and 512 KB PCM ROM as two
+  extra stream regions on SDRAM ports p3 and p4 (the stream ends after the
+  last region a set populates, so older MRAs are unchanged); its output is
+  summed into L/R with saturation behind the "Rear speakers" OSD option.
+  `xb_soundsys` takes `HAS_YM` (0 drops the YM2151) and base-address
+  parameters. I/O chip 0 port A reads bits 5:0 as 0 (MAME `smgp_motor_r`).
+  The `/EXCS` region (`$2F0000-$2F3FFF`, the link and motor boards) reads
+  0xFFFF and ignores writes, as in MAME; single-machine play with the
+  "Number of Machines" DIP at 1. There is no road ROM: the slot stays zero.
+- Analog mode 2 (driving): steering 0x38..0xC8 on ADC0, gas 0x38..0xB8 on
+  ADC1 and brake 0x28..0xA8 on ADC2 (MAME's ranges) from the right stick's
+  Y axis (up = gas, down = brake) or the Gas/Brake buttons; Shift Down/Up
+  on the first two buttons.
+
 ## ROM stream
 
 `tools/pack_roms.py` and `tools/gen_mra.py` share `tools/romsets.py`. The
