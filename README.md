@@ -113,15 +113,26 @@ expects is the one the MiSTer host actually sends.
 
 ## Installing
 
-Copy `releases/Arcade-SegaXBoard_<date>.rbf` to `_Arcade/cores/`,
-the `.mra` files to `_Arcade/` and the MAME 0.289 zips
-(`aburner2`, `aburner`, `aburner131`, `thndrbld`, `thndrbld1`, `thndrbldd`, `etc`)
-to `games/mame/`. MiSTer needs split or non-merged sets: it opens
+Copy `releases/Arcade-SegaXBoard_<date>.rbf` to `/media/fat/_Arcade/cores/`,
+the `.mra` files to `/media/fat/_Arcade/` and the MAME 0.289 zips listed in
+the games table to `/media/fat/games/mame/`, then launch a game from the
+Arcade menu. MiSTer needs split or non-merged sets: it opens
 `games/mame/<zip>/<file>` literally and does not look inside a merged zip's
 clone folders. From merged sets, `tools/make_clone_zips.py --out DIR` builds
-the small clone zips (`aburner131`, `thndrbld1`, `thndrbldd`) that go next
-to the parent zips. The MRA's `<rbf>` is `Arcade-SegaXBoard`. Commercial 
-ROMs are not included.
+the small clone zips that go next to the parent zips. Commercial ROMs are
+not included.
+
+For automatic installation, add this to `/media/fat/downloader.ini` and run
+Update All:
+
+```
+[rossops/sxboard]
+db_url = https://raw.githubusercontent.com/rossops/sxboard/main/db.json.zip
+```
+
+The database (`db.json.zip`, built by `tools/make_db.py`) lists every MRA
+and the current core with their MD5s, pointing at the files in this
+repository; it is regenerated with each release.
 
 ## Audio filter
 

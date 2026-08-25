@@ -81,6 +81,8 @@ serv_req_info.txt
 
 # built bitstreams (distribute via Releases, not git)
 releases/*.rbf
+# the released core is distributed from the repo (keep only the current one)
+!releases/Arcade-SegaXBoard_*.rbf
 output_files/
 __pycache__/
 /mra_goldenaxe_rbf/
