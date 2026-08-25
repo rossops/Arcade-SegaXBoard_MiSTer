@@ -390,6 +390,42 @@ check that `xb_m68k_bus` is enable-agnostic at two clocks per phase, and
 boot/self-consistency sims at each speed (no MAME reference for the
 timing). No timing-closure impact, `clk_sys` is unchanged.
 
+## GP Rider (M11)
+
+- Single-board sets `gpriders` (World, 317-0163), `gpriderus` (US,
+  317-0162, files under `gprideru/` in the merged zip) and `gpriderjs`
+  (Japan, 317-0161, `gpriderj/`); the twin-cabinet sets need a second PCB
+  and are out of scope. No decrypted bootlegs exist, so bring-up went
+  straight through the FD1094.
+- MAME's `m_gprider_hack`: with the link board absent the game must never
+  see interrupt level 6, so when the timer and vblank interrupts coincide
+  the main CPU is presented level 4 and the timer follows (descriptor flag,
+  byte 1 bit 6).
+- Analog mode 4: steering full range, gas and brake 0x10..0xEF (MAME's
+  ranges); Shift Down/Up on the first two buttons. DIPs: Cabinet
+  (Upright/Ride On), ID No. (Main/Slave), Demo Sounds, Difficulty
+  (default `FF,FE`). The analog mode field is now 3 bits.
+
+## Planned: Line of Fire gun control (M13)
+
+Line of Fire's two guns are four ADC channels (P1 X/Y, P2 X/Y; the Y axes
+reversed through the descriptor's `adc_reverse`, MAME `install_loffire`)
+with trigger and bomb buttons. Planned OSD "Gun control" modes:
+
+- Lightgun: the mapped player's analog X/Y taken as an absolute screen
+  position and scaled to the game's ranges; this is how MiSTer's USB gun
+  support delivers coordinates, so real guns need no core-side calibration.
+- Gamepad: the stick or D-pad moves a persistent crosshair whose position
+  feeds the ADC channels, trigger/bomb on the face buttons, two players
+  from two controllers. A per-player "Cursor speed" option: the request was
+  a 1-100 slider, but the MiSTer OSD only offers fixed option lists, so it
+  is a list in steps (10, 20, ... 100, default 50) driving a fine internal
+  velocity scale. An optional crosshair overlay drawn by the core (a small
+  cross before the palette) for gamepad mode, unless the game draws its own
+  sight (to be checked at bring-up).
+- MAME's `loffire_sync0_w` is a cross-CPU synchronisation hack; the traces
+  will show whether our timing needs anything.
+
 ## ROM stream
 
 `tools/pack_roms.py` and `tools/gen_mra.py` share `tools/romsets.py`. The

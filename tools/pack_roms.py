@@ -19,11 +19,11 @@ def descriptor(rs):
     d[0] = rs["game_id"]
     d[1] = ((rs["road_priority"] & 1) | ((rs["thndrbld_hack"] & 1) << 1) | ((rs["has_throttle"] & 1) << 2)
             | ((rs.get("has_snd2", 0) & 1) << 3) | ((rs.get("motor_zero", 0) & 1) << 4)
-            | ((rs.get("fd1094", 0) & 1) << 5))
+            | ((rs.get("fd1094", 0) & 1) << 5) | ((rs.get("irq_hack", 0) & 1) << 6))
     d[2] = rs["sprite_banks"]
     d[3] = rs["adc_reverse"]
     d[4] = rs["pcm_bankmask"]
-    d[5] = rs.get("ana_mode", 0) & 3
+    d[5] = rs.get("ana_mode", 0) & 7
     return bytes(d)
 
 

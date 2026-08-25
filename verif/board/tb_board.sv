@@ -88,7 +88,8 @@ initial begin
     desc.pcm_bankmask = 8'h70; desc.has_throttle = 1'b1;
     if ($value$plusargs("road_priority=%d", pa)) desc.road_priority = pa[0];
     if ($value$plusargs("thndrbld_hack=%d", pa)) desc.thndrbld_hack = pa[0];
-    if ($value$plusargs("ana_mode=%d", pa)) desc.ana_mode = pa[1:0];
+    if ($value$plusargs("ana_mode=%d", pa)) desc.ana_mode = pa[2:0];
+    if ($value$plusargs("irq_hack=%d", pa)) desc.irq_hack = pa[0];
     if ($value$plusargs("has_snd2=%d", pa)) desc.has_snd2 = pa[0];
     if ($value$plusargs("motor_zero=%d", pa)) desc.motor_zero = pa[0];
     if ($value$plusargs("fd1094=%d", pa)) desc.fd1094 = pa[0];

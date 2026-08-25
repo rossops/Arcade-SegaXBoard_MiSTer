@@ -25,6 +25,7 @@ flow, the ROM stream tools and a stub board that shows colour bars.
 | M8 | Super Monaco GP | done: smgpd (decrypted bootleg) with the second sound board and driving inputs, pixel-exact vs MAME, confirmed on hardware; official FD1094 sets need M9 |
 | M9 | FD1094 | done: decryptor unit-verified against MAME; encrypted Thunder Blade and Super Monaco GP (World, Rev B) pixel-exact vs MAME and confirmed on hardware |
 | M10 | Racing Hero and A.B. Cop | done: six sets (bootlegs pixel-exact vs MAME, FD1094 parents), confirmed on hardware |
+| M11 | GP Rider | done: three single-board FD1094 sets, confirmed on hardware |
 | later | Enhanced sprites (640x448 sprite rendering, opt-in) | parked, see docs/DESIGN.md |
 | later | Gamma correction (framework option, disabled since M5) | parked, see docs/DESIGN.md |
 | later | CPU overclock (12.5/15/18.75/25 MHz, opt-in) | parked, see docs/DESIGN.md |

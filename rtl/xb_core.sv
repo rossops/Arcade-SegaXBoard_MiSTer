@@ -158,7 +158,9 @@ wire [15:0] m_dout;
 reg  [15:0] m_din;
 reg         m_ack;
 wire        timer_irq;
-wire  [2:0] m_ipl = (timer_irq && vbl_irq) ? 3'd6 : vbl_irq ? 3'd4 : timer_irq ? 3'd2 : 3'd0;
+// GP Rider (MAME m_gprider_hack): with the link board absent the game must not see
+// level 6, so timer+vblank together present level 4 (the timer follows after)
+wire  [2:0] m_ipl = (timer_irq && vbl_irq) ? (board_desc.irq_hack ? 3'd4 : 3'd6) : vbl_irq ? 3'd4 : timer_irq ? 3'd2 : 3'd0;
 wire  [2:0] m_fc;
 wire        m_as_n;
 wire        m_reset_out;     // main 68000 RESET instruction -> sub CPU reset (MAME m68k_reset_callback)
@@ -349,7 +351,7 @@ wire [7:0] fr_dy = p1_buttons[3] ? 8'h01 : p1_buttons[2] ? 8'hFF : 8'h80;
 // driving (Super Monaco GP): steering 0x38..0xC8 on ADC0, gas 0x38..0xB8 on
 // ADC1, brake 0x28..0xA8 on ADC2 (MAME ranges). Gas/brake come from the right
 // stick's Y axis (up = gas, down = brake) or the digital Gas/Brake buttons.
-wire [1:0] am    = board_desc.ana_mode;
+wire [2:0] am    = board_desc.ana_mode;
 wire signed [15:0] dr_xs = stick_x * 8'sd72;      // +-0x48
 wire [7:0] dr_x  = 8'h80 + dr_xs[14:7];
 wire [7:0] dr_dx = p1_buttons[0] ? 8'hC8 : p1_buttons[1] ? 8'h38 : 8'h80;
@@ -363,15 +365,18 @@ wire [7:0] rh_x  = 8'h80 - ab_xs[14:7];
 wire [7:0] rh_dx = p1_buttons[0] ? 8'h20 : p1_buttons[1] ? 8'hE0 : 8'h80;
 wire [7:0] gas_f   = p1_buttons[11] ? 8'hFF : {thr_up[6:0], thr_up[7]};      // 0..0x80 -> 0..0xFF
 wire [7:0] brake_f = p1_buttons[12] ? 8'hFF : {thr_down[6:0], 1'b0};
-wire [7:0] sel_x  = (am == 2'd3) ? rh_x  : (am == 2'd2) ? dr_x  : (am == 2'd1) ? fr_x  : ab_x;
-wire [7:0] sel_dx = (am == 2'd3) ? rh_dx : (am == 2'd2) ? dr_dx : (am == 2'd1) ? fr_dx : ab_dx;
-wire [7:0] sel_y  = (am == 2'd1) ? fr_y  : ab_y;
-wire [7:0] sel_dy = (am == 2'd1) ? fr_dy : ab_dy;
+// GP Rider: steering full range 0x01..0xFF on ADC0, pedals 0x10..0xEF
+wire [7:0] gp_gas   = (gas_f   > 8'hDF) ? 8'hEF : 8'h10 + gas_f;
+wire [7:0] gp_brake = (brake_f > 8'hDF) ? 8'hEF : 8'h10 + brake_f;
+wire [7:0] sel_x  = (am == 3'd4) ? fr_x  : (am == 3'd3) ? rh_x  : (am == 3'd2) ? dr_x  : (am == 3'd1) ? fr_x  : ab_x;
+wire [7:0] sel_dx = (am == 3'd4) ? fr_dx : (am == 3'd3) ? rh_dx : (am == 3'd2) ? dr_dx : (am == 3'd1) ? fr_dx : ab_dx;
+wire [7:0] sel_y  = (am == 3'd1) ? fr_y  : ab_y;
+wire [7:0] sel_dy = (am == 3'd1) ? fr_dy : ab_dy;
 wire [7:0] ana_x = (use_dpad && dpad_active) ? sel_dx : use_analog ? sel_x : 8'h80;
 wire [7:0] ana_y = (use_dpad && dpad_active) ? sel_dy : use_analog ? sel_y : 8'h80;
 wire [7:0] adc_ch0 = ana_x;
-wire [7:0] adc_ch1 = (am == 2'd3) ? gas_f   : (am == 2'd2) ? (8'h38 + gas_v)   : (am == 2'd1) ? throttle : ana_y;
-wire [7:0] adc_ch2 = (am == 2'd3) ? brake_f : (am == 2'd2) ? (8'h28 + brake_v) : (am == 2'd1) ? ana_y : throttle;
+wire [7:0] adc_ch1 = (am == 3'd4) ? gp_gas   : (am == 3'd3) ? gas_f   : (am == 3'd2) ? (8'h38 + gas_v)   : (am == 3'd1) ? throttle : ana_y;
+wire [7:0] adc_ch2 = (am == 3'd4) ? gp_brake : (am == 3'd3) ? brake_f : (am == 3'd2) ? (8'h28 + brake_v) : (am == 3'd1) ? ana_y : throttle;
 wire snd_reset_n    = io0_out_c[0];
 wire mute_n         = io0_out_d[7];
 

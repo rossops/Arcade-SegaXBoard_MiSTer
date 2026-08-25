@@ -126,10 +126,11 @@ always @(posedge clk) begin
                     desc_r.sprite_banks  <= desc_bytes[2];
                     desc_r.adc_reverse   <= desc_bytes[3];
                     desc_r.pcm_bankmask  <= desc_bytes[4];
-                    desc_r.ana_mode      <= desc_bytes[5][1:0];
+                    desc_r.ana_mode      <= desc_bytes[5][2:0];
                     desc_r.has_snd2      <= desc_bytes[1][3];
                     desc_r.motor_zero    <= desc_bytes[1][4];
                     desc_r.fd1094        <= desc_bytes[1][5];
+                    desc_r.irq_hack      <= desc_bytes[1][6];
                 end
             end
             else if (ioctl_addr >= OFF_ROAD && ioctl_addr < OFF_ROAD + 27'h1_0000) begin

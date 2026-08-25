@@ -58,13 +58,15 @@ package xb_pkg;
     //                 bit3 second sound board (Z80 + 315-5218, SMGP deluxe)
     //                 bit4 I/O chip 0 port A bits 5:0 read 0 (SMGP motor) instead of 1
     //                 bit5 main CPU is an FD1094 (key region present)
+    //                 bit6 GP Rider link hack: timer+vblank present IPL 4, never 6 (MAME m_gprider_hack)
     //  byte 2: sprite ROM bank count (aburner2 = 8 x 256 KB)
     //  byte 3: ADC reverse mask (bit n: channel n = 255 - value)
     //  byte 4: PCM ROM bank mask (315-5218 bankmask, aburner2 = 0x70)
-    //  byte 5: bits 1:0 analog mode (0: After Burner ranges, throttle on ADC2;
+    //  byte 5: bits 2:0 analog mode (0: After Burner ranges, throttle on ADC2;
     //          1: full range, throttle on ADC1 and stick Y on ADC2 - Thunder Blade;
     //          2: driving - steering ADC0, gas ADC1, brake ADC2 - Super Monaco GP;
-    //          3: driving, steering 0x20..0xE0 reversed, full-range pedals - Racing Hero, A.B. Cop)
+    //          3: driving, steering 0x20..0xE0 reversed, full-range pedals - Racing Hero, A.B. Cop;
+    //          4: driving, steering full range, pedals 0x10..0xEF - GP Rider)
     //  bytes 6..63: reserved (0)
     typedef struct packed {
         logic [7:0] game_id;
@@ -74,10 +76,11 @@ package xb_pkg;
         logic [7:0] sprite_banks;
         logic [7:0] adc_reverse;
         logic [7:0] pcm_bankmask;
-        logic [1:0] ana_mode;
+        logic [2:0] ana_mode;
         logic       has_snd2;
         logic       motor_zero;
         logic       fd1094;
+        logic       irq_hack;
     } board_desc_t;
 
 endpackage
