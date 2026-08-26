@@ -20,11 +20,43 @@ module xb_video_timing (
     output            v0,            // scanline counter bit 0 -> 315-5250 EXCK
     output reg        line_start,    // one clk pulse at hcnt==0 (with ce_pix)
     output reg        vbl_irq,       // level: vcnt == 223
-    output reg        latch_pulse    // one clk pulse at start of line 261
+    output reg        latch_pulse,   // one clk pulse at start of line 261
+    // enhanced (2x) output grid: two 800-pixel lines per game line at clk/4.
+    // With hires low these mirror the game grid.
+    input             hires,
+    output reg        ce_out,        // output pixel enable (clk/4 or clk/8)
+    output reg  [9:0] ohcnt,         // 0..799 (0..399 when not hires)
+    output reg        oline,         // second output line of the game line
+    output reg        ohblank,
+    output reg        ohsync
 );
 
 reg [2:0] div;
 assign v0 = vcnt[0];
+// 2x grid: 800x524 at 25 MHz (a tick every 2 clocks, ce_pix coincides with
+// one), so a 3200-clock game line is exactly two 800-tick output lines
+localparam [9:0] OH_LAST = 10'd799, OH_ACT = 10'd640, OHS_START = 10'd672, OHS_END = 10'd736;
+wire otick = div[0];
+wire [9:0] ohnext = ohcnt + 10'd1;
+always @(posedge clk) begin
+    ce_out <= 1'b0;
+    if (reset) begin ohcnt <= 10'd0; oline <= 1'b0; ohblank <= 1'b0; ohsync <= 1'b0; end
+    else if (!hires) begin
+        ce_out  <= (div == 3'd7);
+        ohcnt   <= {1'b0, (div == 3'd7) ? ((hcnt == H_LAST) ? 9'd0 : hcnt + 9'd1) : hcnt};
+        oline   <= 1'b0;
+        ohblank <= hblank;
+        ohsync  <= hsync;
+    end
+    else if (otick) begin
+        ce_out <= 1'b1;
+        if (div == 3'd7 && hcnt == H_LAST) begin ohcnt <= 10'd0; oline <= 1'b0; end   // realign at the game line
+        else if (ohcnt == OH_LAST) begin ohcnt <= 10'd0; oline <= ~oline; end
+        else ohcnt <= ohnext;
+        ohblank <= (ohnext >= OH_ACT) && (ohcnt != OH_LAST);
+        ohsync  <= (ohnext >= OHS_START) && (ohnext < OHS_END);
+    end
+end
 
 // Sync widths follow the System 16-family convention used by MAME's screen
 // layout: hsync from 336..367 (32 px), vsync lines 240..243 (4 lines).

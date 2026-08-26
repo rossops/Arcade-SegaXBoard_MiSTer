@@ -25,7 +25,7 @@ expanders, a YM2151 and a 315-5218 PCM chip.
 | M11 | GP Rider | done: three single-board FD1094 sets, confirmed on hardware |
 | M12 | Last Survivor | done: input multiplexer, two players, bootleg and FD1094 sets, confirmed on hardware |
 | M13 | Line of Fire | done: six sets, lightgun/gamepad gun control with cursor speed and crosshair, confirmed on hardware |
-| later | Enhanced sprites (640x448 sprite rendering, opt-in) | parked, see docs/DESIGN.md |
+| M14 | Enhanced sprites (640x448 sprite rendering, opt-in OSD option) | done in sim: pixel-exact vs the 2x sprite model at board level; hardware build pending |
 | later | Gamma correction (framework option, disabled since M5) | parked, see docs/DESIGN.md |
 | later | CPU overclock (12.5/15/18.75/25 MHz, opt-in) | parked, see docs/DESIGN.md |
 

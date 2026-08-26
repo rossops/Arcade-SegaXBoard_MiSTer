@@ -14,9 +14,13 @@ def s16(v):
     return v - 0x10000 if v & 0x8000 else v
 
 
-def render(spriteram, rom, numbanks, width=WIDTH, height=HEIGHT):
+def render(spriteram, rom, numbanks, width=WIDTH, height=HEIGHT, scale=1):
     """spriteram: 2048 words (the buffer rendered); rom: list of 32-bit
-    dwords (REGION32_LE order); numbanks = rom bytes / 0x40000."""
+    dwords (REGION32_LE order); numbanks = rom bytes / 0x40000.
+    scale=2 renders the enhanced 2x mode: positions and row counts doubled,
+    zoom thresholds doubled so the source is sampled at half steps."""
+    th = 0x200 * scale
+    xorigin = XORIGIN * scale
     fb = [[0xFFFF] * width for _ in range(height)]
     min_x, max_x, min_y, max_y = 0, width - 1, 0, height - 1
     for base in range(0, 2048, 8):
@@ -25,7 +29,7 @@ def render(spriteram, rom, numbanks, width=WIDTH, height=HEIGHT):
             break
         hide = data[0] & 0x5000
         bank = (data[0] >> 9) & 7
-        top = (data[0] & 0x1ff) - 0x100
+        top = ((data[0] & 0x1ff) - 0x100) * scale
         addr = data[1]
         pitch = s16((data[2] >> 1) | ((data[4] & 0x1000) << 3)) >> 8
         xpos = data[2] & 0x1ff
@@ -38,6 +42,8 @@ def render(spriteram, rom, numbanks, width=WIDTH, height=HEIGHT):
         colpri = ((data[6] & 0xff) << 4) | (((data[3] >> 12) & 7) << 12)
         if xpos < 0x80 and xdelta < 0:
             xpos += 0x200
+        xpos *= scale
+        height_ *= scale
         if hide:
             continue
         if numbanks:
@@ -49,13 +55,13 @@ def render(spriteram, rom, numbanks, width=WIDTH, height=HEIGHT):
         y = top
         ytarget = top + ydelta * height_
         while y != ytarget:
-            sy = y - YORIGIN
+            sy = y - YORIGIN * scale
             if min_y <= sy <= max_y:
                 row = fb[sy]
                 xacc = 0
                 a = addr
                 x = xpos
-                while (xdelta > 0 and x - XORIGIN <= max_x) or (xdelta < 0 and x - XORIGIN >= min_x):
+                while (xdelta > 0 and x - xorigin <= max_x) or (xdelta < 0 and x - xorigin >= min_x):
                     pixels = rom[spritebase + (a & 0xffff)]
                     if flip:
                         a -= 1
@@ -68,19 +74,19 @@ def render(spriteram, rom, numbanks, width=WIDTH, height=HEIGHT):
                     last_data = (pixels & 0x0f000000) == 0x0f000000
                     for _ in range(8):
                         pix = pixels & 0xf
-                        while xacc < 0x200:
-                            sx = x - XORIGIN
+                        while xacc < th:
+                            sx = x - xorigin
                             if min_x <= sx <= max_x and pix != 0 and pix != 15:
                                 row[sx] = colpri | pix
                             x += xdelta
                             xacc += hzoom
-                        xacc -= 0x200
+                        xacc -= th
                         pixels >>= 4
                     if last_data:
                         break
             yacc += vzoom
-            addr = (addr + pitch * (yacc >> 9)) & 0xffff
-            yacc &= 0x1ff
+            addr = (addr + pitch * (yacc // th)) & 0xffff
+            yacc %= th
             y += ydelta
     return fb
 

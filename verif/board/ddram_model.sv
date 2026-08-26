@@ -4,7 +4,7 @@
 //  a few clocks of latency and occasional BUSY.
 //============================================================================
 `timescale 1ns/1ps
-module ddram_model #(parameter [28:0] BASE = 29'h0600_0000, parameter WORDS = 1 << 17) (
+module ddram_model #(parameter [28:0] BASE = 29'h0600_0000, parameter WORDS = 1 << 18) (   // 2 MB: two 1024x512 buffers in the 2x mode
     input             clk,
     output reg        DDRAM_BUSY,
     input       [7:0] DDRAM_BURSTCNT,

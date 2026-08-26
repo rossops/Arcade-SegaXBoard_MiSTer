@@ -23,8 +23,12 @@ def words(p):
     b = open(p, "rb").read(); return [b[i] | (b[i + 1] << 8) for i in range(0, len(b), 2)]
 
 
-def main(outdir, frame, setname="aburner2"):
+def main(outdir, frame, setname="aburner2", hires=False):
+    """hires: the frame is the 640x448 enhanced mode - tiles and road pixel
+    doubled, sprites from the model's 2x render."""
     rs = ROMSETS[setname]
+    SC = 2 if hires else 1
+    W, H = 320 * SC, 224 * SC
     road_priority = rs["road_priority"]
     tileram = words(os.path.join(outdir, "rtl_tileram.bin"))
     textram = words(os.path.join(outdir, "rtl_textram.bin"))
@@ -49,8 +53,8 @@ def main(outdir, frame, setname="aburner2"):
                 rom = sp.load_rom_dwords(zf, SPRITE_ROMS)
                 fbs = []
             allw = words(sprfile)
-            fbs.append(sp.render(allw[0:2048], rom, 8))
-            fbs.append(sp.render(allw[2048:4096], rom, 8))
+            fbs.append(sp.render(allw[0:2048], rom, 8, width=W, height=H, scale=SC))
+            fbs.append(sp.render(allw[2048:4096], rom, 8, width=W, height=H, scale=SC))
     # road: the renderer reads the bank the CPU is not writing (~road_bank)
     road_bg = road_fg = None
     ctlfile = os.path.join(outdir, "rtl_roadctl.txt")
@@ -66,19 +70,20 @@ def main(outdir, frame, setname="aburner2"):
         ok = opaque = 0
         first = None
         mism = []
-        for y in range(224):
-            for x in range(320):
-                i, eff, op = idx[y][x], False, bool(mark[y][x])
+        for y in range(H):
+            for x in range(W):
+                gy, gx = y // SC, x // SC     # game pixel behind this output pixel
+                i, eff, op = idx[gy][gx], False, bool(mark[gy][gx])
                 if road_bg is not None:
-                    m = mark[y][x]
-                    if road_bg[y][x] is not None: op = True; i = road_bg[y][x] if not m else i
+                    m = mark[gy][gx]
+                    if road_bg[gy][gx] is not None: op = True; i = road_bg[gy][gx] if not m else i
                     # road_priority 0: road fg under every tile layer; 1: over the
                     # bg/fg tilemaps, under the text layer (MAME screen_update)
-                    txt = tx[y][x] is not None
-                    if road_fg[y][x] is not None and (not m if road_priority == 0 else not txt): op = True; i = road_fg[y][x]
+                    txt = tx[gy][gx] is not None
+                    if road_fg[gy][gx] is not None and (not m if road_priority == 0 else not txt): op = True; i = road_fg[gy][gx]
                 if fb is not None and fb[y][x] != 0xFFFF:
                     pix = fb[y][x]
-                    if (1 << ((pix >> 12) & 3)) > mark[y][x]:
+                    if (1 << ((pix >> 12) & 3)) > mark[gy][gx]:
                         op = True
                         if (pix & 0x400f) == 0x400a: eff = True
                         else: i = pix & 0xfff
@@ -91,11 +96,19 @@ def main(outdir, frame, setname="aburner2"):
                     mism.append((x, y, exp, got))
         if best is None or ok > best[0]: best = (ok, opaque, first, bank, mism)
     ok, opaque, first, bank, mism = best
-    print(f"frame {frame}: {ok}/71680 pixels exact ({opaque} opaque, sprite bank {bank}); first mismatch {first}")
+    print(f"frame {frame}: {ok}/{W*H} pixels exact ({opaque} opaque, sprite bank {bank}); first mismatch {first}")
+    if os.environ.get("DIFF"):
+        im = Image.new("RGB", (W, H))
+        bad = set((m[0], m[1]) for m in mism)
+        for y in range(H):
+            for x in range(W):
+                im.putpixel((x, y), (255, 0, 0) if (x, y) in bad else tuple(c // 3 for c in rtl.getpixel((x, y))))
+        im.save(os.environ["DIFF"])
     if os.environ.get("LIST"):
         for m in mism[:60]: print("   ", m)
-    return 0 if ok == 71680 else 1
+    return 0 if ok == W * H else 1
 
 
 if __name__ == "__main__":
-    raise SystemExit(main(sys.argv[1], int(sys.argv[2]), sys.argv[3] if len(sys.argv) > 3 else "aburner2"))
+    args = [a for a in sys.argv[1:] if a != "--hires"]
+    raise SystemExit(main(args[0], int(args[1]), args[2] if len(args) > 2 else "aburner2", hires="--hires" in sys.argv))

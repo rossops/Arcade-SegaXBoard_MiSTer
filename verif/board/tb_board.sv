@@ -16,6 +16,7 @@ module tb_board (
 
 board_desc_t desc;
 integer pa;
+reg hires; initial hires = $test$plusargs("hires");
 reg rear_en; initial begin rear_en = 1'b1; if ($value$plusargs("rear=%d", pa)) rear_en = pa[0]; end
 reg [7:0] dsw_a, dsw_b;
 initial begin dsw_a = 8'hFF; dsw_b = 8'hDD; if ($value$plusargs("dswa=%h", pa)) dsw_a = pa[7:0]; if ($value$plusargs("dswb=%h", pa)) dsw_b = pa[7:0]; end
@@ -77,6 +78,16 @@ always @(posedge clk_sys) begin
         $display("FD a=%06x fc=%0d enc=%04x dec=%04x st=%02x en=%0d key0=%02x gk=%02x%02x%02x", {core.m_addr, 1'b0}, core.m_fc, core.m_rom_data, core.m_fd_data, core.fd1094.st, core.board_desc.fd1094, core.fd1094.key_ram[0], core.fd1094.u_dec.gkey1, core.fd1094.u_dec.gkey2, core.fd1094.u_dec.gkey3);
     end
 end
+// sprite render aborted at vblank (did not finish inside the frame)
+integer render_aborts = 0, render_frames = 0;
+always @(posedge clk_ram) begin
+    if (core.sprites.vbl_start && core.sprites.rendering) begin render_aborts = render_aborts + 1; $display("RENDER ABORT frame %0d sprite %0d state %0d", frame, core.sprites.sprite_idx, core.sprites.rs); end
+    if (core.sprites.rs == 1 && core.sprites.er_line == 0) render_frames = render_frames + 1;
+    rend_d <= core.sprites.rendering;
+    if (core.sprites.rendering && !rend_d) $display("RENDER frame %0d start line %0d", frame, core.vcnt);
+    if (!core.sprites.rendering && rend_d && !core.sprites.vbl_start) $display("RENDER frame %0d done line %0d", frame, core.vcnt);
+end
+reg rend_d = 0;
 reg trace_adc; initial trace_adc = $test$plusargs("trace_adc");
 always @(posedge clk_sys) if (trace_adc && core.m_cs && core.m_sel_adc && core.m_start) begin
     if (core.m_wr) $display("ADC wr f=%0d ch=%0d", frame, core.io0_out_c[4:2]);
@@ -134,7 +145,7 @@ ddram_model ddram (
 );
 
 xb_core core (
-    .clk_sys(clk_sys), .clk_ram(clk_ram), .reset(reset), .pause(1'b0), .rear_en(rear_en), .board_desc(desc),
+    .clk_sys(clk_sys), .clk_ram(clk_ram), .reset(reset), .pause(1'b0), .hires(hires), .rear_en(rear_en), .board_desc(desc),
     .tile_wr(1'b0), .tile_waddr(18'd0), .tile_wdata(8'd0),
     .road_wr(1'b0), .road_waddr(16'd0), .road_wdata(8'd0),
     .key_wr(1'b0), .key_waddr(13'd0), .key_wdata(8'd0),
@@ -151,7 +162,7 @@ xb_core core (
     .p1_buttons(16'd0), .p2_buttons(16'd0), .aim1_x(8'sd0), .aim1_y(8'sd0), .aim2_x(8'sd0), .aim2_y(8'sd0), .stick2_x(8'sd0), .stick2_y(8'sd0), .gun_mode(1'b0), .speed1(4'd0), .speed2(4'd0), .xhair_en(1'b0), .stick_x(8'sd0), .stick_y(8'sd0), .throttle(8'h80), .stick_mode(2'd0),
     .dsw_a(dsw_a), .dsw_b(dsw_b), .service(1'b0), .test(1'b0), .coin1(coin1), .coin2(1'b0),
     .nv_download(1'b0), .nv_upload(1'b0), .nv_wr(1'b0), .nv_rd(1'b0), .nv_addr(15'd0), .nv_din(16'd0), .nv_dout(), .nv_modified(),
-    .r(r), .g(g), .b(b), .ce_pix(ce_pix), .hs(hs), .vs(vs), .hb(hb), .vb(vb),
+    .r(r), .g(g), .b(b), .ce_vid(ce_pix), .hs(hs), .vs(vs), .hb(hb), .vb(vb),
     .audio_l(al), .audio_r(ar),
     .trace_main_addr(tm_addr), .trace_main_start(tm_start), .trace_main_fc(tm_fc),
     .trace_sub_addr(ts_addr), .trace_sub_start(ts_start), .trace_sub_fc(ts_fc)
@@ -289,7 +300,7 @@ always @(posedge clk_sys) begin
     if (!vb && vb_d) begin
         $sformat(fname, "frame_%04d.ppm", frame);
         fppm = $fopen(fname, "wb");
-        $fwrite(fppm, "P6\n320 224\n255\n");
+        if (hires) $fwrite(fppm, "P6\n640 448\n255\n"); else $fwrite(fppm, "P6\n320 224\n255\n");
         ppm_open <= 1;
     end
     if (ce_pix && !hb && !vb && ppm_open) $fwrite(fppm, "%c%c%c", r, g, b);

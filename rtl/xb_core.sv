@@ -16,6 +16,7 @@ module xb_core (
     input             clk_ram,      // 100 MHz
     input             reset,
     input             pause,
+    input             hires,          // enhanced 2x output (640x448)
     input             rear_en,        // mix the SMGP rear-speaker board into L/R
     input board_desc_t board_desc,
 
@@ -78,7 +79,7 @@ module xb_core (
 
     // video
     output      [7:0] r, g, b,
-    output            ce_pix, hs, vs, hb, vb,
+    output            ce_vid, hs, vs, hb, vb,   // output grid (2x when hires)
 
     // audio
     output signed [15:0] audio_l, audio_r,
@@ -127,10 +128,19 @@ end
 
 // ---------------------------------------------------------------- timing
 wire [8:0] hcnt, vcnt;
+wire        ce_pix;                       // 6.25 MHz game pixel enable
+wire        ce_out, oline, ohblank, ohsync;
+wire  [9:0] ohcnt;
+// line-buffer/road read grid: once per game pixel of each output line (twice per
+// game line in the 2x mode), aligned to the output grid
+wire        disp_ce = hires ? (ce_out && !ohcnt[0]) : ce_pix;
+wire  [8:0] disp_h  = hires ? ohcnt[9:1] : hcnt;
+assign ce_vid = ce_out;
 wire       v0, line_start, vbl_irq, latch_pulse;
 xb_video_timing timing (
     .clk(clk_sys), .reset(reset),
     .ce_pix(ce_pix), .hcnt(hcnt), .vcnt(vcnt),
+    .hires(hires), .ce_out(ce_out), .ohcnt(ohcnt), .oline(oline), .ohblank(ohblank), .ohsync(ohsync),
     .hblank(hb_t), .vblank(vb_t), .hsync(hs_t), .vsync(vs_t),
     .v0(v0), .line_start(line_start), .vbl_irq(vbl_irq), .latch_pulse(latch_pulse)
 );
@@ -617,7 +627,7 @@ xb_tilerom tilerom (.clk(clk_sys), .wr(tile_wr), .wr_addr(tile_waddr), .wr_data(
 wire [10:0] fg_pix, bg_pix; wire [6:0] tx_pix;
 xb_tilemap_5197 tilemap (
     .clk(clk_sys), .reset(reset),
-    .line_start(line_start), .vcnt(vcnt), .latch_pulse(latch_pulse), .ce_pix(ce_pix), .hcnt(hcnt),
+    .line_start(line_start), .vcnt(vcnt), .latch_pulse(latch_pulse), .ce_pix(disp_ce), .hcnt(disp_h),
     .tile_addr(tm_tile_addr), .tile_q(tm_tile_q), .text_addr(tm_text_addr), .text_q(tm_text_q),
     .rom_addr(rom_addr_tm), .rom_p0(tp0), .rom_p1(tp1), .rom_p2(tp2),
     .fg_pix(fg_pix), .bg_pix(bg_pix), .tx_pix(tx_pix)
@@ -631,7 +641,7 @@ reg [8:0] r_vcnt_a, r_vcnt_b;
 reg       r_vbl_d, r_line_d, r_draw_d;
 always @(posedge clk_ram) begin
     r_vbl_s  <= {r_vbl_s[0],  vbl_irq};
-    r_line_s <= {r_line_s[0], line_start_lvl};
+    r_line_s <= {r_line_s[0], fetch_lvl};
     r_draw_s <= {r_draw_s[0], spr_draw_tgl};
     r_vcnt_a <= vcnt; r_vcnt_b <= r_vcnt_a;
     r_vbl_d <= r_vbl_s[1]; r_line_d <= r_line_s[1]; r_draw_d <= r_draw_s[1];
@@ -642,41 +652,55 @@ wire r_draw_req   = r_draw_s[1] ^ r_draw_d;
 // line_start as a level that toggles half a line (clean edge for the CDC)
 reg line_start_lvl;
 always @(posedge clk_sys) if (line_start) line_start_lvl <= 1'b1; else if (ce_pix && hcnt == 9'd200) line_start_lvl <= 1'b0;
+// 2x: one rising edge per output line (first half of each 800-pixel line)
+wire fetch_lvl = hires ? (ohcnt < 10'd400) : line_start_lvl;
 
 wire        fbw_start, fbw_valid, fbw_end, fbw_busy;
 wire        fbe_req, fbe_ack, fbr_req, fbr_ack;
 wire  [1:0] fbw_buf, fbe_buf, fbr_buf;
-wire  [8:0] fbw_x;
-wire  [7:0] fbw_y, fbe_y, fbr_y;
+wire  [9:0] fbw_x;
+wire  [3:0] fbw_lanes;
+wire  [8:0] fbw_y, fbe_y, fbr_y;
 wire [15:0] fbw_pix, fbr_pix;
 wire        spr_disp_buf;
 xb_sprite_5211 sprites (
     .clk(clk_ram), .reset(reset), .num_banks(board_desc.sprite_banks),
     .start_req(r_draw_req), .vbl_start(r_vbl_start), .vcnt(r_vcnt_b), .line_start(r_line_start),
+    .hires(hires), .oline(r_oline),
     .sram_addr(spr_rd_addr), .sram_q(spr_rd_q),
     .rom_req(p2_req), .rom_addr(p2_addr), .rom_dout(p2_dout), .rom_ack(p2_ack),
-    .fb_wr_start(fbw_start), .fb_wr_buf(fbw_buf), .fb_wr_x(fbw_x), .fb_wr_y(fbw_y),
+    .fb_wr_start(fbw_start), .fb_wr_buf(fbw_buf), .fb_wr_x(fbw_x), .fb_wr_lanes(fbw_lanes), .fb_wr_y(fbw_y),
     .fb_wr_valid(fbw_valid), .fb_wr_pix(fbw_pix), .fb_wr_end(fbw_end), .fb_wr_busy(fbw_busy),
     .fb_er_req(fbe_req), .fb_er_buf(fbe_buf), .fb_er_y(fbe_y), .fb_er_ack(fbe_ack),
     .fb_rd_req(fbr_req), .fb_rd_buf(fbr_buf), .fb_rd_y(fbr_y), .fb_rd_ack(fbr_ack),
     .disp_buf(spr_disp_buf)
 );
 // scanout: framebuffer x = screen x + 190; read one pixel ahead of the mixer
-wire [8:0] fbr_x = hcnt + 9'd190;
+// 2x: framebuffer x = output x + 380, and each output line is a framebuffer
+// line (fetched per output line; the renderer sequences 2n+1, 2(n+1))
+// (1x keeps the 9-bit wrap: x reaches 0 in hblank, which publishes the fetched line)
+wire [8:0] fbr_x1 = disp_h + 9'd190;
+wire [9:0] fbr_x  = hires ? (ohcnt + 10'd380) : {1'b0, fbr_x1};
+// oline crosses with the same two-stage delay as fetch_lvl so the renderer
+// sees the new line's value on the clock it sees line_start (a third stage
+// made it fetch 2n+1/2(n+1) for the wrong halves: every other row one line off)
+reg [1:0] r_oline_s;
+always @(posedge clk_ram) r_oline_s <= {r_oline_s[0], oline};
+wire r_oline = r_oline_s[1];
 xb_fb_if #(.FB_BASE(32'h3000_0000)) fb (
-    .clk(clk_ram), .rst(reset),
+    .clk(clk_ram), .rst(reset), .hires(hires),
     .DDRAM_BUSY(DDRAM_BUSY), .DDRAM_BURSTCNT(DDRAM_BURSTCNT), .DDRAM_ADDR(DDRAM_ADDR),
     .DDRAM_DOUT(DDRAM_DOUT), .DDRAM_DOUT_READY(DDRAM_DOUT_READY), .DDRAM_RD(DDRAM_RD),
     .DDRAM_DIN(DDRAM_DIN), .DDRAM_BE(DDRAM_BE), .DDRAM_WE(DDRAM_WE),
-    .wr_start(fbw_start), .wr_buf(fbw_buf), .wr_x(fbw_x), .wr_y(fbw_y),
+    .wr_start(fbw_start), .wr_buf(fbw_buf), .wr_x(fbw_x), .wr_lanes(fbw_lanes), .wr_y(fbw_y),
     .wr_valid(fbw_valid), .wr_pix(fbw_pix), .wr_end(fbw_end), .wr_shadow(1'b0), .wr_busy(fbw_busy),
     .er_req(fbe_req), .er_buf(fbe_buf), .er_y(fbe_y), .er_ack(fbe_ack),
     .rd_req(fbr_req), .rd_buf(fbr_buf), .rd_y(fbr_y), .rd_ack(fbr_ack),
-    .rd_x(fbr_x), .rd_pix(fbr_pix)
+    .rd_x(fbr_x), .rd_pix(fbr_pix), .rd_pub_ok(1'b1)
 );
 // sample the sprite pixel with the tile pixels (one clk after ce_pix)
 reg [15:0] spr_pix_r;
-always @(posedge clk_sys) if (ce_pix) spr_pix_r <= fbr_pix;
+always @(posedge clk_sys) if (ce_out) spr_pix_r <= fbr_pix;
 wire spr_v = (spr_pix_r != 16'hFFFF);
 
 // ---------------------------------------------------------------- road
@@ -685,7 +709,7 @@ xb_roadrom roadrom (.clk(clk_sys), .wr(road_wr), .wr_addr(road_waddr), .wr_data(
     .rd_addr0(road_rom_a0), .rd_addr1(road_rom_a1), .rd_q0(road_rom_q0), .rd_q1(road_rom_q1));
 wire        road_bg_v, road_fg_v; wire [12:0] road_bg_idx, road_fg_idx;
 xb_road_5275 road (
-    .clk(clk_sys), .reset(reset), .line_start(line_start), .vcnt(vcnt), .ce_pix(ce_pix), .hcnt(hcnt),
+    .clk(clk_sys), .reset(reset), .line_start(line_start), .vcnt(vcnt), .ce_pix(disp_ce), .hcnt(disp_h),
     .control(road_control),
     .ram_addr(road_rd_addr), .ram_q(road_rd_q),
     .rom_addr0(road_rom_a0), .rom_addr1(road_rom_a1), .rom_q0(road_rom_q0), .rom_q1(road_rom_q1),
@@ -696,7 +720,7 @@ xb_road_5275 road (
 // The blanking/sync signals are delayed one pixel so the framework samples
 // the RGB of the same pixel.
 reg ce_pix_d1, ce_pix_d2;
-always @(posedge clk_sys) begin ce_pix_d1 <= ce_pix; ce_pix_d2 <= ce_pix_d1; end
+always @(posedge clk_sys) begin ce_pix_d1 <= ce_out; ce_pix_d2 <= ce_pix_d1; end
 xb_mixer mixer (
     .clk(clk_sys), .ce_pix(ce_pix_d1), .road_priority(board_desc.road_priority),
     .fg_pix(fg_pix), .bg_pix(bg_pix), .tx_pix(tx_pix),
@@ -706,7 +730,19 @@ xb_mixer mixer (
 );
 reg hb_d, vb_d2, hs_d, vs_d;
 wire hb_t, vb_t, hs_t, vs_t;
-always @(posedge clk_sys) if (ce_pix) begin hb_d <= hb_t; vb_d2 <= vb_t; hs_d <= hs_t; vs_d <= vs_t; end
+// In the 2x mode a 25 MHz pixel is two clocks and the line-buffer/mixer/
+// palette pipeline is longer than that, so blanking and sync are delayed to
+// the pixel they belong to (HIRES_DLY output pixels); at 1x the 8-clock pixel
+// hides the latency.
+localparam HIRES_DLY = 2;
+reg [HIRES_DLY:0] hb_sr, hs_sr;
+always @(posedge clk_sys) if (ce_out) begin
+    hb_sr <= {hb_sr[HIRES_DLY-1:0], ohblank};
+    hs_sr <= {hs_sr[HIRES_DLY-1:0], ohsync};
+    hb_d  <= hires ? hb_sr[HIRES_DLY-1] : hb_t;
+    hs_d  <= hires ? hs_sr[HIRES_DLY-1] : hs_t;
+    vb_d2 <= vb_t; vs_d <= vs_t;
+end
 assign hb = hb_d; assign vb = vb_d2; assign hs = hs_d; assign vs = vs_d;
 // crosshair overlay for the gamepad gun mode (P1 white, P2 yellow): the
 // 0..255 positions map to the 320x224 screen as MAME's crosshairs do
