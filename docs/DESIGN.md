@@ -413,6 +413,15 @@ Changes made so the repository matches Template_MiSTer and the wiki's
   (`sys/pll_q17.qip` includes `rtl/pll.qip`); `files.qip` no longer lists
   it.
 - `.gitignore`, `clean.bat` and `Arcade-SegaXBoard.srf` from the template.
+- `.qsf` from the template as well. The inherited one had the System 32
+  core's fitter choices (physical synthesis off, multicorner analysis on,
+  aggressive routability, power-up don't-care off); the template turns
+  physical synthesis on and multicorner off. Only five lines differ from
+  the template now: the project comment, "Lite Edition", the four
+  standard trim macros switched on, the `PRE_FLOW_SCRIPT_FILE` for the git
+  SHA, and `OPTIMIZE_HOLD_TIMING "ALL PATHS"` (builds #15 and #17 had
+  hold violations on MLAB paths with the default). Build #25 is the
+  first with these fitter settings.
 - MRAs: one primary per game in `releases/`, the other versions under
   `releases/_alternatives/_<game>/` (`alt` field in `romsets.py`,
   `gen_mra.py`, `make_db.py`).
