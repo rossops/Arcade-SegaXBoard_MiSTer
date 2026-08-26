@@ -76,7 +76,8 @@ board's own mapping; Soft and Softer flatten the centre for thumbsticks
 while keeping full lock), Analog range (100/75/50%), Gun control for Line
 of Fire (lightgun or gamepad cursor, with per-player cursor speed and an
 optional crosshair), rear speakers for Super Monaco GP, and pause while
-the OSD is open.
+the OSD is open. Options that do not apply to the loaded game are hidden
+(the MRA's board descriptor drives the framework's menu mask).
 
 ## Layout
 

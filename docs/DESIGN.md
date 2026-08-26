@@ -455,6 +455,11 @@ twitchy around centre.
   paths and the D-pad path take the raw axes. Latency is four `clk_sys`
   clocks against a 1.25 MHz ADC sample.
 - Status bits O[24:23] and O[26:25] (O[22] is the parked M14 branch's).
+- Per-game menu: `hps_io`'s `status_menumask` comes from the board
+  descriptor, and the `CONF_STR` lines carry `H<n>` prefixes: bit 0 hides
+  the rear-speaker option without a second sound board, bit 1 the gun
+  options without gun inputs, bit 2 the stick/analog options on the gun
+  game. The mask is read when the OSD opens, after the MRA has loaded.
 - Verification: `verif/unit/chips/test_ana_shape.py` checks every input
   value against a Python model for all curves and ranges (2304 cases);
   the board frame check confirms Linear/100% leaves the 1x path exact.

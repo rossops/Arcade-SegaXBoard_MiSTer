@@ -127,15 +127,15 @@ localparam CONF_STR = {
     "O[2:1],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
     "O[5:3],Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
     "O[7],Service Mode,Off,On;",
-    "O[9:8],Stick,Analog,D-Pad,Analog+D-Pad;",
-    "O[24:23],Analog response,Linear,Soft,Softer;",
-    "O[26:25],Analog range,100%,75%,50%;",
+    "H2O[9:8],Stick,Analog,D-Pad,Analog+D-Pad;",
+    "H2O[24:23],Analog response,Linear,Soft,Softer;",
+    "H2O[26:25],Analog range,100%,75%,50%;",
     "O[10],Pause when OSD open,Off,On;",
-    "O[11],Rear speakers (SMGP),On,Off;",
-    "O[12],Gun control (Line of Fire),Lightgun,Gamepad;",
-    "O[16:13],P1 cursor speed,50,60,70,80,90,100,10,20,30,40;",
-    "O[20:17],P2 cursor speed,50,60,70,80,90,100,10,20,30,40;",
-    "O[21],Crosshair (gamepad),On,Off;",
+    "H0O[11],Rear speakers,On,Off;",
+    "H1O[12],Gun control,Lightgun,Gamepad;",
+    "H1O[16:13],P1 cursor speed,50,60,70,80,90,100,10,20,30,40;",
+    "H1O[20:17],P2 cursor speed,50,60,70,80,90,100,10,20,30,40;",
+    "H1O[21],Crosshair (gamepad),On,Off;",
     "-;",
     "DIP;",
     "-;",
@@ -161,6 +161,9 @@ pll pll (
 wire        rom_loaded;
 wire  [1:0] buttons;
 wire [63:0] status;
+// per-game menu: H<n> lines are hidden while bit n is set (from the MRA's
+// board descriptor, so the OSD only shows what the loaded game has)
+wire [15:0] status_menumask;
 wire        ioctl_download, ioctl_upload, ioctl_wr, ioctl_rd, ioctl_wait;
 wire [15:0] ioctl_index;
 wire [26:0] ioctl_addr;
@@ -195,7 +198,7 @@ hps_io #(.CONF_STR(CONF_STR), .WIDE(1)) hps_io (
 
     .buttons(buttons),
     .status(status),
-    .status_menumask(16'd0),
+    .status_menumask(status_menumask),
     .gamma_bus(gamma_bus),
 
     .ioctl_download(ioctl_download),
@@ -240,6 +243,10 @@ wire [24:1] sw_addr;
 wire [15:0] sw_din;
 wire  [1:0] sw_be;
 board_desc_t board_desc;
+assign status_menumask = {13'd0,
+    board_desc.ana_mode == 3'd5,   // bit 2: gun game, no stick/analog options
+    ~board_desc.gun_inputs,        // bit 1: no gun options
+    ~board_desc.has_snd2};         // bit 0: no rear speakers
 wire        tile_wr; wire [17:0] tile_waddr; wire [7:0] tile_wdata;
 wire        road_wr; wire [15:0] road_waddr; wire [7:0] road_wdata;
 wire        key_wr;  wire [12:0] key_waddr;  wire [7:0] key_wdata;
