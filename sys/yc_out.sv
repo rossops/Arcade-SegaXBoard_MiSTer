@@ -83,32 +83,25 @@ logic [7:0]  chroma_LUT_BURST = 8'd0; // Chroma colorburst LUT reference
 logic [7:0]  chroma_LUT = 8'd0;
 
 /*
-The following LUT table was calculated by Sin(2*pi*t/2^8) where t: 0 - 255
-*/
-
-/*************************************
+	The following LUT table was calculated by (sin((2 * pi * t) / 255) * 255) + 0.5f where t: 0 - 255
 	8 bit sine look up table, first quarter only
-**************************************/
-wire signed [10:0] chroma_SIN_LUT[64] = '{
-	11'h000, 11'h006, 11'h00C, 11'h012, 11'h018, 11'h01F, 11'h025, 11'h02B, 11'h031, 11'h037, 11'h03D, 11'h044, 11'h04A, 11'h04F, 
-	11'h055, 11'h05B, 11'h061, 11'h067, 11'h06D, 11'h072, 11'h078, 11'h07D, 11'h083, 11'h088, 11'h08D, 11'h092, 11'h097, 11'h09C, 
-	11'h0A1, 11'h0A6, 11'h0AB, 11'h0AF, 11'h0B4, 11'h0B8, 11'h0BC, 11'h0C1, 11'h0C5, 11'h0C9, 11'h0CC, 11'h0D0, 11'h0D4, 11'h0D7, 
-	11'h0DA, 11'h0DD, 11'h0E0, 11'h0E3, 11'h0E6, 11'h0E9, 11'h0EB, 11'h0ED, 11'h0F0, 11'h0F2, 11'h0F4, 11'h0F5, 11'h0F7, 11'h0F8, 
-	11'h0FA, 11'h0FB, 11'h0FC, 11'h0FD, 11'h0FD, 11'h0FE, 11'h0FE, 11'h0FE
+*/
+localparam logic [7:0] chroma_SIN_LUT[64] = '{
+	0,   6,   13,  19,  25,  31,  38,  44,  50,  56,  62,  68,  74,  80,  86,  92,
+	98,  104, 109, 115, 121, 126, 132, 137, 142, 147, 152, 157, 162, 167, 172, 176,
+	181, 185, 190, 194, 198, 202, 205, 209, 213, 216, 219, 222, 225, 228, 231, 234,
+	236, 238, 241, 243, 244, 246, 248, 249, 250, 251, 252, 253, 254, 254, 255, 255
 };
 
 function automatic signed [10:0] chroma_sin;
 	input [7:0] idx;
-	logic [5:0] lut_addr;
-	logic peak;
 	logic signed [10:0] lut_data;
 begin
-	lut_addr   = idx[6] ? (6'd0 - idx[5:0]) : idx[5:0];
-	peak       = idx[6] && (idx[5:0] == 6'd0);
-	lut_data   = peak ? 11'sh0ff : chroma_SIN_LUT[lut_addr];
+	lut_data   = {3'b000, chroma_SIN_LUT[idx[6] ? ~idx[5:0] : idx[5:0]]};
 	chroma_sin = idx[7] ? -lut_data : lut_data;
 end
 endfunction
+
 logic [39:0] phase_accum = 40'd0;
 logic PAL_FLIP = 1'd0;
 logic PAL_line_count = 1'd0;
@@ -127,23 +120,21 @@ wire [7:0] chroma = phase[4].c[7:0];
 // so it matches the C/Y sample captured by Y and C below.
 wire data_de = de_dly6;
 
-// Y/C luma keeps full range. North American NTSC applies 7.5 IRE setup
-// during active video only, so blanking is not lifted with the black level.
+// Keep the separate Y/C luma level identical for PAL and NTSC.
 wire [7:0] luma_raw = luma_d4;
 
-wire [15:0] luma_setup_scaled =
-	{luma_raw, 8'd0} -
-	{4'd0, luma_raw, 4'd0} -
-	{7'd0, luma_raw, 1'd0} -
-	{8'd0, luma_raw};
+// Disabled 7.5 IRE setup scaling, retained here for reference.
+// wire [15:0] luma_setup_scaled =
+// 	{luma_raw, 8'd0} -
+// 	{4'd0, luma_raw, 4'd0} -
+// 	{7'd0, luma_raw, 1'd0} -
+// 	{8'd0, luma_raw};
+// wire [7:0] yc_luma_setup = luma_setup_scaled[15:8] + 8'd19;
 
-wire [7:0] yc_luma_setup = luma_setup_scaled[15:8] + 8'd19;
-
-wire [7:0] yc_luma =
-	data_de ? (PAL_EN ? luma_raw : yc_luma_setup) : 8'd0;
+wire [7:0] yc_luma = data_de ? luma_raw : 8'd0;
 
 // CVBS intentionally keeps the original mixer behavior from the legacy module.
-// The Y/C path below still applies the newer setup and chroma gating changes.
+// The Y/C path below still applies the newer chroma gating changes.
 wire [7:0] cvbs_out = {1'b0, luma_raw[7:1]} + {1'b0, chroma[7:1]};
 
 /**************************************

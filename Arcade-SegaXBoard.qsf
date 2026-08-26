@@ -52,16 +52,17 @@ set_global_assignment -name NUM_PARALLEL_PROCESSORS ALL
 
 set_global_assignment -name VERILOG_MACRO "SYNTHESIS=1"
 
-# Framework trims (same set as the s32 core): no downscale, no adaptive
-# scanlines, no shadow mask, no Y/C, no ALSA.
+# Framework trims (standard macros): nearest-neighbour downscale, no adaptive
+# scanlines, no Y/C, no ALSA.
 set_global_assignment -name VERILOG_MACRO "MISTER_DOWNSCALE_NN=1"
-set_global_assignment -name VERILOG_MACRO "MISTER_DISABLE_DOWNSCALE=1"
 set_global_assignment -name VERILOG_MACRO "MISTER_DISABLE_ADAPTIVE=1"
-set_global_assignment -name VERILOG_MACRO "MISTER_DISABLE_SHADOWMASK=1"
 set_global_assignment -name VERILOG_MACRO "MISTER_DISABLE_YC=1"
 set_global_assignment -name VERILOG_MACRO "MISTER_DISABLE_ALSA=1"
 
 source sys/sys.tcl
+# build_id.v with the git SHA as well as the date (the framework's script plus
+# gitShortSha; sys/ itself stays as shipped in Template_MiSTer)
+set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:tools/build_id.tcl"
 source sys/sys_analog.tcl
 source files.qip
 set_global_assignment -name OPTIMIZE_HOLD_TIMING "ALL PATHS"

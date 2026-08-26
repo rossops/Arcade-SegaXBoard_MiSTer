@@ -2,41 +2,10 @@
 # Build TimeStamp Verilog Module
 # Jeff Wiencrot - 8/1/2011
 # Sorgelig - 02/11/2019
-# Git short SHA of HEAD, "*" appended when the tree has local changes.
-# Uses git when available, else reads .git/HEAD and the ref file directly.
-proc gitShortSha {} {
-	set sha ""
-	if {![catch {exec git rev-parse --short=7 HEAD} out]} {
-		set sha [string trim $out]
-		if {![catch {exec git status --porcelain --untracked-files=no} st] && [string trim $st] ne ""} {
-			append sha "*"
-		}
-		return $sha
-	}
-	if {[file exists ".git/HEAD"]} {
-		set f [open ".git/HEAD" r]; set head [string trim [read $f]]; close $f
-		if {[regexp {^ref: (.*)$} $head -> ref]} {
-			if {[file exists ".git/$ref"]} {
-				set f [open ".git/$ref" r]; set sha [string range [string trim [read $f]] 0 6]; close $f
-			} elseif {[file exists ".git/packed-refs"]} {
-				set f [open ".git/packed-refs" r]
-				foreach line [split [read $f] "\n"] {
-					if {[regexp "^(\[0-9a-f\]+) $ref\$" $line -> full]} { set sha [string range $full 0 6] }
-				}
-				close $f
-			}
-		} else {
-			set sha [string range $head 0 6]
-		}
-	}
-	if {$sha eq ""} { set sha "nogit" }
-	return $sha
-}
-
 proc generateBuildID_Verilog {} {
 
 	# Get the timestamp (see: http://www.altera.com/support/examples/tcl/tcl-date-time-stamp.html)
-	set buildDate "`define BUILD_DATE \"[clock format [ clock seconds ] -format %y%m%d]\"\n`define BUILD_GIT \"[gitShortSha]\""
+	set buildDate "`define BUILD_DATE \"[clock format [ clock seconds ] -format %y%m%d]\""
 
 	# Create a Verilog file for output
 	set outputFileName "build_id.v"

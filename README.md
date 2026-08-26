@@ -87,7 +87,7 @@ compiles `Arcade-SegaXBoard` and copies the result to
 file. If Quartus lives somewhere other than `C:\intelFPGA_lite\17.0\quartus`,
 set `QUARTUS_ROOTDIR` first.
 
-The OSD's version line is `v<yymmdd>-<git sha>`, generated into `build_id.v` at compile time by `sys/build_id.tcl` (a `*` after the SHA means the tree had uncommitted changes; `git` on the build machine is optional, the script falls back to reading `.git/HEAD`).
+The OSD's version line is `v<yymmdd>-<git sha>`, generated into `build_id.v` at compile time by `tools/build_id.tcl` (the framework's script plus the SHA, hooked from the `.qsf`) (a `*` after the SHA means the tree had uncommitted changes; `git` on the build machine is optional, the script falls back to reading `.git/HEAD`).
 
 ## Simulation and tests (macOS/Linux)
 
@@ -116,6 +116,18 @@ python3 tools/pack_roms.py aburner2 --zip aburner2.zip --out stream.bin --hexdir
 The ROM table in `tools/romsets.py` is copied from MAME's `segaxbd.cpp`. The
 MRA and the packer are checked against each other so the SDRAM layout the RTL
 expects is the one the MiSTer host actually sends.
+
+What the tests show: the custom chips are checked against Python ports of
+MAME's C++ (the 315-5248/5249/5250 over 10^5 random operations, the
+FD1094 over 30,000 words with a real key, the sprite and road generators
+on lists and tables captured from MAME), the board simulation's 68000
+program-counter traces track MAME's for the first seconds of every game,
+and the frames it renders match MAME's screenshots pixel for pixel
+(After Burner II, Thunder Blade, Super Monaco GP, Racing Hero, A.B. Cop
+and Line of Fire at frames 60/150/300; the other sets on their boot
+frame). Every set has been run on a DE10-Nano. `docs/DESIGN.md` records
+the results per milestone, and where the RTL deliberately differs from
+MAME.
 
 ## Installing
 

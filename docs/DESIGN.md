@@ -392,6 +392,33 @@ ceiling is still close. Check the "M10K blocks" line of `fit.rpt` after
 every build. The next lever, if a milestone needs more, is the plan's
 original SDRAM tile cache: the tile ROM is 192 blocks.
 
+## MiSTer-devel standards (M16)
+
+Changes made so the repository matches Template_MiSTer and the wiki's
+"Contributing a Core" page, ahead of offering the core to MiSTer-devel:
+
+- `sys/` is the template's, file for file. It had been the System 32
+  core's snapshot with local edits (a 512-pixel scaler limit, extra
+  `MISTER_DISABLE_DOWNSCALE`/`MISTER_DISABLE_SHADOWMASK` macros, an OSD
+  register stage, an older `hps_io`/`ascal`/`sys_top.sdc`). Those macros
+  are gone from the `.qsf`; the standard `MISTER_DOWNSCALE_NN`,
+  `MISTER_DISABLE_ADAPTIVE`, `MISTER_DISABLE_YC`, `MISTER_DISABLE_ALSA`
+  stay. The downscaler and shadow mask come back with the stock
+  framework, which costs logic and a few M10K blocks; the block count
+  after this change is the number to watch (545/553 before it).
+- The git SHA in the OSD version line: `sys/build_id.tcl` cannot be
+  edited, so the extended script lives in `tools/build_id.tcl` and the
+  `.qsf` points `PRE_FLOW_SCRIPT_FILE` at it after `source sys/sys.tcl`.
+- PLL where the framework expects it: `rtl/pll.v` and `rtl/pll.qip`
+  (`sys/pll_q17.qip` includes `rtl/pll.qip`); `files.qip` no longer lists
+  it.
+- `.gitignore`, `clean.bat` and `Arcade-SegaXBoard.srf` from the template.
+- MRAs: one primary per game in `releases/`, the other versions under
+  `releases/_alternatives/_<game>/` (`alt` field in `romsets.py`,
+  `gen_mra.py`, `make_db.py`).
+- Still to do: rename the repository `Arcade-SegaXBoard_MiSTer` (README
+  and `make_db.py --repo` follow), then the adoption email.
+
 ## Later: analog sensitivity (parked)
 
 The stick and wheel axes map linearly from the MiSTer axis (-128..127)

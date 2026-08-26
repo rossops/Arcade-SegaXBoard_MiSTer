@@ -1,6 +1,7 @@
 set_global_assignment -entity "pll_hdmi" -library "pll_hdmi" -name IP_TOOL_NAME "altera_pll"
 set_global_assignment -entity "pll_hdmi" -library "pll_hdmi" -name IP_TOOL_VERSION "17.0"
 set_global_assignment -entity "pll_hdmi" -library "pll_hdmi" -name IP_TOOL_ENV "mwpim"
+set_global_assignment -library "pll_hdmi" -name MISC_FILE [file join $::quartus(qip_path) "pll_hdmi.cmp"]
 set_global_assignment -entity "pll_hdmi" -library "pll_hdmi" -name IP_TARGETED_DEVICE_FAMILY "Cyclone V"
 set_global_assignment -entity "pll_hdmi" -library "pll_hdmi" -name IP_GENERATED_DEVICE_FAMILY "{Cyclone V}"
 set_global_assignment -entity "pll_hdmi" -library "pll_hdmi" -name IP_QSYS_MODE "UNKNOWN"

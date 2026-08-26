@@ -714,10 +714,6 @@ wire         bob_deint;
 	ascal 
 	#(
 		.RAMBASE(32'h20000000),
-		// System 32 is at most 416 pixels wide.  Keep the scaler's maximum
-		// input-line width bounded even if downscaling is enabled in a later
-		// build; the default 2048-pixel width wastes RAM on this core.
-		.IHRES(512),
 	`ifdef MISTER_SMALL_VBUF
 		.RAMSIZE(32'h00200000),
 	`else
@@ -732,9 +728,6 @@ wire         bob_deint;
 	`endif
 	`ifdef MISTER_DISABLE_ADAPTIVE
 		.ADAPTIVE("false"),
-	`endif
-	`ifdef MISTER_DISABLE_DOWNSCALE
-		.DOWNSCALE("false"),
 	`endif
 	`ifdef MISTER_DOWNSCALE_NN
 		.DOWNSCALE_NN("true"),
@@ -1159,18 +1152,10 @@ cyclonev_hps_interface_peripheral_i2c hdmi_i2c
 
 	wire [23:0] hdmi_data_mask;
 	wire        hdmi_de_mask, hdmi_vs_mask, hdmi_hs_mask;
-	reg  [15:0] shadowmask_data;
-	reg         shadowmask_wr = 0;
 
-	`ifdef MISTER_DISABLE_SHADOWMASK
-	// Dedicated area-constrained profiles can omit the optional CRT mask
-	// post-process. Keep blanking and sync semantics identical at the OSD input;
-	// only the mask pipeline latency/effect is removed.
-	assign hdmi_data_mask = dis_output ? 24'd0 : hdmi_data;
-	assign hdmi_hs_mask   = hdmi_hs;
-	assign hdmi_vs_mask   = hdmi_vs;
-	assign hdmi_de_mask   = hdmi_de;
-	`else
+	reg [15:0] shadowmask_data;
+	reg        shadowmask_wr = 0;
+
 	shadowmask HDMI_shadowmask
 	(
 		.clk(clk_hdmi),
@@ -1191,22 +1176,6 @@ cyclonev_hps_interface_peripheral_i2c hdmi_i2c
 		.vs_out(hdmi_vs_mask),
 		.de_out(hdmi_de_mask)
 	);
-	`endif
-
-	// The scaler's DE comes directly from an Ascal output M10K.  Register the
-	// complete video bundle once before HDMI OSD so data and sync stay aligned,
-	// while the OSD's counter/control paths get a full clk_hdmi cycle instead
-	// of routing across the die from the RAM output.  This is a latency-only
-	// boundary: every OSD input is delayed together, so output geometry and
-	// HDMI signal relationships are unchanged.
-	reg [23:0] hdmi_data_osd_in;
-	reg        hdmi_de_osd_in, hdmi_vs_osd_in, hdmi_hs_osd_in;
-	always @(posedge clk_hdmi) begin
-		hdmi_data_osd_in <= hdmi_data_mask;
-		hdmi_de_osd_in   <= hdmi_de_mask;
-		hdmi_vs_osd_in   <= hdmi_vs_mask;
-		hdmi_hs_osd_in   <= hdmi_hs_mask;
-	end
 
 	wire [23:0] hdmi_data_osd;
 	wire        hdmi_de_osd, hdmi_vs_osd, hdmi_hs_osd;
@@ -1220,10 +1189,10 @@ cyclonev_hps_interface_peripheral_i2c hdmi_i2c
 		.io_din(io_din),
 
 		.clk_video(clk_hdmi),
-		.din(hdmi_data_osd_in),
-		.hs_in(hdmi_hs_osd_in),
-		.vs_in(hdmi_vs_osd_in),
-		.de_in(hdmi_de_osd_in),
+		.din(hdmi_data_mask),
+		.hs_in(hdmi_hs_mask),
+		.vs_in(hdmi_vs_mask),
+		.de_in(hdmi_de_mask),
 
 		.dout(hdmi_data_osd),
 		.hs_out(hdmi_hs_osd),
@@ -1500,45 +1469,17 @@ reg  [39:0] PhaseInc;
 	wire VGA_DISABLE;
 	wire [23:0] vgas_o;
 	wire vgas_hs, vgas_vs, vgas_cs, vgas_de;
-	wire [23:0] hdmi_data_vgas_in;
-	wire hdmi_hs_vgas_in, hdmi_vs_vgas_in, hdmi_cs_vgas_in, hdmi_de_vgas_in;
-	`ifdef S32_UNIVERSAL
-		// The universal production profile can place the HDMI OSD and VGA
-		// scaler shift RAM at opposite ends of the device. Preserve one
-		// matched pipeline stage so the profile stays timing-consistent.
-		(* preserve *) reg [23:0] hdmi_data_vgas_pipe;
-		(* preserve *) reg hdmi_hs_vgas_pipe, hdmi_vs_vgas_pipe;
-		(* preserve *) reg hdmi_cs_vgas_pipe, hdmi_de_vgas_pipe;
-		always @(posedge clk_hdmi) begin
-			hdmi_data_vgas_pipe <= hdmi_data_osd;
-			hdmi_hs_vgas_pipe   <= hdmi_hs_osd;
-			hdmi_vs_vgas_pipe   <= hdmi_vs_osd;
-			hdmi_cs_vgas_pipe   <= hdmi_cs_osd;
-			hdmi_de_vgas_pipe   <= hdmi_de_osd;
-		end
-		assign hdmi_data_vgas_in = hdmi_data_vgas_pipe;
-		assign hdmi_hs_vgas_in   = hdmi_hs_vgas_pipe;
-		assign hdmi_vs_vgas_in   = hdmi_vs_vgas_pipe;
-		assign hdmi_cs_vgas_in   = hdmi_cs_vgas_pipe;
-		assign hdmi_de_vgas_in   = hdmi_de_vgas_pipe;
-	`else
-		assign hdmi_data_vgas_in = hdmi_data_osd;
-		assign hdmi_hs_vgas_in   = hdmi_hs_osd;
-		assign hdmi_vs_vgas_in   = hdmi_vs_osd;
-		assign hdmi_cs_vgas_in   = hdmi_cs_osd;
-		assign hdmi_de_vgas_in   = hdmi_de_osd;
-	`endif
 	`ifndef MISTER_DEBUG_NOHDMI
 		vga_out vga_scaler_out
 		(
 			.clk(clk_hdmi),
 			.ypbpr_en(ypbpr_en),
-			.hsync(hdmi_hs_vgas_in),
-			.vsync(hdmi_vs_vgas_in),
-			.csync(hdmi_cs_vgas_in),
-			.de(hdmi_de_vgas_in),
+			.hsync(hdmi_hs_osd),
+			.vsync(hdmi_vs_osd),
+			.csync(hdmi_cs_osd),
+			.de(hdmi_de_osd),
 			.dout(vgas_o),
-			.din({24{hdmi_de_vgas_in}} & hdmi_data_vgas_in),
+			.din({24{hdmi_de_osd}} & hdmi_data_osd),
 			.hsync_o(vgas_hs),
 			.vsync_o(vgas_vs),
 			.csync_o(vgas_cs),

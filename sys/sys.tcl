@@ -132,6 +132,7 @@ set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to HDMI_TX_D[*]
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to HDMI_TX_DE
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to HDMI_TX_HS
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to HDMI_TX_VS
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to HDMI_TX_CLK
 set_location_assignment PIN_U10 -to HDMI_I2C_SCL
 set_location_assignment PIN_AA4 -to HDMI_I2C_SDA
 set_location_assignment PIN_T13 -to HDMI_I2S

@@ -511,7 +511,6 @@ ARCHITECTURE rtl OF ascal IS
 	SIGNAL o_lex0,o_lex1,o_lex2,o_lex3       : std_logic;
 	SIGNAL o_wr : unsigned(3 DOWNTO 0);
 	SIGNAL o_hcpt,o_vcpt,o_vcpt_pre,o_vcpt_pre2,o_vcpt_pre3,o_vcpt2 : uint12;
-	SIGNAL o_hlast,o_vlast : std_logic := '0';
 	SIGNAL o_ihsize,o_ihsizem,o_ivsize : uint12;
 	SIGNAL o_ihsize_temp, o_ihsize_temp2 : natural RANGE 0 TO 32767;
 
@@ -1878,6 +1877,12 @@ BEGIN
 			o_readlev<=0;
 			o_copylev<=0;
 			o_hsp<='0';
+			o_readack_sync<='0';
+			o_readack_sync2<='0';
+			o_readack<='0';
+			o_readdataack_sync<='0';
+			o_readdataack_sync2<='0';
+			o_readdataack<='0';
 
 		ELSIF rising_edge(o_clk) THEN
 			------------------------------------------------------
@@ -2366,6 +2371,16 @@ BEGIN
 				o_off  (2)<=off_v;
 			END IF;
 
+			-- Sometimes o_clk is paused during PLL reconfig and causes o_state to get stuck in sREAD state.
+			-- Reset state at VSync.
+			IF o_vsv(1)='1' AND o_vsv(0)='0' THEN
+				o_copy<=sWAIT;
+				o_state<=sDISP;
+				o_readlev<=0;
+				o_copylev<=0;
+				o_hsp<='0';
+			END IF;
+
 			------------------------------------------------------
 		END IF;
 	END PROCESS Scalaire;
@@ -2761,33 +2776,22 @@ BEGIN
 
 			IF o_ce='1' THEN
 				-- Output pixels count
-				-- Register the terminal decision one pixel early.  This keeps the
-				-- vertical-counter update off the 12-bit hcounter compare path at
-				-- 148.5 MHz while preserving the exact wrap pixel.
-				IF o_hlast='0' THEN
+				IF o_hcpt+1<o_htotal THEN
 					o_hcpt<=(o_hcpt+1) MOD 4096;
-					o_hlast<=to_std_logic(o_hcpt+2>=o_htotal);
 				ELSE
 					o_hcpt<=0;
-					o_hlast<=to_std_logic(1>=o_htotal);
 
 					IF o_vcpt_sync /= 4095 THEN
 						o_vcpt_sync <= o_vcpt_sync+1;
 					END IF;
 
-					-- As with o_hlast above, register the vertical terminal
-					-- decision one line early. This removes the 12-bit
-					-- compare from the o_vcpt_pre3 feedback path at 148.5 MHz.
-					IF o_vlast='1' THEN
+					IF o_vcpt_pre3+1>=o_vtotal THEN
 						o_vcpt_pre3<=0;
-						o_vlast<=to_std_logic(1>=o_vtotal);
 					ELSIF o_vrr_sync2 THEN
 						o_vcpt_pre3<=o_vsstart;
-						o_vlast<=to_std_logic(o_vsstart+1>=o_vtotal);
 						o_sync<=false;
 					ELSE
 						o_vcpt_pre3<=(o_vcpt_pre3+1) MOD 4096;
-						o_vlast<=to_std_logic(o_vcpt_pre3+2>=o_vtotal);
 					END IF;
 
 					o_vcpt_pre2<=o_vcpt_pre3;
@@ -2848,10 +2852,6 @@ BEGIN
 		VARIABLE vlumpix_v : type_pix;
 		VARIABLE r1_v, r2_v : natural RANGE 0 TO OHRESH-1;
 		VARIABLE fracnn_v : std_logic;
-		-- Keep the CYCLE-8 classification in the native 12-bit domain.  The
-		-- old integer conversion could widen the compare cone before fitting;
-		-- both operands are uint12 values, so no wider arithmetic is required.
-		VARIABLE ivsize_u_v : unsigned(11 DOWNTO 0);
 		VARIABLE o_l0_v, o_l1_v, o_l2_v, o_l3_v : type_pix;
 	BEGIN
 		IF rising_edge(o_clk) THEN
@@ -2911,14 +2911,13 @@ BEGIN
 				o_vpix_inner(1 TO 5)<=o_vpix_inner(0 TO 4);
 
 				-- CYCLE 8
-				ivsize_u_v := to_unsigned(o_ivsize, ivsize_u_v'length);
-				IF o_vacpt>ivsize_u_v THEN
+				IF to_integer(o_vacpt)>o_ivsize THEN
 					IF fracnn_v = '0' THEN
 						o_vpixq_pre<=(o_vpix_outer(0), o_vpix_inner(5), o_vpix_inner(5), o_vpix_inner(5));
 					ELSE
 						o_vpixq_pre<=(o_vpix_outer(0), o_vpix_outer(1), o_vpix_outer(1), o_vpix_outer(1));
 					END IF;
-				ELSIF o_vacpt=ivsize_u_v THEN
+				ELSIF to_integer(o_vacpt)=o_ivsize THEN
 					IF fracnn_v = '0' THEN
 						o_vpixq_pre<=(o_vpix_outer(0), o_vpix_inner(5), o_vpix_outer(1), o_vpix_outer(1));
 					ELSE
