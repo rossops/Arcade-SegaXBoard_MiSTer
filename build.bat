@@ -34,6 +34,8 @@ echo.
 findstr /c:"Worst-case setup slack" output_files\%PROJECT%.sta.rpt
 findstr /c:"Logic utilization" output_files\%PROJECT%.fit.summary
 findstr /c:"Total block memory bits" output_files\%PROJECT%.fit.summary
+rem the fitter's hard limit is the block count, not the bits (8/16-bit wide RAMs leave a fifth of each block idle)
+findstr /r /c:"^; M10K blocks" output_files\%PROJECT%.fit.rpt
 echo.
 echo Done: releases\%PROJECT%_%STAMP%.rbf
 endlocal
