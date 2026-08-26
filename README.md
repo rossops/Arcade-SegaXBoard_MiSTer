@@ -28,6 +28,7 @@ expanders, a YM2151 and a 315-5218 PCM chip.
 | M14 | Enhanced sprites (640x448 sprite rendering, opt-in) | parked on the `m14-enhanced-sprites` branch: works in simulation, not taken to hardware |
 | M15 | Gamma correction (framework OSD option, disabled since M5) | done: confirmed on hardware; road ROM rebuilt as a true-dual-port RAM (build #23, 545/553 M10K) |
 | M16 | MiSTer-devel standards (stock `sys/`, template layout, MRA alternatives) | in source, hardware build pending |
+| M18 | Road ROM in SDRAM (line prefetch, frees 64 M10K blocks) | in source, hardware build pending |
 | later | CPU overclock (12.5/15/18.75/25 MHz, opt-in) | parked, see docs/DESIGN.md |
 | M17 | Analog sensitivity (response curves for stick and wheel games) and per-game OSD | done: confirmed on hardware (build #27) |
 

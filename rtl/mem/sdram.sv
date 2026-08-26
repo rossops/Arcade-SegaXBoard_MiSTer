@@ -57,7 +57,8 @@ module sdram (
     input             p4_req,  input [24:4] p4_addr, output reg [127:0] p4_dout, output reg p4_ack,
     input             p4_urgent,
     input             p5_req,  input [24:3] p5_addr, output reg  [63:0] p5_dout, output reg p5_ack,
-    input             p6_req,  input [24:1] p6_addr, output reg  [15:0] p6_dout, output reg p6_ack
+    input             p6_req,  input [24:1] p6_addr, output reg  [15:0] p6_dout, output reg p6_ack,
+    input             p7_req,  input [24:4] p7_addr, output reg [127:0] p7_dout, output reg p7_ack   // road ROM line prefetch
 );
 
 reg [15:0] dq_out;
@@ -93,7 +94,7 @@ typedef enum logic [3:0] {
 } state_t;
 state_t state = ST_IDLE;
 
-reg [2:0]  grant;           // 0..6 read ports, 7 = write
+reg [3:0]  grant;           // 0..7 read ports, 8 = write
 reg [3:0]  rd_total;
 reg [3:0]  rd_issued;
 reg [3:0]  rd_captured;
@@ -111,9 +112,9 @@ reg [12:0] open_row;
 reg [1:0]  ack_stretch;
 
 // request mailboxes, latched on the rising edge of req
-reg p0_pend, p1_pend, p2_pend, p3_pend, p4_pend, p5_pend, p6_pend, wr_pend;
+reg p0_pend, p1_pend, p2_pend, p3_pend, p4_pend, p5_pend, p6_pend, p7_pend, wr_pend;
 reg [24:3] p0_addr_p, p1_addr_p, p3_addr_p, p5_addr_p;
-reg [24:4] p2_addr_p, p4_addr_p;
+reg [24:4] p2_addr_p, p4_addr_p, p7_addr_p;
 reg [24:1] p6_addr_p, wr_addr_p;
 reg [15:0] wr_din_p;
 reg  [1:0] wr_be_p;
@@ -122,27 +123,28 @@ reg  [1:0] wr_be_p;
 reg [2:0]  p2_starve;
 
 reg       read_valid;
-reg [2:0] read_grant;
+reg [3:0] read_grant;
 always @* begin
     read_valid = 1'b1;
-    if      (p2_pend && p2_starve == 3'd7) read_grant = 3'd2;
-    else if (p3_pend && p3_urgent)         read_grant = 3'd3;
-    else if (p4_pend && p4_urgent)         read_grant = 3'd4;
-    else if (p0_pend) read_grant = 3'd0;
-    else if (p1_pend) read_grant = 3'd1;
-    else if (p5_pend) read_grant = 3'd5;
-    else if (p6_pend) read_grant = 3'd6;
-    else if (p3_pend) read_grant = 3'd3;
-    else if (p4_pend) read_grant = 3'd4;
-    else if (p2_pend) read_grant = 3'd2;
-    else begin read_grant = 3'd0; read_valid = 1'b0; end
+    if      (p2_pend && p2_starve == 3'd7) read_grant = 4'd2;
+    else if (p3_pend && p3_urgent)         read_grant = 4'd3;
+    else if (p4_pend && p4_urgent)         read_grant = 4'd4;
+    else if (p0_pend) read_grant = 4'd0;
+    else if (p1_pend) read_grant = 4'd1;
+    else if (p5_pend) read_grant = 4'd5;
+    else if (p6_pend) read_grant = 4'd6;
+    else if (p7_pend) read_grant = 4'd7;   // road line: 16 bursts per scanline, ahead of the deadline-escalated ports
+    else if (p3_pend) read_grant = 4'd3;
+    else if (p4_pend) read_grant = 4'd4;
+    else if (p2_pend) read_grant = 4'd2;
+    else begin read_grant = 4'd0; read_valid = 1'b0; end
 end
 
-reg p0_req_d, p1_req_d, p2_req_d, p3_req_d, p4_req_d, p5_req_d, p6_req_d, wr_req_d;
-reg p0_ack_d2, p1_ack_d2, p2_ack_d2, p3_ack_d2, p4_ack_d2, p5_ack_d2, p6_ack_d2, wr_ack_d2;
+reg p0_req_d, p1_req_d, p2_req_d, p3_req_d, p4_req_d, p5_req_d, p6_req_d, p7_req_d, wr_req_d;
+reg p0_ack_d2, p1_ack_d2, p2_ack_d2, p3_ack_d2, p4_ack_d2, p5_ack_d2, p6_ack_d2, p7_ack_d2, wr_ack_d2;
 always @(posedge clk) begin
     p0_ack_d2 <= p0_ack; p1_ack_d2 <= p1_ack; p2_ack_d2 <= p2_ack; p3_ack_d2 <= p3_ack;
-    p4_ack_d2 <= p4_ack; p5_ack_d2 <= p5_ack; p6_ack_d2 <= p6_ack; wr_ack_d2 <= wr_ack;
+    p4_ack_d2 <= p4_ack; p5_ack_d2 <= p5_ack; p6_ack_d2 <= p6_ack; p7_ack_d2 <= p7_ack; wr_ack_d2 <= wr_ack;
     if (p0_ack && !p0_ack_d2) p0_pend <= 1'b0;
     if (p1_ack && !p1_ack_d2) p1_pend <= 1'b0;
     if (p2_ack && !p2_ack_d2) p2_pend <= 1'b0;
@@ -150,9 +152,10 @@ always @(posedge clk) begin
     if (p4_ack && !p4_ack_d2) p4_pend <= 1'b0;
     if (p5_ack && !p5_ack_d2) p5_pend <= 1'b0;
     if (p6_ack && !p6_ack_d2) p6_pend <= 1'b0;
+    if (p7_ack && !p7_ack_d2) p7_pend <= 1'b0;
     if (wr_ack && !wr_ack_d2) wr_pend <= 1'b0;
     p0_req_d <= p0_req; p1_req_d <= p1_req; p2_req_d <= p2_req; p3_req_d <= p3_req;
-    p4_req_d <= p4_req; p5_req_d <= p5_req; p6_req_d <= p6_req; wr_req_d <= wr_req;
+    p4_req_d <= p4_req; p5_req_d <= p5_req; p6_req_d <= p6_req; p7_req_d <= p7_req; wr_req_d <= wr_req;
     if (p0_req && !p0_req_d) begin p0_pend <= 1'b1; p0_addr_p <= p0_addr; end
     if (p1_req && !p1_req_d) begin p1_pend <= 1'b1; p1_addr_p <= p1_addr; end
     if (p2_req && !p2_req_d) begin p2_pend <= 1'b1; p2_addr_p <= p2_addr; end
@@ -160,15 +163,16 @@ always @(posedge clk) begin
     if (p4_req && !p4_req_d) begin p4_pend <= 1'b1; p4_addr_p <= p4_addr; end
     if (p5_req && !p5_req_d) begin p5_pend <= 1'b1; p5_addr_p <= p5_addr; end
     if (p6_req && !p6_req_d) begin p6_pend <= 1'b1; p6_addr_p <= p6_addr; end
+    if (p7_req && !p7_req_d) begin p7_pend <= 1'b1; p7_addr_p <= p7_addr; end
     if (wr_req && !wr_req_d) begin
         wr_pend <= 1'b1; wr_addr_p <= wr_addr; wr_din_p <= wr_din; wr_be_p <= wr_be;
     end
     if (init) begin
-        {p0_pend,p1_pend,p2_pend,p3_pend,p4_pend,p5_pend,p6_pend,wr_pend} <= '0;
-        {p0_req_d,p1_req_d,p2_req_d,p3_req_d,p4_req_d,p5_req_d,p6_req_d,wr_req_d} <= '0;
-        {p0_ack_d2,p1_ack_d2,p2_ack_d2,p3_ack_d2,p4_ack_d2,p5_ack_d2,p6_ack_d2,wr_ack_d2} <= '0;
+        {p0_pend,p1_pend,p2_pend,p3_pend,p4_pend,p5_pend,p6_pend,p7_pend,wr_pend} <= '0;
+        {p0_req_d,p1_req_d,p2_req_d,p3_req_d,p4_req_d,p5_req_d,p6_req_d,p7_req_d,wr_req_d} <= '0;
+        {p0_ack_d2,p1_ack_d2,p2_ack_d2,p3_ack_d2,p4_ack_d2,p5_ack_d2,p6_ack_d2,p7_ack_d2,wr_ack_d2} <= '0;
         p0_addr_p <= '0; p1_addr_p <= '0; p2_addr_p <= '0; p3_addr_p <= '0;
-        p4_addr_p <= '0; p5_addr_p <= '0; p6_addr_p <= '0; wr_addr_p <= '0;
+        p4_addr_p <= '0; p5_addr_p <= '0; p6_addr_p <= '0; p7_addr_p <= '0; wr_addr_p <= '0;
         wr_din_p <= '0; wr_be_p <= '0;
     end
 end
@@ -176,12 +180,12 @@ end
 `ifdef SIMULATION
 generate
     genvar gi;
-    for (gi = 0; gi < 8; gi = gi + 1) begin : g_reqwatch
+    for (gi = 0; gi < 9; gi = gi + 1) begin : g_reqwatch
         reg [7:0] held;
         wire req_i  = gi==0 ? p0_req  : gi==1 ? p1_req  : gi==2 ? p2_req  : gi==3 ? p3_req :
-                      gi==4 ? p4_req  : gi==5 ? p5_req  : gi==6 ? p6_req  : wr_req;
+                      gi==4 ? p4_req  : gi==5 ? p5_req  : gi==6 ? p6_req  : gi==7 ? p7_req  : wr_req;
         wire pend_i = gi==0 ? p0_pend : gi==1 ? p1_pend : gi==2 ? p2_pend : gi==3 ? p3_pend :
-                      gi==4 ? p4_pend : gi==5 ? p5_pend : gi==6 ? p6_pend : wr_pend;
+                      gi==4 ? p4_pend : gi==5 ? p5_pend : gi==6 ? p6_pend : gi==7 ? p7_pend : wr_pend;
         always @(posedge clk) begin
             if (init || !req_i || pend_i) held <= 8'd0;
             else if (held != 8'hff) begin
@@ -201,13 +205,14 @@ always @(posedge clk) dq_in <= SDRAM_DQ;
 
 task automatic deliver(input [15:0] w);
     case (grant)
-        3'd0: begin p0_dout <= {w, cap_buf[2], cap_buf[1], cap_buf[0]}; p0_ack <= 1'b1; end
-        3'd1: begin p1_dout <= {w, cap_buf[2], cap_buf[1], cap_buf[0]}; p1_ack <= 1'b1; end
-        3'd2: begin p2_dout <= {w, cap_buf[6], cap_buf[5], cap_buf[4], cap_buf[3], cap_buf[2], cap_buf[1], cap_buf[0]}; p2_ack <= 1'b1; end
-        3'd3: begin p3_dout <= {w, cap_buf[2], cap_buf[1], cap_buf[0]}; p3_ack <= 1'b1; end
-        3'd4: begin p4_dout <= {w, cap_buf[6], cap_buf[5], cap_buf[4], cap_buf[3], cap_buf[2], cap_buf[1], cap_buf[0]}; p4_ack <= 1'b1; end
-        3'd5: begin p5_dout <= {w, cap_buf[2], cap_buf[1], cap_buf[0]}; p5_ack <= 1'b1; end
-        3'd6: begin p6_dout <= w; p6_ack <= 1'b1; end
+        4'd0: begin p0_dout <= {w, cap_buf[2], cap_buf[1], cap_buf[0]}; p0_ack <= 1'b1; end
+        4'd1: begin p1_dout <= {w, cap_buf[2], cap_buf[1], cap_buf[0]}; p1_ack <= 1'b1; end
+        4'd2: begin p2_dout <= {w, cap_buf[6], cap_buf[5], cap_buf[4], cap_buf[3], cap_buf[2], cap_buf[1], cap_buf[0]}; p2_ack <= 1'b1; end
+        4'd3: begin p3_dout <= {w, cap_buf[2], cap_buf[1], cap_buf[0]}; p3_ack <= 1'b1; end
+        4'd4: begin p4_dout <= {w, cap_buf[6], cap_buf[5], cap_buf[4], cap_buf[3], cap_buf[2], cap_buf[1], cap_buf[0]}; p4_ack <= 1'b1; end
+        4'd5: begin p5_dout <= {w, cap_buf[2], cap_buf[1], cap_buf[0]}; p5_ack <= 1'b1; end
+        4'd6: begin p6_dout <= w; p6_ack <= 1'b1; end
+        4'd7: begin p7_dout <= {w, cap_buf[6], cap_buf[5], cap_buf[4], cap_buf[3], cap_buf[2], cap_buf[1], cap_buf[0]}; p7_ack <= 1'b1; end
         default: ;
     endcase
 endtask
@@ -219,7 +224,7 @@ always @(posedge clk) begin
     if (ack_stretch != 0) ack_stretch <= ack_stretch - 1'd1;
     else begin
         p0_ack <= 1'b0; p1_ack <= 1'b0; p2_ack <= 1'b0; p3_ack <= 1'b0;
-        p4_ack <= 1'b0; p5_ack <= 1'b0; p6_ack <= 1'b0; wr_ack <= 1'b0;
+        p4_ack <= 1'b0; p5_ack <= 1'b0; p6_ack <= 1'b0; p7_ack <= 1'b0; wr_ack <= 1'b0;
     end
 
     if (init) begin
@@ -279,19 +284,20 @@ always @(posedge clk) begin
             end
             else if (wr_pend | read_valid) begin
                 logic [24:1] a;
-                if (wr_pend) begin grant <= 3'd7; a = wr_addr_p; rd_total <= 4'd1; is_write <= 1'b1; end
+                if (wr_pend) begin grant <= 4'd8; a = wr_addr_p; rd_total <= 4'd1; is_write <= 1'b1; end
                 else begin
                     grant <= read_grant;
                     is_write <= 1'b0;
-                    if (read_grant == 3'd2) p2_starve <= 3'd0;
+                    if (read_grant == 4'd2) p2_starve <= 3'd0;
                     else if (p2_pend && p2_starve != 3'd7) p2_starve <= p2_starve + 3'd1;
                     case (read_grant)
-                        3'd0: begin a = {p0_addr_p, 2'b00};  rd_total <= 4'd4; end
-                        3'd1: begin a = {p1_addr_p, 2'b00};  rd_total <= 4'd4; end
-                        3'd2: begin a = {p2_addr_p, 3'b000}; rd_total <= 4'd8; end
-                        3'd3: begin a = {p3_addr_p, 2'b00};  rd_total <= 4'd4; end
-                        3'd4: begin a = {p4_addr_p, 3'b000}; rd_total <= 4'd8; end
-                        3'd5: begin a = {p5_addr_p, 2'b00};  rd_total <= 4'd4; end
+                        4'd0: begin a = {p0_addr_p, 2'b00};  rd_total <= 4'd4; end
+                        4'd1: begin a = {p1_addr_p, 2'b00};  rd_total <= 4'd4; end
+                        4'd2: begin a = {p2_addr_p, 3'b000}; rd_total <= 4'd8; end
+                        4'd3: begin a = {p3_addr_p, 2'b00};  rd_total <= 4'd4; end
+                        4'd4: begin a = {p4_addr_p, 3'b000}; rd_total <= 4'd8; end
+                        4'd5: begin a = {p5_addr_p, 2'b00};  rd_total <= 4'd4; end
+                        4'd7: begin a = {p7_addr_p, 3'b000}; rd_total <= 4'd8; end
                         default: begin a = p6_addr_p;        rd_total <= 4'd1; end
                     endcase
                 end

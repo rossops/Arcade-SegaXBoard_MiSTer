@@ -248,7 +248,6 @@ assign status_menumask = {13'd0,
     ~board_desc.gun_inputs,        // bit 1: no gun options
     ~board_desc.has_snd2};         // bit 0: no rear speakers
 wire        tile_wr; wire [17:0] tile_waddr; wire [7:0] tile_wdata;
-wire        road_wr; wire [15:0] road_waddr; wire [7:0] road_wdata;
 wire        key_wr;  wire [12:0] key_waddr;  wire [7:0] key_wdata;
 
 xb_rom_loader loader (
@@ -261,19 +260,18 @@ xb_rom_loader loader (
     .sdr_wr_req(sw_req), .sdr_wr_addr(sw_addr), .sdr_wr_din(sw_din),
     .sdr_wr_be(sw_be), .sdr_wr_ack(sw_ack),
     .tile_wr(tile_wr), .tile_waddr(tile_waddr), .tile_wdata(tile_wdata),
-    .road_wr(road_wr), .road_waddr(road_waddr), .road_wdata(road_wdata),
     .key_wr(key_wr), .key_waddr(key_waddr), .key_wdata(key_wdata),
     .rom_loaded(rom_loaded)
 );
 
 /////////////////////////////////   SDRAM   ///////////////////////////////////
 wire        p0_req, p0_ack, p1_req, p1_ack, p2_req, p2_ack, p3_req, p3_ack;
-wire        p4_req, p4_ack, p5_req, p5_ack, p6_req, p6_ack, p3_urgent, p4_urgent;
+wire        p4_req, p4_ack, p5_req, p5_ack, p6_req, p6_ack, p7_req, p7_ack, p3_urgent, p4_urgent;
 wire [24:3] p0_addr, p1_addr, p3_addr, p5_addr;
-wire [24:4] p2_addr, p4_addr;
+wire [24:4] p2_addr, p4_addr, p7_addr;
 wire [24:1] p6_addr;
 wire [63:0] p0_dout, p1_dout, p3_dout, p5_dout;
-wire[127:0] p2_dout, p4_dout;
+wire[127:0] p2_dout, p4_dout, p7_dout;
 wire [15:0] p6_dout;
 
 sdram sdram (
@@ -289,7 +287,8 @@ sdram sdram (
     .p3_req(p3_req), .p3_addr(p3_addr), .p3_dout(p3_dout), .p3_ack(p3_ack), .p3_urgent(p3_urgent),
     .p4_req(p4_req), .p4_addr(p4_addr), .p4_dout(p4_dout), .p4_ack(p4_ack), .p4_urgent(p4_urgent),
     .p5_req(p5_req), .p5_addr(p5_addr), .p5_dout(p5_dout), .p5_ack(p5_ack),
-    .p6_req(p6_req), .p6_addr(p6_addr), .p6_dout(p6_dout), .p6_ack(p6_ack)
+    .p6_req(p6_req), .p6_addr(p6_addr), .p6_dout(p6_dout), .p6_ack(p6_ack),
+    .p7_req(p7_req), .p7_addr(p7_addr), .p7_dout(p7_dout), .p7_ack(p7_ack)
 );
 
 //////////////////////////////   INPUTS   /////////////////////////////////////
@@ -310,7 +309,6 @@ xb_core core (
     .clk_sys(clk_sys), .clk_ram(clk_ram), .reset(reset), .pause(pause), .rear_en(~status[11]),
     .board_desc(board_desc),
     .tile_wr(tile_wr), .tile_waddr(tile_waddr), .tile_wdata(tile_wdata),
-    .road_wr(road_wr), .road_waddr(road_waddr), .road_wdata(road_wdata),
     .key_wr(key_wr), .key_waddr(key_waddr), .key_wdata(key_wdata),
     .DDRAM_BUSY(DDRAM_BUSY), .DDRAM_BURSTCNT(DDRAM_BURSTCNT), .DDRAM_ADDR(DDRAM_ADDR),
     .DDRAM_DOUT(DDRAM_DOUT), .DDRAM_DOUT_READY(DDRAM_DOUT_READY), .DDRAM_RD(DDRAM_RD),
@@ -322,6 +320,7 @@ xb_core core (
     .p4_req(p4_req), .p4_addr(p4_addr), .p4_dout(p4_dout), .p4_ack(p4_ack), .p4_urgent(p4_urgent),
     .p5_req(p5_req), .p5_addr(p5_addr), .p5_dout(p5_dout), .p5_ack(p5_ack),
     .p6_req(p6_req), .p6_addr(p6_addr), .p6_dout(p6_dout), .p6_ack(p6_ack),
+    .p7_req(p7_req), .p7_addr(p7_addr), .p7_dout(p7_dout), .p7_ack(p7_ack),
     .p1_buttons(joystick_0[15:0]), .p2_buttons(joystick_1[15:0]),
     .aim1_x(joystick_r_analog_0[7:0]), .aim1_y(joystick_r_analog_0[15:8]),
     .aim2_x(joystick_r_analog_1[7:0]), .aim2_y(joystick_r_analog_1[15:8]),

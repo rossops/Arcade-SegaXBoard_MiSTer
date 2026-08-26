@@ -97,13 +97,13 @@ initial begin
     if ($value$plusargs("fd1094=%d", pa)) desc.fd1094 = pa[0];
 end
 
-wire p0_req, p1_req, p2_req, p3_req, p4_req, p5_req, p6_req, p3_urgent, p4_urgent;
-wire p0_ack, p1_ack, p2_ack, p3_ack, p4_ack, p5_ack, p6_ack, wr_ack, sdr_ready;
+wire p0_req, p1_req, p2_req, p3_req, p4_req, p5_req, p6_req, p7_req, p3_urgent, p4_urgent;
+wire p0_ack, p1_ack, p2_ack, p3_ack, p4_ack, p5_ack, p6_ack, p7_ack, wr_ack, sdr_ready;
 wire [24:3] p0_addr, p1_addr, p3_addr, p5_addr;
-wire [24:4] p2_addr, p4_addr;
+wire [24:4] p2_addr, p4_addr, p7_addr;
 wire [24:1] p6_addr;
 wire [63:0] p0_dout, p1_dout, p3_dout, p5_dout;
-wire [127:0] p2_dout, p4_dout;
+wire [127:0] p2_dout, p4_dout, p7_dout;
 wire [15:0] p6_dout;
 
 sdram_model sdram (
@@ -115,7 +115,8 @@ sdram_model sdram (
     .p3_req(p3_req), .p3_addr(p3_addr), .p3_dout(p3_dout), .p3_ack(p3_ack), .p3_urgent(p3_urgent),
     .p4_req(p4_req), .p4_addr(p4_addr), .p4_dout(p4_dout), .p4_ack(p4_ack), .p4_urgent(p4_urgent),
     .p5_req(p5_req), .p5_addr(p5_addr), .p5_dout(p5_dout), .p5_ack(p5_ack),
-    .p6_req(p6_req), .p6_addr(p6_addr), .p6_dout(p6_dout), .p6_ack(p6_ack)
+    .p6_req(p6_req), .p6_addr(p6_addr), .p6_dout(p6_dout), .p6_ack(p6_ack),
+    .p7_req(p7_req), .p7_addr(p7_addr), .p7_dout(p7_dout), .p7_ack(p7_ack)
 );
 
 wire [7:0] r, g, b;
@@ -136,7 +137,6 @@ ddram_model ddram (
 xb_core core (
     .clk_sys(clk_sys), .clk_ram(clk_ram), .reset(reset), .pause(1'b0), .rear_en(rear_en), .board_desc(desc),
     .tile_wr(1'b0), .tile_waddr(18'd0), .tile_wdata(8'd0),
-    .road_wr(1'b0), .road_waddr(16'd0), .road_wdata(8'd0),
     .key_wr(1'b0), .key_waddr(13'd0), .key_wdata(8'd0),
     .DDRAM_BUSY(DDRAM_BUSY), .DDRAM_BURSTCNT(DDRAM_BURSTCNT), .DDRAM_ADDR(DDRAM_ADDR),
     .DDRAM_DOUT(DDRAM_DOUT), .DDRAM_DOUT_READY(DDRAM_DOUT_READY), .DDRAM_RD(DDRAM_RD),
@@ -148,6 +148,7 @@ xb_core core (
     .p4_req(p4_req), .p4_addr(p4_addr), .p4_dout(p4_dout), .p4_ack(p4_ack), .p4_urgent(p4_urgent),
     .p5_req(p5_req), .p5_addr(p5_addr), .p5_dout(p5_dout), .p5_ack(p5_ack),
     .p6_req(p6_req), .p6_addr(p6_addr), .p6_dout(p6_dout), .p6_ack(p6_ack),
+    .p7_req(p7_req), .p7_addr(p7_addr), .p7_dout(p7_dout), .p7_ack(p7_ack),
     .p1_buttons(16'd0), .p2_buttons(16'd0), .aim1_x(8'sd0), .aim1_y(8'sd0), .aim2_x(8'sd0), .aim2_y(8'sd0), .stick2_x(8'sd0), .stick2_y(8'sd0), .gun_mode(1'b0), .speed1(4'd0), .speed2(4'd0), .xhair_en(1'b0), .stick_x(8'sd0), .stick_y(8'sd0), .throttle(8'h80), .stick_mode(2'd0), .ana_curve(2'd0), .ana_range(2'd0),
     .dsw_a(dsw_a), .dsw_b(dsw_b), .service(1'b0), .test(1'b0), .coin1(coin1), .coin2(1'b0),
     .nv_download(1'b0), .nv_upload(1'b0), .nv_wr(1'b0), .nv_rd(1'b0), .nv_addr(15'd0), .nv_din(16'd0), .nv_dout(), .nv_modified(),

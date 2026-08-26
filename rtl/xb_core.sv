@@ -38,14 +38,12 @@ module xb_core (
     output            p4_req, output [24:4] p4_addr, input [127:0] p4_dout, input p4_ack, output p4_urgent,
     output            p5_req, output [24:3] p5_addr, input  [63:0] p5_dout, input p5_ack,
     output            p6_req, output [24:1] p6_addr, input  [15:0] p6_dout, input p6_ack,
+    output            p7_req, output [24:4] p7_addr, input [127:0] p7_dout, input p7_ack,   // road ROM lines
 
     // tile / road ROM load (from the ioctl loader)
     input             tile_wr,
     input      [17:0] tile_waddr,
     input       [7:0] tile_wdata,
-    input             road_wr,
-    input      [15:0] road_waddr,
-    input       [7:0] road_wdata,
     input             key_wr,         // FD1094 key RAM
     input      [12:0] key_waddr,
     input       [7:0] key_wdata,
@@ -692,14 +690,18 @@ wire spr_v = (spr_pix_r != 16'hFFFF);
 
 // ---------------------------------------------------------------- road
 wire [15:0] road_rom_a0, road_rom_a1; wire [7:0] road_rom_q0, road_rom_q1;
-xb_roadrom roadrom (.clk(clk_sys), .wr(road_wr), .wr_addr(road_waddr), .wr_data(road_wdata),
-    .rd_addr0(road_rom_a0), .rd_addr1(road_rom_a1), .rd_q0(road_rom_q0), .rd_q1(road_rom_q1));
+wire        road_fetch, road_ready; wire [7:0] road_line0, road_line1;
+xb_roadrom roadrom (.clk(clk_sys), .reset(reset),
+    .fetch(road_fetch), .line0(road_line0), .line1(road_line1), .ready(road_ready),
+    .rd_addr0(road_rom_a0), .rd_addr1(road_rom_a1), .rd_q0(road_rom_q0), .rd_q1(road_rom_q1),
+    .sdr_req(p7_req), .sdr_addr(p7_addr), .sdr_dout(p7_dout), .sdr_ack(p7_ack));
 wire        road_bg_v, road_fg_v; wire [12:0] road_bg_idx, road_fg_idx;
 xb_road_5275 road (
     .clk(clk_sys), .reset(reset), .line_start(line_start), .vcnt(vcnt), .ce_pix(ce_pix), .hcnt(hcnt),
     .control(road_control),
     .ram_addr(road_rd_addr), .ram_q(road_rd_q),
     .rom_addr0(road_rom_a0), .rom_addr1(road_rom_a1), .rom_q0(road_rom_q0), .rom_q1(road_rom_q1),
+    .rom_fetch(road_fetch), .rom_line0(road_line0), .rom_line1(road_line1), .rom_ready(road_ready),
     .bg_v(road_bg_v), .bg_idx(road_bg_idx), .fg_v(road_fg_v), .fg_idx(road_fg_idx)
 );
 

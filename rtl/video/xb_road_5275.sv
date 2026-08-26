@@ -26,6 +26,10 @@ module xb_road_5275 (
     output reg [15:0] rom_addr1,
     input       [7:0] rom_q0,
     input       [7:0] rom_q1,
+    output reg        rom_fetch,      // the line numbers below are valid: prefetch them
+    output reg  [7:0] rom_line0,
+    output reg  [7:0] rom_line1,
+    input             rom_ready,      // the prefetch holds them
 
     // per-pixel outputs, valid the clock after ce_pix for pixel hcnt
     output reg        bg_v,           // solid background colour for the line
@@ -45,7 +49,7 @@ wire disp_bank = vcnt[0];
 wire rend_bank = ~vcnt[0];
 
 // ---------------------------------------------------------------- per-line registers
-typedef enum logic [2:0] { S_IDLE, S_READ, S_SETUP, S_PIX, S_DONE } st_t;
+typedef enum logic [2:0] { S_IDLE, S_READ, S_SETUP, S_ROMWAIT, S_PIX, S_DONE } st_t;
 st_t st;
 reg  [8:0] ry;
 reg  [2:0] ctl;
@@ -104,6 +108,7 @@ always @* begin
 end
 
 always @(posedge clk) begin
+    rom_fetch <= 1'b0;
     if (reset) begin st <= S_IDLE; ry <= 9'd0; rc <= 5'd0; pc <= 11'd0; end
     else case (st)
         S_IDLE: if (line_start) begin
@@ -120,7 +125,8 @@ always @(posedge clk) begin
                 5'd2:  data0 <= ram_q;
                 5'd3:  ram_addr <= 11'h100 + {2'd0, ry};
                 5'd5:  data1 <= ram_q;
-                5'd6:  ram_addr <= 11'h200 + {2'd0, idx0};
+                5'd6:  begin ram_addr <= 11'h200 + {2'd0, idx0};
+                       rom_fetch <= 1'b1; rom_line0 <= data0[8:1]; rom_line1 <= data1[8:1]; end   // prefetch the ROM lines
                 5'd8:  hpos0w <= ram_q;
                 5'd9:  ram_addr <= 11'h400 + (ctl[2] ? (11'h100 + {2'd0, ry}) : {2'd0, idx1});
                 5'd11: hpos1w <= ram_q;
@@ -158,8 +164,11 @@ always @(posedge clk) begin
             ct13 <= data1[9] ? (CB1 ^ 13'h08 ^ {12'd0, color1[4]}) : (CB2 ^ 13'h10 ^ {9'd0, color1[11:8]});
             ct17 <= CB1 ^ 13'h0e ^ {12'd0, color1[7]};
             pc <= 11'd0;
-            st <= S_PIX;
+            st <= S_ROMWAIT;
         end
+        // the line's ROM bytes arrive from SDRAM; well inside the line at the
+        // renderer's 644-clock pixel pass (see xb_roadrom)
+        S_ROMWAIT: if (rom_ready) st <= S_PIX;
         S_PIX: begin
             pc <= pc + 11'd1;
             if (!pc[0]) begin      // issue road 0 plane addresses, capture nothing
@@ -179,6 +188,11 @@ always @(posedge clk) begin
         default: st <= S_IDLE;
     endcase
 end
+
+`ifdef SIMULATION
+always @(posedge clk) if (!reset && line_start && st != S_IDLE)
+    $display("ROAD LATE: line_start at vcnt %0d while rendering (state %0d)", vcnt, st);
+`endif
 
 // ---------------------------------------------------------------- display side
 always @(posedge clk) begin

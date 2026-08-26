@@ -465,6 +465,33 @@ twitchy around centre.
   the board frame check confirms Linear/100% leaves the 1x path exact.
   MAME has no equivalent, so the feel itself is a hardware judgement.
 
+## Road ROM in SDRAM (M18)
+
+The 64 KB road ROM had been in BRAM since M4 (64 M10K blocks after the
+true-dual-port change, 96 before). It now lives only in SDRAM at
+`SDR_ROAD_BASE`, where the loader's address map had always placed it; the
+loader's BRAM byte path is gone.
+
+- `xb_roadrom` is a line prefetch. The 315-5275 renders one line ahead and
+  a line needs 256 bytes of ROM: 64 per plane for each road (plane 1 at
+  +0x4000, road 1 at +0x8000, line * 0x40 within). After the renderer has
+  read the two line numbers from road RAM (`rom_fetch`, `rom_line0/1` at
+  the sixth clock of its register read), the prefetch issues sixteen
+  128-bit bursts on a new SDRAM port (p7, 8-word bursts like the sprite
+  port, granted after the CPU, Z80 and PCM ports and ahead of the
+  deadline-escalated ones) and stores them into a 256-byte buffer, kept as
+  two MLAB copies for the renderer's two byte reads (plane 0 and plane 1
+  each clock). `rom_ready` releases the renderer's pixel pass
+  (`S_ROMWAIT`); the reads are served with the same one-clock latency the
+  BRAM had, indexed by {road, plane, byte}. About 600 clocks of the
+  3200-clock line go to the fetch, ahead of the 644-clock pixel pass; a
+  simulation check reports a `line_start` that arrives while a line is
+  still rendering.
+- The standalone bench (`verif/unit/road`) feeds the prefetch from a stub
+  SDRAM loaded with the ROM and is still exact on the captured frames;
+  the board frames are checked as before (After Burner II and Super
+  Monaco GP, the road-heavy game).
+
 ## Later: CPU overclock (parked)
 
 An opt-in OSD "CPU speed" (12.5 / 15 / 18.75 / 25 MHz) for both 68000s,

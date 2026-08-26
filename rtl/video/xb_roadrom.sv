@@ -1,79 +1,76 @@
 //============================================================================
-//  Road ROM (64 KB) in BRAM, filled by the ROM loader; two read ports so a
-//  road's two bitplanes (plane 1 at +0x4000) are fetched in one clock.
-//  One true-dual-port altsyncram (port A: loader write / read 0, port B:
-//  read 1). Described behaviourally the array got duplicated for the third
-//  port (96 M10K instead of 64), which broke the M10K budget in M14. The
-//  loader writes only while the core is held in reset, so port A never has
-//  a live read to lose to a write.
+//  Road ROM line prefetch. The 64 KB road ROM lives in SDRAM (SDR_ROAD_BASE);
+//  the 315-5275 renderer draws one line at a time and a line needs 256 bytes
+//  of it: 64 bytes per plane for each of the two roads (plane 1 at +0x4000,
+//  road 1 at +0x8000). On `fetch` the four 64-byte runs are read as sixteen
+//  128-bit bursts into a line buffer, `ready` rises, and the renderer's two
+//  byte reads are served from the buffer with the same one-clock latency the
+//  BRAM copy had (rd_q = buf[{road, plane, byte}] for a ROM address).
+//  Two copies of the buffer give the two read ports; both are written alike.
+//  Replaces the 64 KB BRAM (64 M10K blocks) at a cost of 4 Kbit of MLAB.
 //============================================================================
-module xb_roadrom (
-    input             clk,
-    input             wr,
-    input      [15:0] wr_addr,
-    input       [7:0] wr_data,
-    input      [15:0] rd_addr0,
+module xb_roadrom
+    import xb_pkg::*;
+(
+    input             clk,           // clk_sys
+    input             reset,
+    // renderer
+    input             fetch,         // one clock: lines below are valid
+    input       [7:0] line0,         // road 0 ROM line (data0[8:1])
+    input       [7:0] line1,         // road 1 ROM line (data1[8:1])
+    output reg        ready,         // buffer holds line0/line1
+    input      [15:0] rd_addr0,      // ROM byte addresses as before
     input      [15:0] rd_addr1,
-    output      [7:0] rd_q0,
-    output      [7:0] rd_q1
+    output reg  [7:0] rd_q0,
+    output reg  [7:0] rd_q1,
+    // SDRAM (128-bit burst port)
+    output reg        sdr_req,
+    output reg [24:4] sdr_addr,
+    input     [127:0] sdr_dout,
+    input             sdr_ack
 );
-`ifdef ALTERA_RESERVED_QIS
-altsyncram ram (
-    .clock0(clk),
-    .address_a(wr ? wr_addr : rd_addr0),
-    .data_a(wr_data),
-    .wren_a(wr),
-    .q_a(rd_q0),
-    .address_b(rd_addr1),
-    .q_b(rd_q1),
-    .aclr0(1'b0), .aclr1(1'b0),
-    .addressstall_a(1'b0), .addressstall_b(1'b0),
-    .byteena_a(1'b1), .byteena_b(1'b1),
-    .clock1(1'b1),
-    .clocken0(1'b1), .clocken1(1'b1), .clocken2(1'b1), .clocken3(1'b1),
-    .data_b({8{1'b1}}),
-    .eccstatus(),
-    .rden_a(1'b1), .rden_b(1'b1),
-    .wren_b(1'b0)
-);
-defparam
-    ram.address_reg_b = "CLOCK0",
-    ram.clock_enable_input_a = "BYPASS",
-    ram.clock_enable_input_b = "BYPASS",
-    ram.clock_enable_output_a = "BYPASS",
-    ram.clock_enable_output_b = "BYPASS",
-    ram.indata_reg_b = "CLOCK0",
-    ram.intended_device_family = "Cyclone V",
-    ram.lpm_type = "altsyncram",
-    ram.numwords_a = 65536,
-    ram.numwords_b = 65536,
-    ram.operation_mode = "BIDIR_DUAL_PORT",
-    ram.outdata_aclr_a = "NONE",
-    ram.outdata_aclr_b = "NONE",
-    ram.outdata_reg_a = "UNREGISTERED",
-    ram.outdata_reg_b = "UNREGISTERED",
-    ram.power_up_uninitialized = "FALSE",
-    ram.read_during_write_mode_mixed_ports = "DONT_CARE",
-    ram.read_during_write_mode_port_a = "NEW_DATA_NO_NBE_READ",
-    ram.width_a = 8,
-    ram.width_b = 8,
-    ram.width_byteena_a = 1,
-    ram.width_byteena_b = 1,
-    ram.widthad_a = 16,
-    ram.widthad_b = 16,
-    ram.wrcontrol_wraddress_reg_b = "CLOCK0";
-`else
-reg [7:0] rom [0:65535];
-reg [7:0] q0, q1;
-assign rd_q0 = q0;
-assign rd_q1 = q1;
-`ifdef SIMULATION
-initial if ($test$plusargs("roadrom")) $readmemh("roadrom.hex", rom);
-`endif
+reg  [7:0] bufa [0:255];
+reg  [7:0] bufb [0:255];
+reg  [7:0] l0, l1;
+reg  [3:0] blk;                      // {road, plane, 16-byte group}
+reg  [3:0] wcnt;                     // byte within the burst being stored
+reg [127:0] data;
+reg        ack_d;
+typedef enum logic [1:0] { S_IDLE, S_REQ, S_WAIT, S_STORE } st_t;
+st_t st;
+
+// byte address of burst `b` for the lines held: road*0x8000 + plane*0x4000 + line*0x40 + group*16
+wire [7:0]  line_sel = blk[3] ? l1 : l0;
+wire [24:0] baddr = SDR_ROAD_BASE + {9'd0, blk[3], blk[2], line_sel, blk[1:0], 4'd0};
+
 always @(posedge clk) begin
-    if (wr) rom[wr_addr] <= wr_data;
-    q0 <= rom[rd_addr0];
-    q1 <= rom[rd_addr1];
+    rd_q0 <= bufa[{rd_addr0[15], rd_addr0[14], rd_addr0[5:0]}];
+    rd_q1 <= bufb[{rd_addr1[15], rd_addr1[14], rd_addr1[5:0]}];
+    ack_d <= sdr_ack;
+    if (reset) begin
+        st <= S_IDLE; ready <= 1'b0; sdr_req <= 1'b0; blk <= 4'd0; wcnt <= 4'd0;
+    end
+    else case (st)
+        S_IDLE: if (fetch) begin
+            ready <= 1'b0; l0 <= line0; l1 <= line1; blk <= 4'd0; st <= S_REQ;
+        end
+        S_REQ: begin
+            sdr_addr <= baddr[24:4]; sdr_req <= 1'b1; st <= S_WAIT;
+        end
+        S_WAIT: if (sdr_ack && !ack_d) begin
+            sdr_req <= 1'b0; data <= sdr_dout; wcnt <= 4'd0; st <= S_STORE;
+        end
+        S_STORE: begin
+            bufa[{blk, wcnt}] <= data[7:0];
+            bufb[{blk, wcnt}] <= data[7:0];
+            data <= data >> 8;
+            wcnt <= wcnt + 4'd1;
+            if (wcnt == 4'd15) begin
+                if (blk == 4'd15) begin ready <= 1'b1; st <= S_IDLE; end
+                else begin blk <= blk + 4'd1; st <= S_REQ; end
+            end
+        end
+        default: st <= S_IDLE;
+    endcase
 end
-`endif
 endmodule
