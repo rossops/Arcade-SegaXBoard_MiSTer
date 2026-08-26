@@ -29,7 +29,7 @@ expanders, a YM2151 and a 315-5218 PCM chip.
 | later | Gamma correction (framework option, disabled since M5) | parked, see docs/DESIGN.md |
 | later | CPU overclock (12.5/15/18.75/25 MHz, opt-in) | parked, see docs/DESIGN.md |
 
-## Supported games
+## Fully playable games
 
 | Game | MAME set | ROM zips (MAME 0.289) | Main CPU |
 |---|---|---|---|
