@@ -141,13 +141,15 @@ For automatic installation, add this to `/media/fat/downloader.ini` and run
 Update All:
 
 ```
-[rossops/sxboard]
-db_url = https://raw.githubusercontent.com/rossops/sxboard/main/db.json.zip
+[rossops/Arcade-SegaXBoard_MiSTer]
+db_url = https://raw.githubusercontent.com/rossops/Arcade-SegaXBoard_MiSTer/main/db.json.zip
 ```
 
 The database (`db.json.zip`, built by `tools/make_db.py`) lists every MRA
 and the current core with their MD5s, pointing at the files in this
-repository; it is regenerated with each release.
+repository; it is regenerated with each release. The repository used to be
+`rossops/sxboard`; GitHub redirects the old address, so an ini section
+written for that name keeps working, but the one above is the current one.
 
 ## Audio filter
 

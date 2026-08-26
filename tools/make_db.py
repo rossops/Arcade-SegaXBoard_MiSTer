@@ -30,7 +30,7 @@ def md5(path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--repo", default="rossops/sxboard")
+    ap.add_argument("--repo", default="rossops/Arcade-SegaXBoard_MiSTer")
     ap.add_argument("--branch", default="main")
     ap.add_argument("--out", default=os.path.join(ROOT, "db.json.zip"))
     a = ap.parse_args()
