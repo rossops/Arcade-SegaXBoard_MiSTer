@@ -186,6 +186,7 @@ end
 assign LED_USER = ~rom_loaded;
 
 ///////////////////////////////   HPS IO   ////////////////////////////////////
+wire [21:0] gamma_bus;
 hps_io #(.CONF_STR(CONF_STR), .WIDE(1)) hps_io (
     .clk_sys(clk_sys),
     .HPS_BUS(HPS_BUS),
@@ -193,6 +194,7 @@ hps_io #(.CONF_STR(CONF_STR), .WIDE(1)) hps_io (
     .buttons(buttons),
     .status(status),
     .status_menumask(16'd0),
+    .gamma_bus(gamma_bus),
 
     .ioctl_download(ioctl_download),
     .ioctl_upload(ioctl_upload),
@@ -341,12 +343,13 @@ wire [11:0] aspect_ary = (aspect == 0) ? 12'd3 : 12'd0;
 
 // arcade_video drives CLK_VIDEO, CE_PIXEL, VGA_R/G/B/HS/VS/SL directly; its
 // VGA_DE goes through video_freak (which owns the emu VGA_DE output).
-// GAMMA=0: this sys_top does not export gamma_bus to emu.
+// gamma_bus is wired explicitly from hps_io (Quartus 17 did not resolve it
+// through .*), which gives the framework's "Gamma correction" OSD curves.
 wire vga_de_av;
-arcade_video #(.WIDTH(320), .DW(24), .GAMMA(0)) arcade_video (
+arcade_video #(.WIDTH(320), .DW(24), .GAMMA(1)) arcade_video (
     .*,
     .VGA_DE(vga_de_av),
-    .gamma_bus(),
+    .gamma_bus(gamma_bus),
     .clk_video(clk_sys),
     .ce_pix(ce_pix),
     .RGB_in({r, g, b}),

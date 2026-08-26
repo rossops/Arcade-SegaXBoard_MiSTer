@@ -360,16 +360,22 @@ reference exists for the 2x sprites; verification would compare against a
 2x mode of `verif/models/sprite5211.py`. The accurate 320x224 path stays
 the default and unchanged.
 
-## Later: framework gamma correction (parked)
+## Framework gamma correction (M15)
 
-`arcade_video` is instantiated with `GAMMA(0)` since the first hardware
+`arcade_video` was instantiated with `GAMMA(0)` from the first hardware
 build (M5/M6): Quartus 17 could not see the `gamma_bus` port through the
 framework's `.*` connection, and disabling gamma was the quick way past it.
-Re-enabling it (wire `gamma_bus` from `hps_io` explicitly, `GAMMA(1)`)
-gives the standard per-core "Gamma correction" OSD curves at the cost of a
-few hundred ALMs and one M10K for the LUT. Scaling and interpolation
-themselves stay with the framework's scaler filters; a core-side
-"improved scaling" mode would only re-interpolate the same 320x224 pixels.
+It is now `GAMMA(1)` with `gamma_bus` declared in `emu` and connected
+explicitly to both `hps_io` and `arcade_video`. That gives the framework's
+standard "Gamma correction" OSD curves (the video mixer drives
+`gamma_bus[21]` so the menu shows them) for a few hundred ALMs and one M10K
+for the LUT; the game image itself is untouched and the board simulation
+does not see the change. Scaling and interpolation stay with the framework's
+scaler filters; a core-side "improved scaling" mode would only
+re-interpolate the same 320x224 pixels.
+
+The enhanced-sprite work (M14) is parked on the `m14-enhanced-sprites`
+branch; its notes are in that branch's copy of this file.
 
 ## Later: CPU overclock (parked)
 
