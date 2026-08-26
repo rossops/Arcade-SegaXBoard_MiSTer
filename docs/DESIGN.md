@@ -385,8 +385,10 @@ had crept to the ceiling: 8- and 16-bit wide memories only use 80% of
 each 10-bit-wide block, and the road ROM, a behavioural array with one
 write and two read ports, was being built as two copies (64 + 32 blocks
 for 64 KB). `xb_roadrom` is now an explicit true-dual-port altsyncram
-(loader write and read 0 on port A, read 1 on port B): 64 blocks, so
-about 32 are free again. Check the "M10K blocks" line of `fit.rpt` after
+(loader write and read 0 on port A, read 1 on port B): 64 blocks. Build
+#23 landed at 545/553: the three-port version had cost more logic and
+bits than blocks (1,400 ALMs and 232 Kbit came back, 8 blocks), so the
+ceiling is still close. Check the "M10K blocks" line of `fit.rpt` after
 every build. The next lever, if a milestone needs more, is the plan's
 original SDRAM tile cache: the tile ROM is 192 blocks.
 
