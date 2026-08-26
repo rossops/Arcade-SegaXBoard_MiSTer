@@ -3,7 +3,7 @@
 
     make_db.py [--repo user/repo] [--branch main] [--out db.json.zip]
 
-Lists every MRA in releases/ as _Arcade/<name>.mra and the newest
+Lists every MRA under releases/ (alternatives included) as _Arcade/<path>.mra and the newest
 releases/Arcade-SegaXBoard_<date>.rbf as _Arcade/cores/<file>, with MD5 and
 size, each pointing at the raw GitHub URL of the file in the given branch.
 Users add to /media/fat/downloader.ini:
@@ -36,10 +36,16 @@ def main():
     a = ap.parse_args()
     raw = f"https://raw.githubusercontent.com/{a.repo}/{a.branch}/"
     files = {}
-    for mra in sorted(glob.glob(os.path.join(ROOT, "releases", "*.mra"))):
-        name = os.path.basename(mra)
-        files[f"_Arcade/{name}"] = {"hash": md5(mra), "size": os.path.getsize(mra),
-                                    "url": raw + "releases/" + name.replace(" ", "%20")}
+    folders = {"_Arcade": {}, "_Arcade/cores": {}}
+    rel_dir = os.path.join(ROOT, "releases")
+    for mra in sorted(glob.glob(os.path.join(rel_dir, "**", "*.mra"), recursive=True)):
+        rel = os.path.relpath(mra, rel_dir)          # e.g. _alternatives/_After Burner/x.mra
+        files[f"_Arcade/{rel}"] = {"hash": md5(mra), "size": os.path.getsize(mra),
+                                   "url": raw + "releases/" + rel.replace(" ", "%20")}
+        d = os.path.dirname(rel)
+        while d:
+            folders[f"_Arcade/{d}"] = {}
+            d = os.path.dirname(d)
     rbfs = sorted(glob.glob(os.path.join(ROOT, "releases", "Arcade-SegaXBoard_*.rbf")),
                   key=lambda p: re.search(r"_(\d{8})\.rbf$", p).group(1))
     if not rbfs:
@@ -53,7 +59,7 @@ def main():
         "timestamp": int(time.time()),
         "base_files_url": raw,
         "files": files,
-        "folders": {"_Arcade": {}, "_Arcade/cores": {}},
+        "folders": folders,
         "default_options": {},
         "zips": {},
     }

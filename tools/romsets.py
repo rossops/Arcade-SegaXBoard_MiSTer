@@ -175,6 +175,7 @@ ROMSETS = {
     },
     "aburner131": {
         "name": "After Burner (Ver 1.31)",
+        "alt": "After Burner",   # alternative: releases/_alternatives/_After Burner/
         "year": "1987",
         "zip": "aburner",
         "zipfile": "aburner",
@@ -244,6 +245,7 @@ ROMSETS = {
     },
     "thndrbld1": {
         "name": "Thunder Blade (deluxe, standing)",
+        "alt": "Thunder Blade",   # alternative: releases/_alternatives/_Thunder Blade/
         "year": "1987",
         "zip": "thndrbld",
         "zipfile": "thndrbld",
@@ -318,6 +320,7 @@ ROMSETS = {
     },
     "thndrbldd": {
         "name": "Thunder Blade (upright, bootleg decrypted)",
+        "alt": "Thunder Blade",   # alternative: releases/_alternatives/_Thunder Blade/
         "year": "1987",
         "zip": "thndrbld",
         "zipfile": "thndrbld",
@@ -392,6 +395,7 @@ ROMSETS = {
     },
     "smgpd": {
         "name": "Super Monaco GP (World, bootleg decrypted)",
+        "alt": "Super Monaco GP",   # alternative: releases/_alternatives/_Super Monaco GP/
         "year": "1989",
         "zip": "smgp",
         "zipfile": "smgp",
@@ -699,6 +703,7 @@ ROMSETS = {
     },
     "racherod": {
         "name": "Racing Hero (bootleg decrypted)",
+        "alt": "Racing Hero",   # alternative: releases/_alternatives/_Racing Hero/
         "year": "1989",
         "zip": "rachero",
         "zipfile": "rachero",
@@ -845,6 +850,7 @@ ROMSETS = {
     },
     "abcopj": {
         "name": "A.B. Cop (Japan)",
+        "alt": "A.B. Cop",   # alternative: releases/_alternatives/_A.B. Cop/
         "year": "1990",
         "zip": "abcop",
         "zipfile": "abcop",
@@ -920,6 +926,7 @@ ROMSETS = {
     },
     "abcopd": {
         "name": "A.B. Cop (World, bootleg decrypted)",
+        "alt": "A.B. Cop",   # alternative: releases/_alternatives/_A.B. Cop/
         "year": "1990",
         "zip": "abcop",
         "zipfile": "abcop",
@@ -992,6 +999,7 @@ ROMSETS = {
     },
     "abcopjd": {
         "name": "A.B. Cop (Japan, bootleg decrypted)",
+        "alt": "A.B. Cop",   # alternative: releases/_alternatives/_A.B. Cop/
         "year": "1990",
         "zip": "abcop",
         "zipfile": "abcop",
@@ -1139,6 +1147,7 @@ ROMSETS = {
     },
     "gpriderus": {
         "name": "GP Rider (US)",
+        "alt": "GP Rider",   # alternative: releases/_alternatives/_GP Rider/
         "year": "1990",
         "zip": "gprider",
         "zipfile": "gprider",
@@ -1214,6 +1223,7 @@ ROMSETS = {
     },
     "gpriderjs": {
         "name": "GP Rider (Japan)",
+        "alt": "GP Rider",   # alternative: releases/_alternatives/_GP Rider/
         "year": "1990",
         "zip": "gprider",
         "zipfile": "gprider",
@@ -1366,6 +1376,7 @@ ROMSETS = {
     },
     "lastsurvd": {
         "name": "Last Survivor (bootleg decrypted)",
+        "alt": "Last Survivor",   # alternative: releases/_alternatives/_Last Survivor/
         "year": "1989",
         "zip": "lastsurv",
         "zipfile": "lastsurv",
@@ -1517,6 +1528,7 @@ ROMSETS = {
     },
     "loffireu": {
         "name": "Line of Fire (US)",
+        "alt": "Line of Fire",   # alternative: releases/_alternatives/_Line of Fire/
         "year": "1989",
         "zip": "loffire",
         "zipfile": "loffire",
@@ -1594,6 +1606,7 @@ ROMSETS = {
     },
     "loffirej": {
         "name": "Line of Fire (Japan)",
+        "alt": "Line of Fire",   # alternative: releases/_alternatives/_Line of Fire/
         "year": "1989",
         "zip": "loffire",
         "zipfile": "loffire",
@@ -1671,6 +1684,7 @@ ROMSETS = {
     },
     "loffired": {
         "name": "Line of Fire (World, bootleg decrypted)",
+        "alt": "Line of Fire",   # alternative: releases/_alternatives/_Line of Fire/
         "year": "1989",
         "zip": "loffire",
         "zipfile": "loffire",
@@ -1745,6 +1759,7 @@ ROMSETS = {
     },
     "loffireud": {
         "name": "Line of Fire (US, bootleg decrypted)",
+        "alt": "Line of Fire",   # alternative: releases/_alternatives/_Line of Fire/
         "year": "1989",
         "zip": "loffire",
         "zipfile": "loffire",
@@ -1819,6 +1834,7 @@ ROMSETS = {
     },
     "loffirejd": {
         "name": "Line of Fire (Japan, bootleg decrypted)",
+        "alt": "Line of Fire",   # alternative: releases/_alternatives/_Line of Fire/
         "year": "1989",
         "zip": "loffire",
         "zipfile": "loffire",

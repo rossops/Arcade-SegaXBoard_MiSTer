@@ -94,7 +94,11 @@ def main():
     a = ap.parse_args()
     os.makedirs(a.outdir, exist_ok=True)
     for key, rs in ROMSETS.items():
-        path = os.path.join(a.outdir, f'{rs["name"]}.mra')
+        # MiSTer layout: one primary MRA per game in releases/, the other
+        # versions under releases/_alternatives/_<game>/
+        sub = os.path.join("_alternatives", "_" + rs["alt"]) if "alt" in rs else ""
+        os.makedirs(os.path.join(a.outdir, sub), exist_ok=True)
+        path = os.path.join(a.outdir, sub, f'{rs["name"]}.mra')
         with open(path, "w") as f:
             f.write(make_mra(key, rs))
         print(path)

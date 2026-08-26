@@ -32,6 +32,11 @@ expanders, a YM2151 and a 315-5218 PCM chip.
 
 ## Fully playable games
 
+One MRA per game sits in `releases/` (installed as `_Arcade/<game>.mra`);
+the other versions of each game are under `releases/_alternatives/_<game>/`,
+the standard MiSTer layout, and show up in the Arcade menu's alternatives
+folder.
+
 | Game | MAME set | ROM zips (MAME 0.289) | Main CPU |
 |---|---|---|---|
 | After Burner II | `aburner2` | `aburner2.zip` | plain |
