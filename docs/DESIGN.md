@@ -377,6 +377,19 @@ re-interpolate the same 320x224 pixels.
 The enhanced-sprite work (M14) is parked on the `m14-enhanced-sprites`
 branch; its notes are in that branch's copy of this file.
 
+### M10K budget
+
+Build #22 fit at exactly 553 of 553 M10K blocks. Earlier builds only
+logged block memory bits (74-78%), which hid how close the block count
+had crept to the ceiling: 8- and 16-bit wide memories only use 80% of
+each 10-bit-wide block, and the road ROM, a behavioural array with one
+write and two read ports, was being built as two copies (64 + 32 blocks
+for 64 KB). `xb_roadrom` is now an explicit true-dual-port altsyncram
+(loader write and read 0 on port A, read 1 on port B): 64 blocks, so
+about 32 are free again. Check the "M10K blocks" line of `fit.rpt` after
+every build. The next lever, if a milestone needs more, is the plan's
+original SDRAM tile cache: the tile ROM is 192 blocks.
+
 ## Later: analog sensitivity (parked)
 
 The stick and wheel axes map linearly from the MiSTer axis (-128..127)
