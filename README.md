@@ -116,11 +116,7 @@ expects is the one the MiSTer host actually sends.
 Copy `releases/Arcade-SegaXBoard_<date>.rbf` to `/media/fat/_Arcade/cores/`,
 the `.mra` files to `/media/fat/_Arcade/` and the MAME 0.289 zips listed in
 the games table to `/media/fat/games/mame/`, then launch a game from the
-Arcade menu. MiSTer needs split or non-merged sets: it opens
-`games/mame/<zip>/<file>` literally and does not look inside a merged zip's
-clone folders. From merged sets, `tools/make_clone_zips.py --out DIR` builds
-the small clone zips that go next to the parent zips. Commercial ROMs are
-not included.
+Arcade menu. Commercial ROMs are not included.
 
 For automatic installation, add this to `/media/fat/downloader.ini` and run
 Update All:
