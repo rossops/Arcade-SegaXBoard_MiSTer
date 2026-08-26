@@ -1,104 +1,45 @@
-# Root-level local audit/build transcripts
-/*.log
-/*.err.log
-/*.pid
-
-/audit.md
-# Scratch/reference material used during design research — not part of the core.
-# (Pinned MAME sources stay local; provenance and hashes are documented.)
-undefined/
-scratch/
-roms/
-
-/reference/
-/.codex-mister-build/
-/.playwright-mcp/
-/artifacts/
-*.tmp
-*.o
-*.exe
-/work-obj*.cf
-/nvram/
-/.mister/
-/*_object_writes.txt
-
-# Build outputs (Quartus / simulation), for later development phases
-output_files/
-db/
-incremental_db/
-simulation/
+db
+greybox_tmp
+incremental_db
+output_files
+simulation
+hc_output
+scaler
+hps_isw_handoff
+vip
+*_sim
+.qsys_edit
+PLLJ_PLLSPE_INFO.txt
+*.bak
+*.orig
+*.rej
+*.qdf
 *.rpt
-*.summary
 *.smsg
-# Isolated RAM-inference projects keep their hand-written QPF/QSF, but not
-# Quartus-generated proof reports.
-verif/quartus_ram_infer/*/*.rpt
-verif/quartus_ram_infer/*/*.summary
-*.rbf
+*.summary
+*.done
+*.jdi
+*.pin
+*.sof
 *.qws
-*_assignment_defaults.qdf
-work/
-transcript
-*.wlf
-/build_id.v
-/jtag.cdf
-verif/modelsim-regression.log
-obj_dir/
-rtl/pll/pll.qsys
-rtl/pll/synthesis/
-rtl/pll/sim/
-rtl/pll/testbench/
-rtl/pll/*.html
-rtl/pll/*.sopcinfo
-rtl/pll/*.xml
-
-# Local verification runs and generated reference helpers
-verif/modelsim_*/
-!verif/modelsim_romboot/
-verif/modelsim_romboot/*
-!verif/modelsim_romboot/dump80.png
-verif/**/msim/
-verif/**/output/
-verif/tools/*_tmp/
-/verif/*_work/
-/verif/quartus_v60/s32_v60_twoport.sv
-
-# Local screenshots, simulator transcripts, and crash diagnostics
-/ga2-*.png
-*.ppm
-/c5_pin_model_dump.txt
-/console_history
-verif/modelsim-*.log
-/verif/t*-retry.log
-*.vstf
-# Generated probe captures (recreate with the verification scripts)
-sim_obj8_writes.txt
-sim_wram_*.hex
-
-# Quartus diagnostics contain machine-specific crash/build details
-cr_ie_info.json
-serv_req_info.txt
-
-# built bitstreams (distribute via Releases, not git)
-releases/*.rbf
-# the released core is distributed from the repo (keep only the current one)
-!releases/Arcade-SegaXBoard_*.rbf
-output_files/
-__pycache__/
-/mra_goldenaxe_rbf/
-
-# Local tool/session workdirs (CodeGraph index, MAME MCP session, snapshots)
-/.codegraph/
-/.mame_mcp/
-/snap/
-
-# X Board additions
+*.ppf
+*.ddb
+build_id.v
+c5_pin_model_dump.txt
+*.sopcinfo
+*.csv
+*.f
+*.cmp
+*.sip
+*.spd
+*.bsf
+*~
+*.xml
+*_netlist
+*.cdf
+**/.DS_Store
+# Core-specific (verification runs, Python tooling, local sessions)
 verif/golden/
-obj_dir/
-*.ppm
-*.png
-*.vcd
-*.fst
 verif/.venv/
 verif/board/out*/
 verif/unit/sim_build/
@@ -112,3 +53,13 @@ verif/unit/sprite/runs.txt
 verif/unit/road/*.hex
 verif/unit/road/*.vvp
 verif/unit/road/road.txt
+obj_dir/
+*.ppm
+*.png
+*.vcd
+*.fst
+*.wlf
+__pycache__/
+.pytest_cache/
+/snap/
+/.claude/

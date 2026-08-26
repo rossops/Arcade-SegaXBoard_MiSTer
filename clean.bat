@@ -11,10 +11,10 @@ rmdir /s /q greybox_tmp
 rmdir /s /q hc_output
 rmdir /s /q .qsys_edit
 rmdir /s /q hps_isw_handoff
-rmdir /s /q sys\\.qsys_edit
-rmdir /s /q sys\\vip
-for /d %%i in (sys\\*_sim) do rmdir /s /q "%%i"
-for /d %%i in (rtl\\*_sim) do rmdir /s /q "%%i"
+rmdir /s /q sys\.qsys_edit
+rmdir /s /q sys\vip
+for /d %%i in (sys\*_sim) do rmdir /s /q "%%i"
+for /d %%i in (rtl\*_sim) do rmdir /s /q "%%i"
 del build_id.v
 del c5_pin_model_dump.txt
 del PLLJ_PLLSPE_INFO.txt
