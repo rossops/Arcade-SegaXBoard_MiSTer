@@ -377,6 +377,34 @@ re-interpolate the same 320x224 pixels.
 The enhanced-sprite work (M14) is parked on the `m14-enhanced-sprites`
 branch; its notes are in that branch's copy of this file.
 
+## Later: analog sensitivity (parked)
+
+The stick and wheel axes map linearly from the MiSTer axis (-128..127)
+onto each game's ADC range (`xb_core`: After Burner +-0x60/+-0x40, Super
+Monaco GP +-0x48, Racing Hero and A.B. Cop +-0x60, Thunder Blade and GP
+Rider full range). A cabinet stick or wheel has travel and a spring; a
+thumbstick reaches full deflection in a few millimetres, so the games feel
+twitchy around centre. The user asked for a sensitivity setting.
+
+- OSD "Analog response" with three curves applied to `stick_x`/`stick_y`
+  (and the right stick's throttle axis) before the per-game scaling:
+  Linear (today), Soft (`x * |x| / 128`: half deflection gives a quarter
+  of the range), Softer (`x * x * x / 16384`). The curves keep full lock
+  reachable: After Burner's rolls and the driving games' full steering
+  need the extremes, so a plain gain reduction is the wrong tool. A small
+  centre deadzone (+-4) stops drift from a stick that does not return to
+  exactly zero.
+- Optional second setting "Analog range" (100/75/50%) for people who want
+  less reach as well; off by default.
+- Applies to analog modes 0..4 (stick and wheel games). Line of Fire's
+  gamepad mode keeps its own cursor speed. The D-pad path is unchanged.
+- Cost: one signed 8x8 multiply per axis (DSP blocks are plentiful), no
+  timing impact. Status bits: the next free ones after O[21]; the parked
+  M14 branch already uses O[22], so pick O[24:23] to keep both mergeable.
+- Verification: the board bench's `+trace_adc` with scripted stick values
+  against a Python table of the curve; MAME has no equivalent, so there is
+  no external reference.
+
 ## Later: CPU overclock (parked)
 
 An opt-in OSD "CPU speed" (12.5 / 15 / 18.75 / 25 MHz) for both 68000s,

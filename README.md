@@ -28,6 +28,7 @@ expanders, a YM2151 and a 315-5218 PCM chip.
 | M14 | Enhanced sprites (640x448 sprite rendering, opt-in) | parked on the `m14-enhanced-sprites` branch: works in simulation, not taken to hardware |
 | M15 | Gamma correction (framework OSD option, disabled since M5) | in source, hardware build pending |
 | later | CPU overclock (12.5/15/18.75/25 MHz, opt-in) | parked, see docs/DESIGN.md |
+| later | Analog sensitivity (response curves for stick and wheel games) | parked, see docs/DESIGN.md |
 
 ## Supported games
 
