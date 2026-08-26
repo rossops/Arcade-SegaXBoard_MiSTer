@@ -72,6 +72,8 @@ module xb_core (
     input signed [7:0] stick_x, stick_y,    // MiSTer analog axes, -128..127
     input       [7:0] throttle,             // 0..255
     input       [1:0] stick_mode,           // 0 analog, 1 d-pad, 2 both
+    input       [1:0] ana_curve,            // OSD analog response: 0 linear, 1 soft, 2 softer
+    input       [1:0] ana_range,            // OSD analog range: 0 100%, 1 75%, 2 50%
     input       [7:0] dsw_a, dsw_b,
     input             service, test,
     input             coin1, coin2,
@@ -407,28 +409,37 @@ wire display_enable = io0_out_c[5];   // MAME: set_display_enable(data & 0x20)
 // (stick up reads high), throttle on channel 2. Thunder Blade: full range,
 // Y up reads low, throttle on channel 1 and Y on channel 2; X is reversed
 // through the descriptor's adc_reverse mask, which covers the D-pad too.
+// response curve and range for the stick and wheel games (modes 0..4); the
+// lightgun/cursor paths (mode 5) take the raw axes
+wire [2:0] am    = board_desc.ana_mode;
+wire [1:0] curve_eff = (am == 3'd5) ? 2'd0 : ana_curve;
+wire [1:0] range_eff = (am == 3'd5) ? 2'd0 : ana_range;
+wire signed [7:0] sx_s, sy_s, thr_s;
+xb_ana_shape shape_x (.clk(clk_sys), .axis(stick_x), .curve(curve_eff), .range(range_eff), .out(sx_s));
+xb_ana_shape shape_y (.clk(clk_sys), .axis(stick_y), .curve(curve_eff), .range(range_eff), .out(sy_s));
+xb_ana_shape shape_t (.clk(clk_sys), .axis(throttle ^ 8'h80), .curve(curve_eff), .range(range_eff), .out(thr_s));
+wire [7:0] throttle_s = thr_s ^ 8'h80;
 wire use_analog  = (stick_mode != 2'd1);
 wire use_dpad    = (stick_mode != 2'd0);
 wire dpad_active = |p1_buttons[3:0];
-wire signed [15:0] ab_xs = stick_x * 8'sd96;      // +-0x60
-wire signed [15:0] ab_ys = stick_y * 8'sd64;      // +-0x40
+wire signed [15:0] ab_xs = sx_s * 8'sd96;      // +-0x60
+wire signed [15:0] ab_ys = sy_s * 8'sd64;      // +-0x40
 wire [7:0] ab_x  = 8'h80 + ab_xs[14:7];
 wire [7:0] ab_y  = 8'h80 - ab_ys[14:7];
 wire [7:0] ab_dx = p1_buttons[0] ? 8'hE0 : p1_buttons[1] ? 8'h20 : 8'h80;
 wire [7:0] ab_dy = p1_buttons[3] ? 8'hC0 : p1_buttons[2] ? 8'h40 : 8'h80;
-wire [7:0] fr_x  = {~stick_x[7], stick_x[6:0]};   // 0x80 + x
-wire [7:0] fr_y  = {~stick_y[7], stick_y[6:0]};   // up (negative) -> low
+wire [7:0] fr_x  = {~sx_s[7], sx_s[6:0]};   // 0x80 + x
+wire [7:0] fr_y  = {~sy_s[7], sy_s[6:0]};   // up (negative) -> low
 wire [7:0] fr_dx = p1_buttons[0] ? 8'hFF : p1_buttons[1] ? 8'h01 : 8'h80;
 wire [7:0] fr_dy = p1_buttons[3] ? 8'h01 : p1_buttons[2] ? 8'hFF : 8'h80;
 // driving (Super Monaco GP): steering 0x38..0xC8 on ADC0, gas 0x38..0xB8 on
 // ADC1, brake 0x28..0xA8 on ADC2 (MAME ranges). Gas/brake come from the right
 // stick's Y axis (up = gas, down = brake) or the digital Gas/Brake buttons.
-wire [2:0] am    = board_desc.ana_mode;
-wire signed [15:0] dr_xs = stick_x * 8'sd72;      // +-0x48
+wire signed [15:0] dr_xs = sx_s * 8'sd72;      // +-0x48
 wire [7:0] dr_x  = 8'h80 + dr_xs[14:7];
 wire [7:0] dr_dx = p1_buttons[0] ? 8'hC8 : p1_buttons[1] ? 8'h38 : 8'h80;
-wire [7:0] thr_up   = (throttle < 8'h80) ? (8'h80 - throttle) : 8'd0;   // 0..0x80
-wire [7:0] thr_down = (throttle > 8'h80) ? (throttle - 8'h80) : 8'd0;   // 0..0x7F
+wire [7:0] thr_up   = (throttle_s < 8'h80) ? (8'h80 - throttle_s) : 8'd0;   // 0..0x80
+wire [7:0] thr_down = (throttle_s > 8'h80) ? (throttle_s - 8'h80) : 8'd0;   // 0..0x7F
 wire [7:0] gas_v    = p1_buttons[11] ? 8'h80 : thr_up;
 wire [7:0] brake_v  = p1_buttons[12] ? 8'h80 : thr_down;
 // driving with full-range pedals (Racing Hero, A.B. Cop): steering
@@ -448,8 +459,8 @@ wire [7:0] ana_x = (use_dpad && dpad_active) ? sel_dx : use_analog ? sel_x : 8'h
 wire [7:0] ana_y = (use_dpad && dpad_active) ? sel_dy : use_analog ? sel_y : 8'h80;
 wire [7:0] adc_ch0 = (am == 3'd5) ? gun1_x : ana_x;
 wire [7:0] adc_ch3 = (am == 3'd5) ? gun2_y : 8'h80;
-wire [7:0] adc_ch1 = (am == 3'd5) ? gun1_y : (am == 3'd4) ? gp_gas   : (am == 3'd3) ? gas_f   : (am == 3'd2) ? (8'h38 + gas_v)   : (am == 3'd1) ? throttle : ana_y;
-wire [7:0] adc_ch2 = (am == 3'd5) ? gun2_x : (am == 3'd4) ? gp_brake : (am == 3'd3) ? brake_f : (am == 3'd2) ? (8'h28 + brake_v) : (am == 3'd1) ? ana_y : throttle;
+wire [7:0] adc_ch1 = (am == 3'd5) ? gun1_y : (am == 3'd4) ? gp_gas   : (am == 3'd3) ? gas_f   : (am == 3'd2) ? (8'h38 + gas_v)   : (am == 3'd1) ? throttle_s : ana_y;
+wire [7:0] adc_ch2 = (am == 3'd5) ? gun2_x : (am == 3'd4) ? gp_brake : (am == 3'd3) ? brake_f : (am == 3'd2) ? (8'h28 + brake_v) : (am == 3'd1) ? ana_y : throttle_s;
 wire snd_reset_n    = io0_out_c[0];
 wire mute_n         = io0_out_d[7];
 

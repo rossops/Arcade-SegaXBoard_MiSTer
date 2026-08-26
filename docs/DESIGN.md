@@ -428,33 +428,37 @@ Changes made so the repository matches Template_MiSTer and the wiki's
 - Still to do: rename the repository `Arcade-SegaXBoard_MiSTer` (README
   and `make_db.py --repo` follow), then the adoption email.
 
-## Later: analog sensitivity (parked)
+## Analog sensitivity (M17)
 
 The stick and wheel axes map linearly from the MiSTer axis (-128..127)
 onto each game's ADC range (`xb_core`: After Burner +-0x60/+-0x40, Super
 Monaco GP +-0x48, Racing Hero and A.B. Cop +-0x60, Thunder Blade and GP
 Rider full range). A cabinet stick or wheel has travel and a spring; a
-thumbstick reaches full deflection in a few millimetres, so the games feel
-twitchy around centre. The user asked for a sensitivity setting.
+thumbstick reaches full deflection in a few millimetres, so the games felt
+twitchy around centre.
 
-- OSD "Analog response" with three curves applied to `stick_x`/`stick_y`
-  (and the right stick's throttle axis) before the per-game scaling:
-  Linear (today), Soft (`x * |x| / 128`: half deflection gives a quarter
-  of the range), Softer (`x * x * x / 16384`). The curves keep full lock
-  reachable: After Burner's rolls and the driving games' full steering
-  need the extremes, so a plain gain reduction is the wrong tool. A small
-  centre deadzone (+-4) stops drift from a stick that does not return to
-  exactly zero.
-- Optional second setting "Analog range" (100/75/50%) for people who want
-  less reach as well; off by default.
-- Applies to analog modes 0..4 (stick and wheel games). Line of Fire's
-  gamepad mode keeps its own cursor speed. The D-pad path is unchanged.
-- Cost: one signed 8x8 multiply per axis (DSP blocks are plentiful), no
-  timing impact. Status bits: the next free ones after O[21]; the parked
-  M14 branch already uses O[22], so pick O[24:23] to keep both mergeable.
-- Verification: the board bench's `+trace_adc` with scripted stick values
-  against a Python table of the curve; MAME has no equivalent, so there is
-  no external reference.
+- OSD "Analog response": Linear (the board's mapping, bit-exact
+  pass-through), Soft (`|out| = |in|^2 / 128`: half deflection gives a
+  quarter of the range), Softer (`|in|^3 / 16384`). Full lock stays
+  reachable (-128 maps to -128): After Burner's rolls and the driving
+  games' full steering need the extremes, so a plain gain cut would have
+  been the wrong tool. The curves flatten the centre enough that a stick
+  resting a few counts off zero reads as zero; there is no separate
+  deadzone.
+- OSD "Analog range": 100 / 75 / 50%, scales the magnitude after the curve
+  for people who want less reach as well. Off (100%) by default.
+- `rtl/io/xb_ana_shape.sv`: three registered stages (magnitude, square,
+  cube) and a combinational pick; one instance each for the P1 stick's X
+  and Y and the throttle axis (the right stick's Y, which is also gas and
+  brake in the driving games). Applied in `xb_core` before the per-game
+  mapping, only for analog modes 0..4: Line of Fire's lightgun and cursor
+  paths and the D-pad path take the raw axes. Latency is four `clk_sys`
+  clocks against a 1.25 MHz ADC sample.
+- Status bits O[24:23] and O[26:25] (O[22] is the parked M14 branch's).
+- Verification: `verif/unit/chips/test_ana_shape.py` checks every input
+  value against a Python model for all curves and ranges (2304 cases);
+  the board frame check confirms Linear/100% leaves the 1x path exact.
+  MAME has no equivalent, so the feel itself is a hardware judgement.
 
 ## Later: CPU overclock (parked)
 

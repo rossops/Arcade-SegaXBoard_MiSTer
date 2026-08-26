@@ -29,7 +29,7 @@ expanders, a YM2151 and a 315-5218 PCM chip.
 | M15 | Gamma correction (framework OSD option, disabled since M5) | done: confirmed on hardware; road ROM rebuilt as a true-dual-port RAM (build #23, 545/553 M10K) |
 | M16 | MiSTer-devel standards (stock `sys/`, template layout, MRA alternatives) | in source, hardware build pending |
 | later | CPU overclock (12.5/15/18.75/25 MHz, opt-in) | parked, see docs/DESIGN.md |
-| later | Analog sensitivity (response curves for stick and wheel games) | parked, see docs/DESIGN.md |
+| M17 | Analog sensitivity (response curves for stick and wheel games) | in source, hardware build pending |
 
 ## Fully playable games
 
@@ -65,6 +65,18 @@ folder.
 | Line of Fire (World, bootleg decrypted) | `loffired` | `loffire.zip` + `loffired.zip` | plain |
 | Line of Fire (US, bootleg decrypted) | `loffireud` | `loffire.zip` + `loffireud.zip` | plain |
 | Line of Fire (Japan, bootleg decrypted) | `loffirejd` | `loffire.zip` + `loffirejd.zip` | plain |
+
+## Controls and options
+
+Player 1's left stick is the flight stick or wheel; the right stick's Y
+axis is the throttle (After Burner, Thunder Blade) or gas and brake (the
+driving games), with Gas/Brake buttons as the digital alternative. OSD
+options: Stick (analog, D-pad, or both), Analog response (Linear is the
+board's own mapping; Soft and Softer flatten the centre for thumbsticks
+while keeping full lock), Analog range (100/75/50%), Gun control for Line
+of Fire (lightgun or gamepad cursor, with per-player cursor speed and an
+optional crosshair), rear speakers for Super Monaco GP, and pause while
+the OSD is open.
 
 ## Layout
 

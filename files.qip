@@ -27,6 +27,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/cpu/xb_cmptimer_5250.sv
 
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/io/xb_cxd1095.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/io/xb_adc0804.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/io/xb_ana_shape.sv
 
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/mem/sdram.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/mem/xb_rom_loader.sv
