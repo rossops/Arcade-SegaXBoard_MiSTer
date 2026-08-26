@@ -342,23 +342,79 @@ different CPU timing drift in phase, so the gate uses the envelope (>= 0.9).
 - DIP layout shared by both: Credits, Demo Sounds, Allow Continue, Time,
   Difficulty (MAME defaults `FF,F9`).
 
-## Long-term: enhanced sprite resolution (parked)
+## Enhanced sprite resolution (M14)
 
-An opt-in OSD mode rendering at 640x448 without touching gameplay timing.
-The tile, text and road layers carry no detail beyond 320x224 (8x8 bitmaps
-and per-line patterns at integer positions), so a 2x render of those is
-plain pixel doubling; the gain is in the sprites, whose zoom accumulators
-step through source pixels in 1/512 units: sampling at half steps makes
-shrunk sprites sharper and steadier (magnified ones get smoother steps).
-What it needs: a 2x video timing (800x524 at 12.5 MHz, same 262-line frame
-and 59.64 Hz so the CPUs, interrupts and handshakes keep the hardware
-timing), a sprite renderer sampling at 2x into 1024x512 DDR3 framebuffers
-with two pixels per clock (the heaviest frame today takes ~4.9 ms of the
-16.7 ms budget at one pixel per clock), `xb_fb_if` runs and line buffers at
-the 2x rate, doublers for the other layers. Estimate: +4-6k ALMs. No MAME
-reference exists for the 2x sprites; verification would compare against a
-2x mode of `verif/models/sprite5211.py`. The accurate 320x224 path stays
-the default and unchanged.
+An opt-in OSD mode ("Enhanced sprites (640x448)") rendering the sprite layer
+at twice the resolution without touching gameplay timing.
+
+- Output grid: the game-side timing (6.25 MHz `hcnt`/`vcnt`, 262 lines,
+  interrupts, handshakes) stays the master. `xb_video_timing` adds a second
+  counter set for the enhanced mode: two 800-pixel lines per game line at
+  25 MHz (a tick every two clocks, so the 3200-clock game line is exactly
+  two 1600-clock output lines; 800x524 at 59.64 Hz is 25.0 MHz), hsync per output line (31.5 kHz), the same vsync and
+  59.64 Hz. The tile, text and road line buffers are read once per game
+  pixel on the output grid (`disp_ce`/`disp_h`); the mixer and palette run
+  per output pixel. The framework gets `ce_pix` at 25 MHz, `arcade_video`
+  is sized for 640 pixels and its scandoubler is bypassed in this mode.
+- Step 1 (output path, sprites pixel-doubled from the 1x framebuffer):
+  verified by requiring the 2x frame to equal the pixel-doubled 1x frame of
+  the same run.
+- Step 2 (sprite side): 1024x512 framebuffers, the renderer sampling at
+  half steps by doubling the zoom accumulator thresholds (0x400) in both
+  directions, two output pixels per clock when they share a 64-bit word to
+  keep the heaviest frame inside the budget, two framebuffer line fetches
+  per game line, positions and the screen window scaled by two. Verified
+  against a 2x mode of `verif/models/sprite5211.py` (standalone bench and
+  board composite). Tiles, text and road carry no detail beyond 320x224
+  and stay pixel doubled.
+- Results: the standalone bench is pixel-exact against the model's 2x
+  render on the captured After Burner II lists (frames 60/150/234/236/300).
+  The first 300-frame board run aborted one render at vblank (frame 236,
+  13.7 ms of the 100 MHz render clock: the render only has the time from
+  the game's $110000 write to vblank, and the board adds the per-line
+  framebuffer fetches and DDR stalls). Profiling the bench showed the
+  renderer spending a separate clock stepping to the next source nibble
+  after each emission, so a 1:1 source pixel cost two clocks; the step now
+  happens in the clock of the emission that exhausts the accumulator (both
+  modes, still pixel-exact). Frame 236 renders in 9.9 ms at 2x (frame 150:
+  8.6 ms, was 11.8; at 1x 3.6 ms, was 4.9), including the 1.5 ms erase of
+  the 1024x512 buffer. Remaining time by state for frame 236: pixels 44%,
+  sprite ROM waits 26%, erase 15%, waiting for the previous row's flush
+  14%. Next steps if a game still overruns: overlap the row flush with the
+  next row (second run buffer), erase only the lines the previous render
+  touched. A render that does not finish is cut at vblank, as on the
+  hardware when overloaded. The simulation DDR model grew to 2 MB.
+- Build #20 did not fit: 591 of the 553 M10K blocks. Earlier builds only
+  logged block memory bits (76-78%), and the block count had crept close
+  to the ceiling. Two changes brought it to 544 (98%): `arcade_video`
+  keeps `WIDTH(320)` (the parameter only sizes the scandoubler's line
+  buffers, and the scandoubler is bypassed in the enhanced mode), and the
+  road ROM became an explicit true-dual-port altsyncram (the behavioural
+  three-port array had been duplicated: 96 blocks for 64 KB, now 64). The
+  next lever, if a later milestone needs blocks, is the plan's original
+  SDRAM tile cache (the tile ROM is 192 blocks). Build #21 also showed
+  -0.17 ns at the -40C corner on the renderer's row advance (yacc + vzoom,
+  then pitch times the carry, then the address add), so the sum is now
+  registered a clock ahead with a dedicated row-skip state.
+- Board-level result: the 2x frame 60 of the After Burner II attract is
+  pixel-exact against the model composite (tiles and road doubled, sprites
+  from the model's 2x render), and a 300-frame 1x/2x side-by-side run of
+  the attract sequence was inspected by eye. The first board run showed
+  every other output row one game line off in the sprite layer: the
+  `oline` flag crossed into the renderer clock with one more synchroniser
+  stage than `line_start`, so the two per-game-line fetches (2n+1 and
+  2(n+1)) went to the wrong output halves. The standalone bench could not
+  see it (it drives the renderer directly); the board composite did.
+- M19 (picked up again after M18 freed the M10K): rebased onto the
+  SDRAM road ROM with no changes to the design above. The frame-150 board
+  composite, whose bottom row has cloud sprites with distinct odd and even
+  2x rows, showed output row 447 repeating row 446: the line-fetch request
+  was gated on `vcnt < 223`, which at 2x also dropped the first fetch of
+  game line 223 (framebuffer line 447). Frame 60 had not exposed it. The
+  fetch is now allowed there, and `xb_fb_if` serves a pending line fetch
+  before an erase line: a 2x erase is 512 lines, the game's $110000 write
+  can land in line 223, and the fetch has to be published by that output
+  line's hblank.
 
 ## Framework gamma correction (M15)
 
@@ -374,8 +430,9 @@ does not see the change. Scaling and interpolation stay with the framework's
 scaler filters; a core-side "improved scaling" mode would only
 re-interpolate the same 320x224 pixels.
 
-The enhanced-sprite work (M14) is parked on the `m14-enhanced-sprites`
-branch; its notes are in that branch's copy of this file.
+The enhanced-sprite work (M14) was parked on the `m14-enhanced-sprites`
+branch until M18 moved the road ROM out of BRAM; it came back as M19 (see
+the M14 section above, which is its design).
 
 ### M10K budget
 
@@ -454,7 +511,7 @@ twitchy around centre.
   mapping, only for analog modes 0..4: Line of Fire's lightgun and cursor
   paths and the D-pad path take the raw axes. Latency is four `clk_sys`
   clocks against a 1.25 MHz ADC sample.
-- Status bits O[24:23] and O[26:25] (O[22] is the parked M14 branch's).
+- Status bits O[24:23] and O[26:25] (O[22] is the enhanced-sprite mode).
 - Per-game menu: `hps_io`'s `status_menumask` comes from the board
   descriptor, and the `CONF_STR` lines carry `H<n>` prefixes: bit 0 hides
   the rear-speaker option without a second sound board, bit 1 the gun

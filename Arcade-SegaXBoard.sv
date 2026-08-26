@@ -126,6 +126,7 @@ localparam CONF_STR = {
     "-;",
     "O[2:1],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
     "O[5:3],Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
+    "O[22],Enhanced sprites (640x448),Off,On;",
     "O[7],Service Mode,Off,On;",
     "H2O[9:8],Stick,Analog,D-Pad,Analog+D-Pad;",
     "H2O[24:23],Analog response,Linear,Soft,Softer;",
@@ -306,7 +307,7 @@ wire        ce_pix, hs, vs, hb, vb;
 wire signed [15:0] aud_l, aud_r;
 
 xb_core core (
-    .clk_sys(clk_sys), .clk_ram(clk_ram), .reset(reset), .pause(pause), .rear_en(~status[11]),
+    .clk_sys(clk_sys), .clk_ram(clk_ram), .reset(reset), .pause(pause), .hires(status[22]), .rear_en(~status[11]),
     .board_desc(board_desc),
     .tile_wr(tile_wr), .tile_waddr(tile_waddr), .tile_wdata(tile_wdata),
     .key_wr(key_wr), .key_waddr(key_waddr), .key_wdata(key_wdata),
@@ -335,7 +336,7 @@ xb_core core (
     .nv_download(nv_download), .nv_upload(nv_upload), .nv_wr(ioctl_wr), .nv_rd(ioctl_rd),
     .nv_addr(ioctl_addr[15:1]), .nv_din(ioctl_dout), .nv_dout(ioctl_din), .nv_modified(nv_modified),
     .r(r), .g(g), .b(b),
-    .ce_pix(ce_pix), .hs(hs), .vs(vs), .hb(hb), .vb(vb),
+    .ce_vid(ce_pix), .hs(hs), .vs(vs), .hb(hb), .vb(vb),
     .audio_l(aud_l), .audio_r(aud_r),
     .trace_main_addr(), .trace_main_start(), .trace_main_fc(),
     .trace_sub_addr(), .trace_sub_start(), .trace_sub_fc()
@@ -355,6 +356,9 @@ wire [11:0] aspect_ary = (aspect == 0) ? 12'd3 : 12'd0;
 // gamma_bus is wired explicitly from hps_io (Quartus 17 did not resolve it
 // through .*), which gives the framework's "Gamma correction" OSD curves.
 wire vga_de_av;
+// WIDTH only sizes the scandoubler's line buffers (M10K), and the scandoubler
+// is bypassed in the 640-pixel enhanced mode (fx forced to 0, no forced
+// scandoubler: the output is already 31 kHz), so 320 covers both modes.
 arcade_video #(.WIDTH(320), .DW(24), .GAMMA(1)) arcade_video (
     .*,
     .VGA_DE(vga_de_av),
@@ -366,7 +370,7 @@ arcade_video #(.WIDTH(320), .DW(24), .GAMMA(1)) arcade_video (
     .VBlank(vb),
     .HSync(hs),
     .VSync(vs),
-    .fx(scandoubler_fx),
+    .fx(status[22] ? 3'd0 : scandoubler_fx),
     .forced_scandoubler(1'b0)
 );
 

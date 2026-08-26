@@ -19,6 +19,7 @@ module xb_fb_if #(
 )(
     input             clk,      // clk_ram
     input             rst,
+    input             hires,    // 2x mode: 1024x512 buffers (1 MB each)
 
     // DDRAM (MiSTer)
     input             DDRAM_BUSY,
@@ -36,9 +37,10 @@ module xb_fb_if #(
     // with gaps (flipped sprites sweep right-to-left; clip-out punches holes)
     input             wr_start,        // begin run (latches y/buf/shadow)
     input       [1:0] wr_buf,          // buffer select
-    input       [8:0] wr_x,            // x of THIS pixel (valid with wr_valid)
-    input       [7:0] wr_y,
-    input             wr_valid,        // one pixel this cycle
+    input       [9:0] wr_x,            // x of THIS pixel (valid with wr_valid)
+    input       [3:0] wr_lanes,        // lanes of word wr_x[9:2] written with wr_pix (2x pairs)
+    input       [8:0] wr_y,
+    input             wr_valid,        // one write this cycle
     input      [15:0] wr_pix,
     input             wr_end,
     input             wr_shadow,       // run is a shadow RMW (dest &= 0x7fff)
@@ -47,15 +49,16 @@ module xb_fb_if #(
     // erase port
     input             er_req,
     input       [1:0] er_buf,
-    input       [7:0] er_y,
+    input       [8:0] er_y,
     output reg        er_ack,
 
     // line read port -> mixer
     input             rd_req,
     input       [1:0] rd_buf,
-    input       [7:0] rd_y,
+    input       [8:0] rd_y,
     output reg        rd_ack,          // line available in buffer
-    input       [8:0] rd_x,            // synchronous read of fetched line
+    input       [9:0] rd_x,            // synchronous read of fetched line
+    input             rd_pub_ok,       // a completed fetch may be published at rd_x == 0
     output     [15:0] rd_pix
 );
 
@@ -66,9 +69,9 @@ module xb_fb_if #(
 // RAM below has a 16-bit-lane write port for arbitrary-order sprite pixels and
 // a synchronous 64-bit flush read port.  Keeping this out of flops removes the
 // 8,192-register run buffer and its large read mux from the integrated map.
-reg [511:0] run_msk;               // which pixels this run actually wrote
-reg [8:0]   run_x0, run_xe;        // min / max written x
-reg [7:0]   run_y;
+reg [1023:0] run_msk;              // which pixels this run actually wrote
+reg [9:0]   run_x0, run_xe;        // min / max written x
+reg [8:0]   run_y;
 reg [1:0]   run_bufsel;
 reg         run_active;
 reg         run_shadow;
@@ -81,7 +84,7 @@ reg  [1:0] rd_lane;
 reg        display_bank;
 reg        fill_bank;
 reg        line_ready;
-wire       rd_line_publish = (rd_x == 9'd0) && line_ready;
+wire       rd_line_publish = (rd_x == 10'd0) && line_ready && rd_pub_ok;
 wire       scan_bank = rd_line_publish ? fill_bank : display_bank;
 
 // DDR engine
@@ -95,14 +98,15 @@ reg [7:0]  dburst;
 reg        dwe, drd;
 reg [63:0] ddin;
 reg [7:0]  dbe;
-reg [6:0]  beat, beats;
-reg [6:0]  rbeat;
+reg [7:0]  beat, beats;
+reg [7:0]  rbeat;
+reg        rd_second;               // 2x: second 128-beat half of the line
 // Word currently being serviced by the run flusher.  Capturing this at the
 // flush boundary keeps the active byte-enable path independent of run_x0 and
 // the beat counter's add chain.
-reg [6:0]  run_word_q;
+reg [7:0]  run_word_q;
 wire        line_we = (dst == D_RD_W) && DDRAM_DOUT_READY;
-wire [6:0]  line_waddr = rbeat;
+wire [7:0]  line_waddr = rbeat;
 wire [63:0] line_wdata = DDRAM_DOUT;
 wire        line_we0 = line_we && !fill_bank;
 wire        line_we1 = line_we &&  fill_bank;
@@ -110,11 +114,11 @@ wire        line_we1 = line_we &&  fill_bank;
 wire [63:0] line_q0, line_q1;
 xb_fb_line_ram line_ram0 (
     .clk(clk), .wr_en(line_we0), .wr_addr(line_waddr),
-    .wr_data(line_wdata), .rd_addr(rd_x[8:2]), .rd_q(line_q0)
+    .wr_data(line_wdata), .rd_addr(rd_x[9:2]), .rd_q(line_q0)
 );
 xb_fb_line_ram line_ram1 (
     .clk(clk), .wr_en(line_we1), .wr_addr(line_waddr),
-    .wr_data(line_wdata), .rd_addr(rd_x[8:2]), .rd_q(line_q1)
+    .wr_data(line_wdata), .rd_addr(rd_x[9:2]), .rd_q(line_q1)
 );
 
 `ifdef SIMULATION
@@ -135,12 +139,18 @@ always @(posedge clk) begin
     rd_lane <= rd_x[1:0];
 end
 
-function automatic [28:0] pix_addr(input [1:0] buf_i, input [7:0] y,
-                                   input [6:0] x_word);
-    // 64-bit word address for DDRAM: byte addr / 8
-    pix_addr = FB_BASE[31:3] + {{12{1'b0}}, buf_i, 15'b0}
-                                + {{14{1'b0}}, y, 7'b0}
-                                + {22'b0, x_word};
+function automatic [28:0] pix_addr(input [1:0] buf_i, input [8:0] y,
+                                   input [7:0] x_word);
+    // 64-bit word address for DDRAM: byte addr / 8. 1x: 128 words per line,
+    // 256 lines per buffer; 2x: 256 words per line, 512 lines per buffer.
+    if (hires)
+        pix_addr = FB_BASE[31:3] + {{10{1'b0}}, buf_i, 17'b0}
+                                    + {{12{1'b0}}, y, 8'b0}
+                                    + {21'b0, x_word};
+    else
+        pix_addr = FB_BASE[31:3] + {{12{1'b0}}, buf_i, 15'b0}
+                                    + {{14{1'b0}}, y[7:0], 7'b0}
+                                    + {21'b0, x_word};
 endfunction
 
 // Synchronous run-buffer read pipeline.  D_WR_PF consumes the base word
@@ -149,15 +159,15 @@ endfunction
 // accepting edge q still contains the immediately following word.  Thus the
 // registered RAM sustains one DDR word per accepted clock without allowing a
 // stalled request's data to change.
-wire [6:0] run_word_base = run_word_q;
-wire [6:0] run_cur_word  = run_word_q;
-wire [6:0] run_next_word = run_word_q + 7'd1;
-wire [6:0] run_ram_raddr = (dst == D_IDLE)       ? run_x0[8:2] :
+wire [7:0] run_word_base = run_word_q;
+wire [7:0] run_cur_word  = run_word_q;
+wire [7:0] run_next_word = run_word_q + 8'd1;
+wire [7:0] run_ram_raddr = (dst == D_IDLE)       ? run_x0[9:2] :
                             (dst == D_WR_PF)      ? run_next_word :
                             (dst == D_WR_SKIP)    ? run_cur_word :
                             (dst == D_WR_SKIP_PF) ? run_next_word :
                             (dst == D_WR)         ? run_cur_word
-                                                     + (DDRAM_BUSY ? 7'd1 : 7'd2) :
+                                                     + (DDRAM_BUSY ? 8'd1 : 8'd2) :
                                                     run_cur_word;
 
 wire [3:0] run_base_mask = run_msk[{run_word_base, 2'b00} +: 4];
@@ -179,8 +189,8 @@ wire [63:0] run_ram_q;
 xb_fb_run_ram run_ram (
     .clk(clk),
     .wr_en(wr_valid && run_active),
-    .wr_addr(wr_x[8:2]),
-    .wr_lane(wr_x[1:0]),
+    .wr_addr(wr_x[9:2]),
+    .wr_lanes(wr_lanes),
     .wr_data(wr_pix),
     .rd_addr(run_ram_raddr),
     .rd_q(run_ram_q)
@@ -207,20 +217,24 @@ wire flush_accept  = (dst == D_IDLE) && !erase_pending &&
 // capture pixel runs (indexed by the pixel's own x)
 always @(posedge clk) begin
     if (wr_start) begin
-        run_x0     <= 9'd511;
-        run_xe     <= 9'd0;
+        run_x0     <= 10'd1023;
+        run_xe     <= 10'd0;
         run_y      <= wr_y;
         run_bufsel <= wr_buf;
         run_shadow <= wr_shadow;
         run_active <= 1'b1;
         run_any    <= 1'b0;
-        run_msk    <= 512'b0;
+        run_msk    <= 1024'b0;
     end
     if (wr_valid && run_active) begin
-        run_msk[wr_x] <= 1'b1;
+        // up to two lanes of one 64-bit word per write (2x pairs)
+        logic [9:0] lo, hi;
+        run_msk[{wr_x[9:2], 2'b00} +: 4] <= run_msk[{wr_x[9:2], 2'b00} +: 4] | wr_lanes;
         run_any <= 1'b1;
-        if (wr_x < run_x0) run_x0 <= wr_x;
-        if (wr_x > run_xe) run_xe <= wr_x;
+        lo = {wr_x[9:2], wr_lanes[0] ? 2'd0 : wr_lanes[1] ? 2'd1 : wr_lanes[2] ? 2'd2 : 2'd3};
+        hi = {wr_x[9:2], wr_lanes[3] ? 2'd3 : wr_lanes[2] ? 2'd2 : wr_lanes[1] ? 2'd1 : 2'd0};
+        if (lo < run_x0) run_x0 <= lo;
+        if (hi > run_xe) run_xe <= hi;
     end
     if (flush_accept) run_active <= 1'b0;
     if (rst) run_active <= 1'b0;
@@ -243,7 +257,7 @@ assign wr_busy = wr_end | flush_req |
 always @(posedge clk) begin
     if (rst) begin
         dst <= D_IDLE; dwe <= 0; drd <= 0; er_ack <= 0; rd_ack <= 0;
-        run_word_q <= 7'd0;
+        run_word_q <= 8'd0;
         display_bank <= 1'b0;
         fill_bank <= 1'b1;
         line_ready <= 1'b0;
@@ -256,31 +270,34 @@ always @(posedge clk) begin
         case (dst)
         D_IDLE: begin
             dwe <= 0; drd <= 0;
-            if (erase_pending) begin
-                daddr  <= pix_addr(er_buf, er_y, 7'd0);
-                // MiSTer recommends pipelined single writes. With burstcnt=1
-                // each accepted beat may advance DDRAM_ADDR legally.
-                dburst <= 8'd1;
-                ddin   <= 64'hFFFF_FFFF_FFFF_FFFF;
-                dbe    <= 8'hFF;
-                beat   <= 0; beats <= 7'd127;
-                dwe    <= 1'b1;
-                dst    <= D_ER;
-            end
-            else if (read_pending) begin
-                daddr  <= pix_addr(rd_buf, rd_y, 7'd0);
-                dburst <= 8'd128;
+            // A line fetch is one 256-beat read and has a raster deadline; an
+            // erase is up to 512 lines (2x) and can wait a line between them.
+            if (read_pending) begin
+                daddr  <= pix_addr(rd_buf, rd_y, 8'd0);
+                dburst <= 8'd128;               // 2x: two 128-beat bursts (burstcnt is 8 bits)
                 rbeat  <= 0;
+                rd_second <= 1'b0;
                 fill_bank <= ~display_bank;
                 drd    <= 1'b1;
                 dbe    <= 8'hFF;  // audit R20 PF-4: reads drive all byte lanes
                 dst    <= D_RD;
             end
+            else if (erase_pending) begin
+                daddr  <= pix_addr(er_buf, er_y, 8'd0);
+                // MiSTer recommends pipelined single writes. With burstcnt=1
+                // each accepted beat may advance DDRAM_ADDR legally.
+                dburst <= 8'd1;
+                ddin   <= 64'hFFFF_FFFF_FFFF_FFFF;
+                dbe    <= 8'hFF;
+                beat   <= 0; beats <= hires ? 8'd255 : 8'd127;
+                dwe    <= 1'b1;
+                dst    <= D_ER;
+            end
             else if (flush_req) begin
                 beat  <= 0;
-                beats <= (run_xe[8:2] - run_x0[8:2]);
-                run_word_q <= run_x0[8:2];
-                daddr <= pix_addr(run_bufsel, run_y, run_x0[8:2]);
+                beats <= (run_xe[9:2] - run_x0[9:2]);
+                run_word_q <= run_x0[9:2];
+                daddr <= pix_addr(run_bufsel, run_y, run_x0[9:2]);
                 if (!run_any) begin
                     // fully-transparent row: nothing to flush
                 end
@@ -308,11 +325,8 @@ always @(posedge clk) begin
         end
         D_ER: if (!DDRAM_BUSY) begin
             dwe <= 1'b1;
-            // Erase always spans the fixed 128-word line loaded in D_IDLE.
-            // Keep the terminal test local to beat; comparing against the
-            // variable beats register was the measured critical cone into
-            // the D_ER state bit.
-            if (&beat) begin dwe <= 0; er_ack <= 1'b1; dst <= D_IDLE; end
+            // Erase spans the line loaded in D_IDLE (128 or 256 words).
+            if (beat == beats) begin dwe <= 0; er_ack <= 1'b1; dst <= D_IDLE; end
             else begin beat <= beat + 1'd1; daddr <= daddr + 1'd1; end
         end
         D_WR: if (!DDRAM_BUSY) begin
@@ -423,10 +437,19 @@ always @(posedge clk) begin
         D_RD_W: begin
             if (DDRAM_DOUT_READY) begin
                 rbeat <= rbeat + 1'd1;
-                if (rbeat == 7'd127) begin
-                    line_ready <= 1'b1;
-                    rd_ack <= 1'b1;
-                    dst <= D_IDLE;
+                if (rbeat[6:0] == 7'd127) begin
+                    if (hires && !rd_second) begin
+                        // second half of the 256-word line
+                        rd_second <= 1'b1;
+                        daddr <= daddr + 29'd128;
+                        drd   <= 1'b1;
+                        dst   <= D_RD;
+                    end
+                    else begin
+                        line_ready <= 1'b1;
+                        rd_ack <= 1'b1;
+                        dst <= D_IDLE;
+                    end
                 end
             end
         end
@@ -448,9 +471,9 @@ endmodule
 module xb_fb_line_ram (
     input              clk,
     input              wr_en,
-    input       [6:0]  wr_addr,
+    input       [7:0]  wr_addr,
     input      [63:0]  wr_data,
-    input       [6:0]  rd_addr,
+    input       [7:0]  rd_addr,
     output     [63:0]  rd_q
 );
 
@@ -479,11 +502,11 @@ altsyncram ram (
     .rden_b(1'b1)
 );
 defparam
-    ram.numwords_a = 128,
-    ram.widthad_a = 7,
+    ram.numwords_a = 256,
+    ram.widthad_a = 8,
     ram.width_a = 64,
-    ram.numwords_b = 128,
-    ram.widthad_b = 7,
+    ram.numwords_b = 256,
+    ram.widthad_b = 8,
     ram.width_b = 64,
     ram.address_reg_b = "CLOCK1",
     ram.clock_enable_input_a = "BYPASS",
@@ -499,7 +522,7 @@ defparam
     ram.width_byteena_a = 1,
     ram.ram_block_type = "M10K";
 `else
-reg [63:0] mem [0:127];
+reg [63:0] mem [0:255];
 reg [63:0] rd_q_r;
 assign rd_q = rd_q_r;
 
@@ -528,17 +551,15 @@ endmodule
 module xb_fb_run_ram (
     input              clk,
     input              wr_en,
-    input       [6:0]  wr_addr,
-    input       [1:0]  wr_lane,
+    input       [7:0]  wr_addr,
+    input       [3:0]  wr_lanes,
     input      [15:0]  wr_data,
-    input       [6:0]  rd_addr,
+    input       [7:0]  rd_addr,
     output     [63:0]  rd_q
 );
 
 wire [63:0] wr_word = {4{wr_data}};
-wire  [7:0] wr_be = (wr_lane == 2'd0) ? 8'b0000_0011 :
-                     (wr_lane == 2'd1) ? 8'b0000_1100 :
-                     (wr_lane == 2'd2) ? 8'b0011_0000 : 8'b1100_0000;
+wire  [7:0] wr_be = {{2{wr_lanes[3]}}, {2{wr_lanes[2]}}, {2{wr_lanes[1]}}, {2{wr_lanes[0]}}};
 
 `ifdef ALTERA_RESERVED_QIS
 altsyncram ram (
@@ -565,11 +586,11 @@ altsyncram ram (
     .rden_b(1'b1)
 );
 defparam
-    ram.numwords_a = 128,
-    ram.widthad_a = 7,
+    ram.numwords_a = 256,
+    ram.widthad_a = 8,
     ram.width_a = 64,
-    ram.numwords_b = 128,
-    ram.widthad_b = 7,
+    ram.numwords_b = 256,
+    ram.widthad_b = 8,
     ram.width_b = 64,
     ram.address_reg_b = "CLOCK1",
     ram.clock_enable_input_a = "BYPASS",
@@ -584,25 +605,23 @@ defparam
     ram.read_during_write_mode_mixed_ports = "DONT_CARE",
     ram.width_byteena_a = 8;
 `else
-reg [63:0] mem [0:127];
+reg [63:0] mem [0:255];
 reg [63:0] rd_q_r;
 assign rd_q = rd_q_r;
 
 integer __run_init;
 initial begin
-    for (__run_init = 0; __run_init < 128; __run_init = __run_init + 1)
+    for (__run_init = 0; __run_init < 256; __run_init = __run_init + 1)
         mem[__run_init] = 64'd0;
 end
 
 always @(posedge clk) begin
     rd_q_r <= mem[rd_addr];
     if (wr_en) begin
-        case (wr_lane)
-            2'd0: mem[wr_addr][15:0]  <= wr_data;
-            2'd1: mem[wr_addr][31:16] <= wr_data;
-            2'd2: mem[wr_addr][47:32] <= wr_data;
-            2'd3: mem[wr_addr][63:48] <= wr_data;
-        endcase
+        if (wr_lanes[0]) mem[wr_addr][15:0]  <= wr_data;
+        if (wr_lanes[1]) mem[wr_addr][31:16] <= wr_data;
+        if (wr_lanes[2]) mem[wr_addr][47:32] <= wr_data;
+        if (wr_lanes[3]) mem[wr_addr][63:48] <= wr_data;
     end
 end
 `endif

@@ -25,10 +25,11 @@ expanders, a YM2151 and a 315-5218 PCM chip.
 | M11 | GP Rider | done: three single-board FD1094 sets, confirmed on hardware |
 | M12 | Last Survivor | done: input multiplexer, two players, bootleg and FD1094 sets, confirmed on hardware |
 | M13 | Line of Fire | done: six sets, lightgun/gamepad gun control with cursor speed and crosshair, confirmed on hardware |
-| M14 | Enhanced sprites (640x448 sprite rendering, opt-in) | parked on the `m14-enhanced-sprites` branch: works in simulation, not taken to hardware |
+| M14 | Enhanced sprites (640x448 sprite rendering, opt-in) | parked in 2026-08 (did not fit alongside the road ROM in BRAM), picked up again as M19 |
 | M15 | Gamma correction (framework OSD option, disabled since M5) | done: confirmed on hardware; road ROM rebuilt as a true-dual-port RAM (build #23, 545/553 M10K) |
 | M16 | MiSTer-devel standards (stock `sys/`, template layout, MRA alternatives) | in source, hardware build pending |
 | M18 | Road ROM in SDRAM (line prefetch, frees 64 M10K blocks) | done: confirmed on hardware (build #28, 488/553 M10K) |
+| M19 | Enhanced sprites (640x448 sprite rendering, opt-in OSD option) | in source: pixel-exact vs the 2x sprite model in simulation, hardware build pending |
 | later | CPU overclock (12.5/15/18.75/25 MHz, opt-in) | parked, see docs/DESIGN.md |
 | M17 | Analog sensitivity (response curves for stick and wheel games) and per-game OSD | done: confirmed on hardware (build #27) |
 
