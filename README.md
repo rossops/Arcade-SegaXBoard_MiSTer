@@ -30,7 +30,7 @@ expanders, a YM2151 and a 315-5218 PCM chip.
 | later | CPU overclock (12.5/15/18.75/25 MHz, opt-in) | parked, see docs/DESIGN.md |
 | later | Analog sensitivity (response curves for stick and wheel games) | parked, see docs/DESIGN.md |
 
-## Supported games
+## Fully playable games
 
 | Game | MAME set | ROM zips (MAME 0.289) | Main CPU |
 |---|---|---|---|
@@ -39,8 +39,8 @@ expanders, a YM2151 and a 315-5218 PCM chip.
 | After Burner (Ver 1.31) | `aburner131` | `aburner.zip` + `aburner131.zip` | plain |
 | Thunder Blade (deluxe, standing) | `thndrbld1` | `thndrbld.zip` + `thndrbld1.zip` | plain |
 | Thunder Blade (upright, bootleg decrypted) | `thndrbldd` | `thndrbld.zip` + `thndrbldd.zip` | plain |
-| Super Monaco GP (World, bootleg decrypted) | `smgpd` | `smgp.zip` + `smgpd.zip` | plain |
 | Thunder Blade (upright) | `thndrbld` | `thndrbld.zip` | FD1094 |
+| Super Monaco GP (World, bootleg decrypted) | `smgpd` | `smgp.zip` + `smgpd.zip` | plain |
 | Super Monaco GP (World, Rev B) | `smgp` | `smgp.zip` | FD1094 |
 | Racing Hero | `rachero` | `rachero.zip` | FD1094 |
 | Racing Hero (bootleg decrypted) | `racherod` | `rachero.zip` + `racherod.zip` | plain |
@@ -117,11 +117,7 @@ expects is the one the MiSTer host actually sends.
 Copy `releases/Arcade-SegaXBoard_<date>.rbf` to `/media/fat/_Arcade/cores/`,
 the `.mra` files to `/media/fat/_Arcade/` and the MAME 0.289 zips listed in
 the games table to `/media/fat/games/mame/`, then launch a game from the
-Arcade menu. MiSTer needs split or non-merged sets: it opens
-`games/mame/<zip>/<file>` literally and does not look inside a merged zip's
-clone folders. From merged sets, `tools/make_clone_zips.py --out DIR` builds
-the small clone zips that go next to the parent zips. Commercial ROMs are
-not included.
+Arcade menu. Commercial ROMs are not included.
 
 For automatic installation, add this to `/media/fat/downloader.ini` and run
 Update All:
