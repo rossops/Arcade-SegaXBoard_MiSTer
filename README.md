@@ -38,8 +38,8 @@ expanders, a YM2151 and a 315-5218 PCM chip.
 | After Burner (Ver 1.31) | `aburner131` | `aburner.zip` + `aburner131.zip` | plain |
 | Thunder Blade (deluxe, standing) | `thndrbld1` | `thndrbld.zip` + `thndrbld1.zip` | plain |
 | Thunder Blade (upright, bootleg decrypted) | `thndrbldd` | `thndrbld.zip` + `thndrbldd.zip` | plain |
-| Super Monaco GP (World, bootleg decrypted) | `smgpd` | `smgp.zip` + `smgpd.zip` | plain |
 | Thunder Blade (upright) | `thndrbld` | `thndrbld.zip` | FD1094 |
+| Super Monaco GP (World, bootleg decrypted) | `smgpd` | `smgp.zip` + `smgpd.zip` | plain |
 | Super Monaco GP (World, Rev B) | `smgp` | `smgp.zip` | FD1094 |
 | Racing Hero | `rachero` | `rachero.zip` | FD1094 |
 | Racing Hero (bootleg decrypted) | `racherod` | `rachero.zip` + `racherod.zip` | plain |
