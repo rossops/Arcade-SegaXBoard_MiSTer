@@ -10,55 +10,55 @@
     <part>00 04 08 00 70 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00</part>
     <!-- main -->
       <interleave output="16">
-        <part name="epr-11107.58" map="10"/>
-        <part name="epr-11108.63" map="01"/>
+        <part name="epr-11107.58" crc="6d87bab7" map="10"/>
+        <part name="epr-11108.63" crc="202a3e1d" map="01"/>
       </interleave>
       <part repeat="262144">00</part>
     <!-- sub -->
       <interleave output="16">
-        <part name="epr-11109.20" map="10"/>
-        <part name="epr-11110.29" map="01"/>
+        <part name="epr-11109.20" crc="85a0fe07" map="10"/>
+        <part name="epr-11110.29" crc="f3d6797c" map="01"/>
       </interleave>
       <part repeat="262144">00</part>
     <!-- z80 -->
-      <part name="epr-11112.17"/>
+      <part name="epr-11112.17" crc="d777fc6d"/>
     <!-- road -->
-      <part name="epr-10922.40"/>
+      <part name="epr-10922.40" crc="b49183d4"/>
     <!-- pcm -->
-      <part name="mpr-10931.11"/>
-      <part name="mpr-10930.12"/>
-      <part name="epr-11102.13"/>
+      <part name="mpr-10931.11" crc="9209068f"/>
+      <part name="mpr-10930.12" crc="6493368b"/>
+      <part name="epr-11102.13" crc="6c07c78d"/>
       <part repeat="131072">FF</part>
     <!-- sprite -->
       <interleave output="32">
-        <part name="mpr-10932.90" map="0001"/>
-        <part name="mpr-10934.94" map="0010"/>
-        <part name="mpr-10936.98" map="0100"/>
-        <part name="mpr-10938.102" map="1000"/>
+        <part name="mpr-10932.90" crc="cc0821d6" map="0001"/>
+        <part name="mpr-10934.94" crc="4a51b1fa" map="0010"/>
+        <part name="mpr-10936.98" crc="ada70d64" map="0100"/>
+        <part name="mpr-10938.102" crc="e7675baf" map="1000"/>
       </interleave>
       <interleave output="32">
-        <part name="mpr-10933.91" map="0001"/>
-        <part name="mpr-10935.95" map="0010"/>
-        <part name="mpr-10937.99" map="0100"/>
-        <part name="mpr-10939.103" map="1000"/>
+        <part name="mpr-10933.91" crc="c8efb2c3" map="0001"/>
+        <part name="mpr-10935.95" crc="c1e23521" map="0010"/>
+        <part name="mpr-10937.99" crc="f0199658" map="0100"/>
+        <part name="mpr-10939.103" crc="a0d49480" map="1000"/>
       </interleave>
       <interleave output="32">
-        <part name="epr-11103.92" map="0001"/>
-        <part name="epr-11104.96" map="0010"/>
-        <part name="epr-11105.100" map="0100"/>
-        <part name="epr-11106.104" map="1000"/>
+        <part name="epr-11103.92" crc="bdd60da2" map="0001"/>
+        <part name="epr-11104.96" crc="06a35fce" map="0010"/>
+        <part name="epr-11105.100" crc="027b0689" map="0100"/>
+        <part name="epr-11106.104" crc="9e1fec09" map="1000"/>
       </interleave>
       <interleave output="32">
-        <part name="epr-11116.93" map="0001"/>
-        <part name="epr-11117.97" map="0010"/>
-        <part name="epr-11118.101" map="0100"/>
-        <part name="epr-11119.105" map="1000"/>
+        <part name="epr-11116.93" crc="49b4c1ba" map="0001"/>
+        <part name="epr-11117.97" crc="821fbb71" map="0010"/>
+        <part name="epr-11118.101" crc="8f38540b" map="0100"/>
+        <part name="epr-11119.105" crc="d0343a8e" map="1000"/>
       </interleave>
       <part repeat="2097152">00</part>
     <!-- tile -->
-      <part name="epr-11115.154"/>
-      <part name="epr-11114.153"/>
-      <part name="epr-11113.152"/>
+      <part name="epr-11115.154" crc="e8e32921"/>
+      <part name="epr-11114.153" crc="2e97f633"/>
+      <part name="epr-11113.152" crc="36058c8c"/>
       <part repeat="65536">00</part>
   </rom>
   <nvram index="3" size="32768"/>
@@ -71,5 +71,5 @@
     <dip bits="13" name="Allow Continue" ids="Yes,No"/>
     <dip bits="14,15" name="Difficulty" ids="Hardest,Hard,Easy,Normal"/>
   </switches>
-  <buttons names="Vulcan,Missile,Speed Up,Slow Down,Start,Coin,Pause,Test,Service" default="A,B,R2,L2,Start,R,X,L,Select"/>
+  <buttons names="Vulcan,Missile,Start,Coin,Test,Service,Pause" default="A,B,Start,R,L,Select,X"/>
 </misterromdescription>
