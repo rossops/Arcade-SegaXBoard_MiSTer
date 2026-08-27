@@ -23,28 +23,28 @@ def region_parts(loader, files, slot, fill="00"):
     lines = []
     total = 0
     if loader == "flat":
-        for n, s, _ in files:
-            lines.append(f'      <part name="{n}"/>')
+        for n, s, c in files:
+            lines.append(f'      <part name="{n}" crc="{c}"/>')
             total += s
     elif loader == "w16":
         for i in range(0, len(files), 2):
-            (e, s, _), (o, _, _) = files[i], files[i + 1]
+            (e, s, ec), (o, _, oc) = files[i], files[i + 1]
             lines.append('      <interleave output="16">')
             # map digits are byte positions, rightmost = byte 0. The stream word
             # is little-endian and must read back as {even, odd} (68000 order),
             # so the even ROM is byte 1 ("10") and the odd ROM byte 0 ("01").
-            lines.append(f'        <part name="{e}" map="10"/>')
-            lines.append(f'        <part name="{o}" map="01"/>')
+            lines.append(f'        <part name="{e}" crc="{ec}" map="10"/>')
+            lines.append(f'        <part name="{o}" crc="{oc}" map="01"/>')
             lines.append('      </interleave>')
             total += 2 * s
     elif loader == "x32":
         for i in range(0, len(files), 4):
             grp = files[i:i + 4]
             lines.append('      <interleave output="32">')
-            for k, (n, s, _) in enumerate(grp):
+            for k, (n, s, c) in enumerate(grp):
                 m = ["0"] * 4
                 m[3 - k] = "1"
-                lines.append(f'        <part name="{n}" map="{"".join(m)}"/>')
+                lines.append(f'        <part name="{n}" crc="{c}" map="{"".join(m)}"/>')
             lines.append('      </interleave>')
             total += 4 * grp[0][1]
     pad = slot - total

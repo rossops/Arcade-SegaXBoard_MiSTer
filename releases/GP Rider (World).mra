@@ -10,61 +10,61 @@
     <part>06 65 08 00 70 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00</part>
     <!-- main -->
       <interleave output="16">
-        <part name="epr-13409.ic58" map="10"/>
-        <part name="epr-13408.ic63" map="01"/>
+        <part name="epr-13409.ic58" crc="9abb81b6" map="10"/>
+        <part name="epr-13408.ic63" crc="8e410e97" map="01"/>
       </interleave>
       <part repeat="262144">00</part>
     <!-- sub -->
       <interleave output="16">
-        <part name="epr-13395.ic20" map="10"/>
-        <part name="epr-13394.ic29" map="01"/>
+        <part name="epr-13395.ic20" crc="d6ccfac7" map="10"/>
+        <part name="epr-13394.ic29" crc="914a55ec" map="01"/>
       </interleave>
       <interleave output="16">
-        <part name="epr-13393.ic21" map="10"/>
-        <part name="epr-13392.ic30" map="01"/>
+        <part name="epr-13393.ic21" crc="08d023cc" map="10"/>
+        <part name="epr-13392.ic30" crc="f927cd42" map="01"/>
       </interleave>
     <!-- z80 -->
-      <part name="epr-13388.ic17"/>
+      <part name="epr-13388.ic17" crc="706581e4"/>
     <!-- road -->
       <part repeat="65536">00</part>
     <!-- pcm -->
-      <part name="epr-13391.ic11"/>
-      <part name="epr-13390.ic12"/>
-      <part name="epr-13389.ic13"/>
+      <part name="epr-13391.ic11" crc="8c30c867"/>
+      <part name="epr-13390.ic12" crc="8c93cd05"/>
+      <part name="epr-13389.ic13" crc="4e4c758e"/>
       <part repeat="131072">FF</part>
     <!-- sprite -->
       <interleave output="32">
-        <part name="epr-13382.ic90" map="0001"/>
-        <part name="epr-13381.ic94" map="0010"/>
-        <part name="epr-13380.ic98" map="0100"/>
-        <part name="epr-13379.ic102" map="1000"/>
+        <part name="epr-13382.ic90" crc="01dac209" map="0001"/>
+        <part name="epr-13381.ic94" crc="3a50d931" map="0010"/>
+        <part name="epr-13380.ic98" crc="ad1024c8" map="0100"/>
+        <part name="epr-13379.ic102" crc="1ac17625" map="1000"/>
       </interleave>
       <interleave output="32">
-        <part name="epr-13378.ic91" map="0001"/>
-        <part name="epr-13377.ic95" map="0010"/>
-        <part name="epr-13376.ic99" map="0100"/>
-        <part name="epr-13375.ic103" map="1000"/>
+        <part name="epr-13378.ic91" crc="50c9b867" map="0001"/>
+        <part name="epr-13377.ic95" crc="9b12f5c0" map="0010"/>
+        <part name="epr-13376.ic99" crc="449ac518" map="0100"/>
+        <part name="epr-13375.ic103" crc="5489a9ff" map="1000"/>
       </interleave>
       <interleave output="32">
-        <part name="epr-13374.ic92" map="0001"/>
-        <part name="epr-13373.ic96" map="0010"/>
-        <part name="epr-13372.ic100" map="0100"/>
-        <part name="epr-13371.ic104" map="1000"/>
+        <part name="epr-13374.ic92" crc="6a319e4f" map="0001"/>
+        <part name="epr-13373.ic96" crc="eca5588b" map="0010"/>
+        <part name="epr-13372.ic100" crc="0b45a433" map="0100"/>
+        <part name="epr-13371.ic104" crc="b68f4cff" map="1000"/>
       </interleave>
       <interleave output="32">
-        <part name="epr-13370.ic93" map="0001"/>
-        <part name="epr-13369.ic97" map="0010"/>
-        <part name="epr-13368.ic101" map="0100"/>
-        <part name="epr-13367.ic105" map="1000"/>
+        <part name="epr-13370.ic93" crc="78276620" map="0001"/>
+        <part name="epr-13369.ic97" crc="8625bf0f" map="0010"/>
+        <part name="epr-13368.ic101" crc="0f50716c" map="0100"/>
+        <part name="epr-13367.ic105" crc="4b1bb51f" map="1000"/>
       </interleave>
       <part repeat="2097152">00</part>
     <!-- tile -->
-      <part name="epr-13383.ic154"/>
-      <part name="epr-13384.ic153"/>
-      <part name="epr-13385.ic152"/>
+      <part name="epr-13383.ic154" crc="24f897a7"/>
+      <part name="epr-13384.ic153" crc="fe8238bd"/>
+      <part name="epr-13385.ic152" crc="6df1b995"/>
       <part repeat="65536">00</part>
     <!-- key -->
-      <part name="317-0163.key"/>
+      <part name="317-0163.key" crc="c1d4d207"/>
   </rom>
   <nvram index="3" size="32768"/>
   <switches default="FF,FE" base="0">

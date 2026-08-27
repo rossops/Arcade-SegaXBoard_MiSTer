@@ -10,61 +10,61 @@
     <part>07 81 08 00 70 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00</part>
     <!-- main -->
       <interleave output="16">
-        <part name="bootleg_epr-12046.ic58" map="10"/>
-        <part name="bootleg_epr-12047.ic63" map="01"/>
+        <part name="bootleg_epr-12046.ic58" crc="ddef5278" map="10"/>
+        <part name="bootleg_epr-12047.ic63" crc="3981a891" map="01"/>
       </interleave>
       <interleave output="16">
-        <part name="epr-12048.ic57" map="10"/>
-        <part name="epr-12049.ic62" map="01"/>
+        <part name="epr-12048.ic57" crc="648e38ca" map="10"/>
+        <part name="epr-12049.ic62" crc="6c5c4753" map="01"/>
       </interleave>
     <!-- sub -->
       <interleave output="16">
-        <part name="epr-12050.ic20" map="10"/>
-        <part name="epr-12051.ic29" map="01"/>
+        <part name="epr-12050.ic20" crc="985a0f36" map="10"/>
+        <part name="epr-12051.ic29" crc="f967d5a8" map="01"/>
       </interleave>
       <interleave output="16">
-        <part name="epr-12052.ic21" map="10"/>
-        <part name="epr-12053.ic30" map="01"/>
+        <part name="epr-12052.ic21" crc="9f7a424d" map="10"/>
+        <part name="epr-12053.ic30" crc="efcf30f6" map="01"/>
       </interleave>
     <!-- z80 -->
-      <part name="epr-12054.ic17"/>
+      <part name="epr-12054.ic17" crc="e9b39216"/>
     <!-- road -->
       <part repeat="65536">00</part>
     <!-- pcm -->
-      <part name="epr-12058.ic11"/>
-      <part name="epr-12059.ic12"/>
-      <part name="epr-12060.ic13"/>
+      <part name="epr-12058.ic11" crc="4671cb46"/>
+      <part name="epr-12059.ic12" crc="8c99aff4"/>
+      <part name="epr-12060.ic13" crc="7ed382b3"/>
       <part repeat="131072">FF</part>
     <!-- sprite -->
       <interleave output="32">
-        <part name="mpr-12064.ic90" map="0001"/>
-        <part name="mpr-12063.ic94" map="0010"/>
-        <part name="mpr-12062.ic98" map="0100"/>
-        <part name="mpr-12061.ic102" map="1000"/>
+        <part name="mpr-12064.ic90" crc="84562a69" map="0001"/>
+        <part name="mpr-12063.ic94" crc="d163727c" map="0010"/>
+        <part name="mpr-12062.ic98" crc="6b57833b" map="0100"/>
+        <part name="mpr-12061.ic102" crc="8907d5ba" map="1000"/>
       </interleave>
       <interleave output="32">
-        <part name="epr-12068.ic91" map="0001"/>
-        <part name="epr-12067.ic95" map="0010"/>
-        <part name="epr-12066.ic99" map="0100"/>
-        <part name="epr-12065.ic103" map="1000"/>
+        <part name="epr-12068.ic91" crc="8b12d342" map="0001"/>
+        <part name="epr-12067.ic95" crc="1a1cdd89" map="0010"/>
+        <part name="epr-12066.ic99" crc="a91d16b5" map="0100"/>
+        <part name="epr-12065.ic103" crc="f4ce14c6" map="1000"/>
       </interleave>
       <interleave output="32">
-        <part name="epr-12072.ic92" map="0001"/>
-        <part name="epr-12071.ic96" map="0010"/>
-        <part name="epr-12070.ic100" map="0100"/>
-        <part name="epr-12069.ic104" map="1000"/>
+        <part name="epr-12072.ic92" crc="222064c8" map="0001"/>
+        <part name="epr-12071.ic96" crc="a329b78c" map="0010"/>
+        <part name="epr-12070.ic100" crc="97cc6706" map="0100"/>
+        <part name="epr-12069.ic104" crc="2c3ba66e" map="1000"/>
       </interleave>
       <interleave output="32">
-        <part name="epr-12076.ic93" map="0001"/>
-        <part name="epr-12075.ic97" map="0010"/>
-        <part name="epr-12074.ic101" map="0100"/>
-        <part name="epr-12073.ic105" map="1000"/>
+        <part name="epr-12076.ic93" crc="24f628e1" map="0001"/>
+        <part name="epr-12075.ic97" crc="69b3507f" map="0010"/>
+        <part name="epr-12074.ic101" crc="ee6cbb73" map="0100"/>
+        <part name="epr-12073.ic105" crc="167e6342" map="1000"/>
       </interleave>
       <part repeat="2097152">00</part>
     <!-- tile -->
-      <part name="epr-12055.ic154"/>
-      <part name="epr-12056.ic153"/>
-      <part name="epr-12057.ic152"/>
+      <part name="epr-12055.ic154" crc="150014a4"/>
+      <part name="epr-12056.ic153" crc="3cd4c306"/>
+      <part name="epr-12057.ic152" crc="37e91770"/>
       <part repeat="65536">00</part>
   </rom>
   <nvram index="3" size="32768"/>

@@ -34,7 +34,7 @@ def expand_mra(text, zf):
             parts = []
             i += 1
             while "</interleave>" not in lines[i]:
-                m = re.search(r'name="([^"]+)" map="([01]+)"', lines[i])
+                m = re.search(r'name="([^"]+)".* map="([01]+)"', lines[i])
                 parts.append((rom(m.group(1)), m.group(2)))
                 i += 1
             n = len(parts[0][0])
