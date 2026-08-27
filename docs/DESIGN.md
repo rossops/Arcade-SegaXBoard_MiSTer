@@ -589,6 +589,10 @@ in the renderer, both pixel-exact by construction:
 
 Result: Racing Hero's start grid peaks at 12.1 ms with no aborts (dup
 rows alone: 13.7 ms); After Burner II frame 150 exact at 1x and 2x.
+Build #31: 488 of 553 M10K, 25,472 ALMs, no negative slack; on hardware
+Racing Hero races cleanly in the 2x mode, the new button lists and the
+throttle buttons behave (the first build had Speed Up and Slow Down the
+wrong way round: the game reads a high ADC value as fast).
 Left on the table if a game still overruns: a second run buffer so a
 duplicate row's flush overlaps the next row (the dup path waits for the
 previous flush), and the sprite ROM waits.
