@@ -419,7 +419,8 @@ at twice the resolution without touching gameplay timing.
   the blocks the 1x ones already occupied), 25,230 ALMs (+1,300), no
   negative slack. Hardware: After Burner II, Thunder Blade and Super
   Monaco GP fine in both modes. Racing Hero loses rows at the bottom of
-  the screen from the start of a race and stays that way; open. First
+  the screen from the start of a race and stays that way, only with the
+  option on; open. First
   suspect is the 2x render budget (Racing Hero carries far more roadside
   sprites than After Burner, and a render cut at vblank drops the tail of
   the list), to be measured with the board harness's RENDER abort trace.
