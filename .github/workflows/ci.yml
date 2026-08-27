@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  mra:
+    name: MRA files and tools
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # releases/ is generated. A hand edit that drifts from romsets.py fails here.
+      - name: Committed MRAs match the generator
+        run: |
+          python3 tools/gen_mra.py --outdir "$RUNNER_TEMP/mra" > /dev/null
+          diff -r -x '*.rbf' "$RUNNER_TEMP/mra" releases
+
+      # Same script MiSTer-devel runs on MRA-Alternatives: every part needs a crc.
+      - name: MRA checker
+        run: |
+          curl --fail --location -o "$RUNNER_TEMP/checker.sh" \
+            https://raw.githubusercontent.com/MiSTer-devel/Scripts_MiSTer/master/other_authors/mra_rom_check.sh
+          python3 "$RUNNER_TEMP/checker.sh" --mra-folder releases --recursive --ignore-roms
+
+      # The ROM-dependent cases skip themselves when the MAME zips are absent.
+      - name: Tool tests
+        run: |
+          pip install --quiet pytest
+          python3 -m pytest -q tools/tests
+
+      - name: No build artifacts in the tree
+        run: |
+          bad=$(git ls-files | grep -E '^(output_files|db|incremental_db|simulation)/|\.(qws|rpt|sof|jic|done)$' || true)
+          if [ -n "$bad" ]; then echo "$bad"; exit 1; fi

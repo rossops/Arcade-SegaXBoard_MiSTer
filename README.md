@@ -170,6 +170,23 @@ repository; it is regenerated with each release. The repository used to be
 `rossops/sxboard`; GitHub redirects the old address, so an ini section
 written for that name keeps working, but the one above is the current one.
 
+## Releases and CI
+
+Every push to `main` and every pull request runs `.github/workflows/ci.yml`:
+it regenerates the MRAs and diffs them against `releases/` (so a hand edit
+there fails the build), runs the same `mra_rom_check.sh` MiSTer-devel uses on
+MRA-Alternatives, runs the tool tests, and refuses any tracked Quartus output.
+Nothing gets built in CI. The `.rbf` still comes from `build.bat` on a
+Windows box and a hardware test before it is committed.
+
+Versions are semver tags, `v1.0.0` up. To cut one, run the "Release"
+workflow from the Actions tab, pick patch, minor or major, and optionally
+type a sentence for the top of the notes. It runs CI first, then tags the
+current `main` and publishes a GitHub release whose notes list the rbf
+(name, MD5, size), the game counts and the commits since the previous tag.
+No files are attached to the release: the core and the MRAs live in the
+tree and reach MiSTer through `db.json.zip`.
+
 ## Audio filter
 
 The MiSTer framework applies a selectable low-pass filter to the core's

@@ -1,0 +1,85 @@
+name: Release
+
+# Tags the current main with the next version and publishes the notes.
+# Nothing is built or attached: the core is releases/*.rbf in the tree.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump (semver)
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+      summary:
+        description: One or two sentences for the top of the notes (optional)
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Next version
+        id: ver
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          last=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1)
+          if [ -z "$last" ]; then
+            next=1.0.0
+          else
+            IFS=. read -r M m p <<< "${last#v}"
+            case "$BUMP" in
+              major) M=$((M + 1)); m=0; p=0 ;;
+              minor) m=$((m + 1)); p=0 ;;
+              patch) p=$((p + 1)) ;;
+            esac
+            next="$M.$m.$p"
+          fi
+          echo "last=$last" >> "$GITHUB_OUTPUT"
+          echo "next=$next" >> "$GITHUB_OUTPUT"
+          echo "$last -> v$next"
+
+      - name: Release notes
+        env:
+          SUMMARY: ${{ inputs.summary }}
+          LAST: ${{ steps.ver.outputs.last }}
+        run: |
+          rbf=$(ls releases/*.rbf | head -n 1)
+          {
+            if [ -n "$SUMMARY" ]; then printf '%s\n\n' "$SUMMARY"; fi
+            echo "## Core"
+            echo "- \`$(basename "$rbf")\`, md5 \`$(md5sum "$rbf" | cut -d ' ' -f 1)\`, $(stat -c %s "$rbf") bytes"
+            echo "- $(ls releases/*.mra | wc -l) games, $(find releases/_alternatives -name '*.mra' | wc -l) alternative sets"
+            echo
+            if [ -n "$LAST" ]; then
+              echo "## Changes since $LAST"
+              git log --no-merges --format='- %s (%h)' "$LAST..HEAD"
+            else
+              echo "## Changes"
+              echo "First versioned release. The road here is the milestone table in the README."
+            fi
+            echo
+            echo "No files are attached. The core is \`releases/*.rbf\` in the tree with the MRAs alongside it;" \
+                 "Update All picks both up through \`db.json.zip\`."
+          } > "$RUNNER_TEMP/notes.md"
+          cat "$RUNNER_TEMP/notes.md"
+
+      - name: Tag and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEXT: ${{ steps.ver.outputs.next }}
+        run: |
+          gh release create "v$NEXT" --target "$GITHUB_SHA" --title "v$NEXT" \
+            --notes-file "$RUNNER_TEMP/notes.md"
