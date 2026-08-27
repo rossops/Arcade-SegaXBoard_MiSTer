@@ -72,8 +72,10 @@ folder.
 
 Player 1's left stick is the flight stick or wheel; the right stick's Y
 axis is the throttle (After Burner, Thunder Blade) or gas and brake (the
-driving games), with Gas/Brake buttons as the digital alternative. OSD
-options: Stick (analog, D-pad, or both), Analog response (Linear is the
+driving games), with Gas/Brake buttons as the digital alternative. The
+button list puts what you bind first at the front (Gas and Brake lead on
+the driving games), Test and Service last. OSD options: Stick (D-pad by
+default, analog, or both), Analog response (Linear is the
 board's own mapping; Soft and Softer flatten the centre for thumbsticks
 while keeping full lock), Analog range (100/75/50%), Gun control for Line
 of Fire (lightgun or gamepad cursor, with per-player cursor speed and an

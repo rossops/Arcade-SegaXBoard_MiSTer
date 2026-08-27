@@ -58,7 +58,7 @@ ROMSETS = {
             (13, 13, "Allow Continue", "Yes,No"),
             (14, 15, "Difficulty", "Hardest,Hard,Easy,Normal"),
         ],
-        "buttons": ("Vulcan,Missile,Start,Coin,Test,Service,Pause", "A,B,Start,R,L,Select,X"),
+        "buttons": ("Vulcan,Missile,Start,Coin,Pause,Test,Service", "A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("epr-11107.58", 0x20000, "6d87bab7"),
@@ -127,7 +127,7 @@ ROMSETS = {
             (13, 13, "Allow Continue", "Yes,No"),
             (14, 15, "Difficulty", "Hardest,Hard,Easy,Normal"),
         ],
-        "buttons": ("Vulcan,Missile,Start,Coin,Test,Service,Pause", "A,B,Start,R,L,Select,X"),
+        "buttons": ("Vulcan,Missile,Start,Coin,Pause,Test,Service", "A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("epr-11092.58", 0x20000, "fa02b5cb"),
@@ -197,7 +197,7 @@ ROMSETS = {
             (13, 13, "Allow Continue", "Yes,No"),
             (14, 15, "Difficulty", "Hardest,Hard,Easy,Normal"),
         ],
-        "buttons": ("Vulcan,Missile,Start,Coin,Test,Service,Pause", "A,B,Start,R,L,Select,X"),
+        "buttons": ("Vulcan,Missile,Start,Coin,Pause,Test,Service", "A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("epr-10940.58", 0x20000, "4d132c4e"),
@@ -268,7 +268,7 @@ ROMSETS = {
             (13, 13, "Allow Continue", "No,Yes"),
             (14, 15, "Difficulty", "Hardest,Easy,Hard,Normal"),
         ],
-        "buttons": ("Cannon,Missile,Start,Coin,Test,Service,Pause", "A,B,Start,R,L,Select,X"),
+        "buttons": ("Cannon,Missile,Start,Coin,Pause,Test,Service", "A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("epr-11304.ic58", 0x20000, "a90630ef"),
@@ -343,7 +343,7 @@ ROMSETS = {
             (13, 13, "Allow Continue", "No,Yes"),
             (14, 15, "Difficulty", "Hardest,Easy,Hard,Normal"),
         ],
-        "buttons": ("Cannon,Missile,Start,Coin,Test,Service,Pause", "A,B,Start,R,L,Select,X"),
+        "buttons": ("Cannon,Missile,Start,Coin,Pause,Test,Service", "A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("bootleg_epr-11405.ic58", 0x20000, "1642fd59"),
@@ -417,7 +417,7 @@ ROMSETS = {
             (11, 13, "Number of Machines", "8,7,6,5,4,3,2,1"),
             (14, 15, "Cabinet", "Unused,Upright,Cockpit,Deluxe"),
         ],
-        "buttons": ("Shift Down,Shift Up,Start,Coin,Test,Service,Pause,Gas,Brake", "A,B,Start,R,L,Select,X,Y,L2"),
+        "buttons": ("Gas,Brake,Shift Down,Shift Up,Start,Coin,Pause,Test,Service", "Y,L2,A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("bootleg_epr-12563b.58", 0x20000, "af30e3cd"),
@@ -493,7 +493,7 @@ ROMSETS = {
             (13, 13, 'Allow Continue', 'No,Yes'),
             (14, 15, 'Difficulty', 'Hardest,Easy,Hard,Normal'),
         ],
-        "buttons": ('Cannon,Missile,Start,Coin,Test,Service,Pause', 'A,B,Start,R,L,Select,X'),
+        "buttons": ("Cannon,Missile,Start,Coin,Pause,Test,Service", "A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("epr-11405.ic58", 0x20000, "e057dd5a"),
@@ -570,7 +570,7 @@ ROMSETS = {
             (11, 13, 'Number of Machines', '8,7,6,5,4,3,2,1'),
             (14, 15, 'Cabinet', 'Unused,Upright,Cockpit,Deluxe'),
         ],
-        "buttons": ('Shift Down,Shift Up,Start,Coin,Test,Service,Pause,Gas,Brake', 'A,B,Start,R,L,Select,X,Y,L2'),
+        "buttons": ("Gas,Brake,Shift Down,Shift Up,Start,Coin,Pause,Test,Service", "Y,L2,A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("epr-12563b.58", 0x20000, "baf1f333"),
@@ -651,7 +651,7 @@ ROMSETS = {
             (12, 13, 'Time', 'Very Hard,Easy,Hard,Normal'),
             (14, 15, 'Difficulty', 'Very Hard,Easy,Hard,Normal'),
         ],
-        "buttons": ("-,-,Start,Coin,Test,Service,Pause,Gas,Brake", "A,B,Start,R,L,Select,X,Y,L2"),
+        "buttons": ("Gas,Brake,-,-,Start,Coin,Pause,Test,Service", "Y,L2,A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("epr-13129.ic58", 0x20000, "ad9f32e7"),
@@ -726,7 +726,7 @@ ROMSETS = {
             (12, 13, 'Time', 'Very Hard,Easy,Hard,Normal'),
             (14, 15, 'Difficulty', 'Very Hard,Easy,Hard,Normal'),
         ],
-        "buttons": ("-,-,Start,Coin,Test,Service,Pause,Gas,Brake", "A,B,Start,R,L,Select,X,Y,L2"),
+        "buttons": ("Gas,Brake,-,-,Start,Coin,Pause,Test,Service", "Y,L2,A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("bootleg_epr-13129.ic58", 0x20000, "82ee7312"),
@@ -797,7 +797,7 @@ ROMSETS = {
             (12, 13, 'Time', 'Hardest,Easy,Hard,Normal'),
             (14, 15, 'Difficulty', 'Hardest,Easy,Hard,Normal'),
         ],
-        "buttons": ("-,Jump,Start,Coin,Test,Service,Pause,Gas,Brake", "A,B,Start,R,L,Select,X,Y,L2"),
+        "buttons": ("Gas,Brake,-,Jump,Start,Coin,Pause,Test,Service", "Y,L2,A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("epr-13568b.ic58", 0x20000, "f88db35b"),
@@ -873,7 +873,7 @@ ROMSETS = {
             (12, 13, 'Time', 'Hardest,Easy,Hard,Normal'),
             (14, 15, 'Difficulty', 'Hardest,Easy,Hard,Normal'),
         ],
-        "buttons": ("-,Jump,Start,Coin,Test,Service,Pause,Gas,Brake", "A,B,Start,R,L,Select,X,Y,L2"),
+        "buttons": ("Gas,Brake,-,Jump,Start,Coin,Pause,Test,Service", "Y,L2,A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("epr-13557b.ic58", 0x20000, "554e106a"),
@@ -949,7 +949,7 @@ ROMSETS = {
             (12, 13, 'Time', 'Hardest,Easy,Hard,Normal'),
             (14, 15, 'Difficulty', 'Hardest,Easy,Hard,Normal'),
         ],
-        "buttons": ("-,Jump,Start,Coin,Test,Service,Pause,Gas,Brake", "A,B,Start,R,L,Select,X,Y,L2"),
+        "buttons": ("Gas,Brake,-,Jump,Start,Coin,Pause,Test,Service", "Y,L2,A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("bootleg_epr13568b.ic58", 0x20000, "3c367a01"),
@@ -1022,7 +1022,7 @@ ROMSETS = {
             (12, 13, 'Time', 'Hardest,Easy,Hard,Normal'),
             (14, 15, 'Difficulty', 'Hardest,Easy,Hard,Normal'),
         ],
-        "buttons": ("-,Jump,Start,Coin,Test,Service,Pause,Gas,Brake", "A,B,Start,R,L,Select,X,Y,L2"),
+        "buttons": ("Gas,Brake,-,Jump,Start,Coin,Pause,Test,Service", "Y,L2,A,B,Start,R,X,L,Select"),
         "extra_zips": ["abcopd"],   # shares bootleg_epr13556b.ic63 with abcopd
         "regions": {
             "main": ("w16", [
@@ -1095,7 +1095,7 @@ ROMSETS = {
             (12, 12, 'Demo Sounds', 'Off,On'),
             (14, 15, 'Difficulty', 'Hardest,Hard,Easy,Normal'),
         ],
-        "buttons": ("Shift Down,Shift Up,Start,Coin,Test,Service,Pause,Gas,Brake", "A,B,Start,R,L,Select,X,Y,L2"),
+        "buttons": ("Gas,Brake,Shift Down,Shift Up,Start,Coin,Pause,Test,Service", "Y,L2,A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("epr-13409.ic58", 0x20000, "9abb81b6"),
@@ -1171,7 +1171,7 @@ ROMSETS = {
             (12, 12, 'Demo Sounds', 'Off,On'),
             (14, 15, 'Difficulty', 'Hardest,Hard,Easy,Normal'),
         ],
-        "buttons": ("Shift Down,Shift Up,Start,Coin,Test,Service,Pause,Gas,Brake", "A,B,Start,R,L,Select,X,Y,L2"),
+        "buttons": ("Gas,Brake,Shift Down,Shift Up,Start,Coin,Pause,Test,Service", "Y,L2,A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("epr-13407.ic58", 0x20000, "03553ebd"),
@@ -1247,7 +1247,7 @@ ROMSETS = {
             (12, 12, 'Demo Sounds', 'Off,On'),
             (14, 15, 'Difficulty', 'Hardest,Hard,Easy,Normal'),
         ],
-        "buttons": ("Shift Down,Shift Up,Start,Coin,Test,Service,Pause,Gas,Brake", "A,B,Start,R,L,Select,X,Y,L2"),
+        "buttons": ("Gas,Brake,Shift Down,Shift Up,Start,Coin,Pause,Test,Service", "Y,L2,A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("epr-13387.ic58", 0x20000, "a1e8b2c5"),
@@ -1322,7 +1322,7 @@ ROMSETS = {
             (14, 14, 'Demo Sounds', 'On,Off'),
             (15, 15, 'Coin Chute', 'Twin,Single'),
         ],
-        "buttons": ("Attack,-,Start,Coin,Test,Service,Pause", "A,B,Start,R,L,Select,X"),
+        "buttons": ("Attack,-,Start,Coin,Pause,Test,Service", "A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("epr-12046.ic58", 0x20000, "f94f3a1a"),
@@ -1400,7 +1400,7 @@ ROMSETS = {
             (14, 14, 'Demo Sounds', 'On,Off'),
             (15, 15, 'Coin Chute', 'Twin,Single'),
         ],
-        "buttons": ("Attack,-,Start,Coin,Test,Service,Pause", "A,B,Start,R,L,Select,X"),
+        "buttons": ("Attack,-,Start,Coin,Pause,Test,Service", "A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("bootleg_epr-12046.ic58", 0x20000, "ddef5278"),
@@ -1476,7 +1476,7 @@ ROMSETS = {
             (14, 14, 'Demo Sounds', 'On,Off'),
             (15, 15, 'Coin Chute', 'Twin,Single'),
         ],
-        "buttons": ("Trigger,Bomb,Start,Coin,Test,Service,Pause", "A,B,Start,R,L,Select,X"),
+        "buttons": ("Trigger,Bomb,Start,Coin,Pause,Test,Service", "A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("epr-12849.58", 0x20000, "61cfd2fe"),
@@ -1554,7 +1554,7 @@ ROMSETS = {
             (14, 14, 'Demo Sounds', 'On,Off'),
             (15, 15, 'Coin Chute', 'Twin,Single'),
         ],
-        "buttons": ("Trigger,Bomb,Start,Coin,Test,Service,Pause", "A,B,Start,R,L,Select,X"),
+        "buttons": ("Trigger,Bomb,Start,Coin,Pause,Test,Service", "A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("epr-12847a.58", 0x20000, "c50eb4ed"),
@@ -1632,7 +1632,7 @@ ROMSETS = {
             (14, 14, 'Demo Sounds', 'On,Off'),
             (15, 15, 'Coin Chute', 'Twin,Single'),
         ],
-        "buttons": ("Trigger,Bomb,Start,Coin,Test,Service,Pause", "A,B,Start,R,L,Select,X"),
+        "buttons": ("Trigger,Bomb,Start,Coin,Pause,Test,Service", "A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("epr-12794.58", 0x20000, "1e588992"),
@@ -1710,7 +1710,7 @@ ROMSETS = {
             (14, 14, 'Demo Sounds', 'On,Off'),
             (15, 15, 'Coin Chute', 'Twin,Single'),
         ],
-        "buttons": ("Trigger,Bomb,Start,Coin,Test,Service,Pause", "A,B,Start,R,L,Select,X"),
+        "buttons": ("Trigger,Bomb,Start,Coin,Pause,Test,Service", "A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("bootleg_epr-12849.58", 0x20000, "dfd1ab45"),
@@ -1785,7 +1785,7 @@ ROMSETS = {
             (14, 14, 'Demo Sounds', 'On,Off'),
             (15, 15, 'Coin Chute', 'Twin,Single'),
         ],
-        "buttons": ("Trigger,Bomb,Start,Coin,Test,Service,Pause", "A,B,Start,R,L,Select,X"),
+        "buttons": ("Trigger,Bomb,Start,Coin,Pause,Test,Service", "A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("bootleg_epr-12847a.58", 0x20000, "74d270d0"),
@@ -1860,7 +1860,7 @@ ROMSETS = {
             (14, 14, 'Demo Sounds', 'On,Off'),
             (15, 15, 'Coin Chute', 'Twin,Single'),
         ],
-        "buttons": ("Trigger,Bomb,Start,Coin,Test,Service,Pause", "A,B,Start,R,L,Select,X"),
+        "buttons": ("Trigger,Bomb,Start,Coin,Pause,Test,Service", "A,B,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("bootleg_epr-12794.58", 0x20000, "795f110d"),

@@ -80,5 +80,5 @@
     <dip bits="13" name="Allow Continue" ids="No,Yes"/>
     <dip bits="14,15" name="Difficulty" ids="Hardest,Easy,Hard,Normal"/>
   </switches>
-  <buttons names="Cannon,Missile,Start,Coin,Test,Service,Pause" default="A,B,Start,R,L,Select,X"/>
+  <buttons names="Cannon,Missile,Start,Coin,Pause,Test,Service" default="A,B,Start,R,X,L,Select"/>
 </misterromdescription>

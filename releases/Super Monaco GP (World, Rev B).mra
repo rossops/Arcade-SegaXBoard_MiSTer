@@ -78,5 +78,5 @@
     <dip bits="11,13" name="Number of Machines" ids="8,7,6,5,4,3,2,1"/>
     <dip bits="14,15" name="Cabinet" ids="Unused,Upright,Cockpit,Deluxe"/>
   </switches>
-  <buttons names="Shift Down,Shift Up,Start,Coin,Test,Service,Pause,Gas,Brake" default="A,B,Start,R,L,Select,X,Y,L2"/>
+  <buttons names="Gas,Brake,Shift Down,Shift Up,Start,Coin,Pause,Test,Service" default="Y,L2,A,B,Start,R,X,L,Select"/>
 </misterromdescription>

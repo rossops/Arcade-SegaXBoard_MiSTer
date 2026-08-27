@@ -79,5 +79,5 @@
     <dip bits="14" name="Demo Sounds" ids="On,Off"/>
     <dip bits="15" name="Coin Chute" ids="Twin,Single"/>
   </switches>
-  <buttons names="Attack,-,Start,Coin,Test,Service,Pause" default="A,B,Start,R,L,Select,X"/>
+  <buttons names="Attack,-,Start,Coin,Pause,Test,Service" default="A,B,Start,R,X,L,Select"/>
 </misterromdescription>

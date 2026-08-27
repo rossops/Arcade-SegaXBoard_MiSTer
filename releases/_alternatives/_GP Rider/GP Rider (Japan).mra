@@ -75,5 +75,5 @@
     <dip bits="12" name="Demo Sounds" ids="Off,On"/>
     <dip bits="14,15" name="Difficulty" ids="Hardest,Hard,Easy,Normal"/>
   </switches>
-  <buttons names="Shift Down,Shift Up,Start,Coin,Test,Service,Pause,Gas,Brake" default="A,B,Start,R,L,Select,X,Y,L2"/>
+  <buttons names="Gas,Brake,Shift Down,Shift Up,Start,Coin,Pause,Test,Service" default="Y,L2,A,B,Start,R,X,L,Select"/>
 </misterromdescription>

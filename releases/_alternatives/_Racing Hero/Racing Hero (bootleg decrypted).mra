@@ -74,5 +74,5 @@
     <dip bits="12,13" name="Time" ids="Very Hard,Easy,Hard,Normal"/>
     <dip bits="14,15" name="Difficulty" ids="Very Hard,Easy,Hard,Normal"/>
   </switches>
-  <buttons names="-,-,Start,Coin,Test,Service,Pause,Gas,Brake" default="A,B,Start,R,L,Select,X,Y,L2"/>
+  <buttons names="Gas,Brake,-,-,Start,Coin,Pause,Test,Service" default="Y,L2,A,B,Start,R,X,L,Select"/>
 </misterromdescription>

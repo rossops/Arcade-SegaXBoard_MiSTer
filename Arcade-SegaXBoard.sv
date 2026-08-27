@@ -128,7 +128,7 @@ localparam CONF_STR = {
     "O[5:3],Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
     "O[22],Enhanced sprites (640x448),Off,On;",
     "O[7],Service Mode,Off,On;",
-    "H2O[9:8],Stick,Analog,D-Pad,Analog+D-Pad;",
+    "H2O[9:8],Stick,D-Pad,Analog,Analog+D-Pad;",
     "H2O[24:23],Analog response,Linear,Soft,Softer;",
     "H2O[26:25],Analog range,100%,75%,50%;",
     "O[10],Pause when OSD open,Off,On;",
@@ -141,7 +141,7 @@ localparam CONF_STR = {
     "DIP;",
     "-;",
     "R[0],Reset;",
-    "J1,Vulcan,Missile,Start,Coin,Test,Service,Pause,Gas,Brake;",
+    "J1,Button 1,Button 2,Start,Coin,Pause,Test,Service,Gas,Brake;",
     "V,v",`BUILD_DATE,"-",`BUILD_GIT
 };
 
@@ -296,10 +296,24 @@ sdram sdram (
 // joystick bits: 0 right 1 left 2 down 3 up 4 vulcan 5 missile 6 start
 //                7 coin 8 test 9 service
 // analog: raw MiSTer axes; the core maps them per game (descriptor analog mode)
-wire [1:0] stick_mode = status[9:8];
+// OSD order D-Pad, Analog, Analog+D-Pad (D-pad first: most players have one);
+// the core encodes 0 analog, 1 d-pad, 2 both
+wire [1:0] stick_mode = (status[9:8] == 2'd0) ? 2'd1 : (status[9:8] == 2'd1) ? 2'd0 : 2'd2;
 
 // Pause: the mapped button (joystick bit 10) or the OSD open with the option set
-wire pause = joystick_0[10] | (status[10] & OSD_STATUS);
+// Button positions follow the MRA's list, which puts the buttons players bind
+// first at the front: driving sets (wheel/pedal analog modes) list
+// Gas, Brake, A, B, Start, Coin, Pause, Test, Service; the others
+// A, B, Start, Coin, Pause, Test, Service. The core keeps one fixed layout
+// (4 A, 5 B, 6 Start, 7 Coin, 8 Test, 9 Service, 10 Pause, 11 Gas, 12 Brake).
+wire driving_set = (board_desc.ana_mode == 3'd2) || (board_desc.ana_mode == 3'd3) || (board_desc.ana_mode == 3'd4);
+function automatic [15:0] map_buttons(input [15:0] j, input drv);
+    map_buttons = drv ? {3'd0, j[5], j[4], j[10], j[12], j[11], j[9], j[8], j[7], j[6], j[3:0]}
+                      : {5'd0, j[8], j[10], j[9], j[7], j[6], j[5], j[4], j[3:0]};
+endfunction
+wire [15:0] p1_btn = map_buttons(joystick_0[15:0], driving_set);
+wire [15:0] p2_btn = map_buttons(joystick_1[15:0], driving_set);
+wire pause = p1_btn[10] | (status[10] & OSD_STATUS);
 
 //////////////////////////////   CORE   ///////////////////////////////////////
 wire  [7:0] r, g, b;
@@ -322,7 +336,7 @@ xb_core core (
     .p5_req(p5_req), .p5_addr(p5_addr), .p5_dout(p5_dout), .p5_ack(p5_ack),
     .p6_req(p6_req), .p6_addr(p6_addr), .p6_dout(p6_dout), .p6_ack(p6_ack),
     .p7_req(p7_req), .p7_addr(p7_addr), .p7_dout(p7_dout), .p7_ack(p7_ack),
-    .p1_buttons(joystick_0[15:0]), .p2_buttons(joystick_1[15:0]),
+    .p1_buttons(p1_btn), .p2_buttons(p2_btn),
     .aim1_x(joystick_r_analog_0[7:0]), .aim1_y(joystick_r_analog_0[15:8]),
     .aim2_x(joystick_r_analog_1[7:0]), .aim2_y(joystick_r_analog_1[15:8]),
     .stick2_x(joystick_l_analog_1[7:0]), .stick2_y(joystick_l_analog_1[15:8]),
@@ -331,8 +345,8 @@ xb_core core (
     .throttle(joystick_r_analog_0[15:8] ^ 8'h80), .stick_mode(stick_mode),
     .ana_curve(status[24:23]), .ana_range(status[26:25]),
     .dsw_a(dsw_a), .dsw_b(dsw_b),
-    .service(joystick_0[9]), .test(status[7] | joystick_0[8]),
-    .coin1(joystick_0[7]), .coin2(1'b0),
+    .service(p1_btn[9]), .test(status[7] | p1_btn[8]),
+    .coin1(p1_btn[7]), .coin2(1'b0),
     .nv_download(nv_download), .nv_upload(nv_upload), .nv_wr(ioctl_wr), .nv_rd(ioctl_rd),
     .nv_addr(ioctl_addr[15:1]), .nv_din(ioctl_dout), .nv_dout(ioctl_din), .nv_modified(nv_modified),
     .r(r), .g(g), .b(b),
