@@ -428,8 +428,10 @@ xb_ana_shape shape_y (.clk(clk_sys), .axis(stick_y), .curve(curve_eff), .range(r
 xb_ana_shape shape_t (.clk(clk_sys), .axis(throttle ^ 8'h80), .curve(curve_eff), .range(range_eff), .out(thr_s));
 wire [7:0] throttle_s = thr_s ^ 8'h80;
 // After Burner / Thunder Blade: the Speed Up / Slow Down buttons hold the
-// throttle at the value the right stick gives fully up / fully down
-wire [7:0] thr_fl = p1_buttons[11] ? 8'h00 : p1_buttons[12] ? 8'hFF : throttle_s;
+// throttle at its ends. The game reads a high value as fast (hardware
+// test, build #30: the other way round slowed the plane), so Speed Up is
+// 0xFF, which is the right stick fully DOWN in the axis mapping above.
+wire [7:0] thr_fl = p1_buttons[11] ? 8'hFF : p1_buttons[12] ? 8'h00 : throttle_s;
 wire use_analog  = (stick_mode != 2'd1);
 wire use_dpad    = (stick_mode != 2'd0);
 wire dpad_active = |p1_buttons[3:0];
