@@ -415,6 +415,14 @@ at twice the resolution without touching gameplay timing.
   before an erase line: a 2x erase is 512 lines, the game's $110000 write
   can land in line 223, and the fetch has to be published by that output
   line's hblank.
+- Build #29: 488 of 553 M10K (the same as #28: the 2x line buffers fit in
+  the blocks the 1x ones already occupied), 25,230 ALMs (+1,300), no
+  negative slack. Hardware: After Burner II, Thunder Blade and Super
+  Monaco GP fine in both modes. Racing Hero loses rows at the bottom of
+  the screen from the start of a race and stays that way; open. First
+  suspect is the 2x render budget (Racing Hero carries far more roadside
+  sprites than After Burner, and a render cut at vblank drops the tail of
+  the list), to be measured with the board harness's RENDER abort trace.
 
 ## Framework gamma correction (M15)
 
