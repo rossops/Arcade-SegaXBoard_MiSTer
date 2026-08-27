@@ -43,6 +43,8 @@ module xb_fb_if #(
     input             wr_valid,        // one write this cycle
     input      [15:0] wr_pix,
     input             wr_end,
+    input             wr_dup,          // flush the retained run again to wr_dup_y
+    input       [8:0] wr_dup_y,
     input             wr_shadow,       // run is a shadow RMW (dest &= 0x7fff)
     output            wr_busy,         // previous run still flushing
 
@@ -236,19 +238,22 @@ always @(posedge clk) begin
         if (lo < run_x0) run_x0 <= lo;
         if (hi > run_xe) run_xe <= hi;
     end
+    // duplicate row: the buffer, mask and span are untouched by a flush, so
+    // the same run goes out again to another line
+    if (wr_dup) run_y <= wr_dup_y;
     if (flush_accept) run_active <= 1'b0;
     if (rst) run_active <= 1'b0;
 end
 
 always @(posedge clk) begin
     if (rst) flush_req <= 0;
-    else if (wr_end && run_active) flush_req <= 1'b1;
+    else if ((wr_end && run_active) || wr_dup) flush_req <= 1'b1;
     else if (flush_accept) flush_req <= 1'b0;
 end
 
 // hold the renderer off from wr_end (combinational — closes the one-cycle
 // window before flush_req registers) until the flush completes
-assign wr_busy = wr_end | flush_req |
+assign wr_busy = wr_end | wr_dup | flush_req |
                  (dst == D_WR_PF) | (dst == D_WR) |
                  (dst == D_WR_SKIP) | (dst == D_WR_SKIP_PF) |
                  (dst == D_SH_R) | (dst == D_SH_RW) | (dst == D_SH_W) |

@@ -59,6 +59,8 @@ module xb_sprite_5211 (
     output reg        fb_wr_valid,
     output reg [15:0] fb_wr_pix,
     output reg        fb_wr_end,
+    output reg        fb_wr_dup,      // re-flush the last run to fb_wr_dup_y (identical row)
+    output reg  [8:0] fb_wr_dup_y,
     input             fb_wr_busy,
     output reg        fb_er_req,
     output reg  [1:0] fb_er_buf,
@@ -85,6 +87,10 @@ typedef enum logic [3:0] {
     R_ROMREQ, R_ROMWAIT, R_PIX, R_ROWEND, R_NEXT, R_ROWSKIP
 } rs_t;
 rs_t rs;
+reg        er_need;       // the back buffer has been displayed and must be erased before a render
+wire       erasing = (rs == R_ERASE) || (rs == R_ERASEW);
+reg        have_run;      // a run of this sprite was rendered and is held in xb_fb_if
+reg [15:0] run_rowaddr;   // its source row address
 
 reg  [7:0] sprite_idx;
 reg  [3:0] wcnt;
@@ -165,22 +171,32 @@ always @(posedge clk) begin
 end
 
 // ---------------------------------------------------------------- renderer
+`ifdef SIMULATION
+reg no_abort; initial no_abort = $test$plusargs("no_abort");
+`else
+wire no_abort = 1'b0;
+`endif
 always @(posedge clk) begin
     fb_wr_start <= 1'b0;
     fb_wr_valid <= 1'b0;
     fb_wr_end   <= 1'b0;
+    fb_wr_dup   <= 1'b0;
     rom_req     <= 1'b0;
     if (reset) begin
         rs <= R_IDLE; disp_buf <= 1'b0; render_pending <= 1'b0; rendering <= 1'b0;
         burst_valid <= 1'b0; sprite_idx <= 8'd0; wcnt <= 4'd0;
-        fb_er_req <= 1'b0; did_render <= 1'b0;
+        fb_er_req <= 1'b0; did_render <= 1'b0; er_need <= 1'b1;
     end
     else begin
         if (start_req) render_pending <= 1'b1;
 
         // vblank: abort the render; swap only if one ran since the last swap
-        if (vbl_start) begin
-            if (rendering || did_render) disp_buf <= ~disp_buf;
+        // (+no_abort, simulation only: let a running render finish and swap
+        // at the next vblank, to measure how long an aborted frame needs)
+        // (an erase in progress is left alone: it only runs when no render
+        // is active or finished, so there is no swap to conflict with)
+        if (vbl_start && !(no_abort && rendering) && !erasing) begin
+            if (rendering || did_render) begin disp_buf <= ~disp_buf; er_need <= 1'b1; end
             did_render <= 1'b0;
             rendering <= 1'b0;
             if (rs != R_IDLE && rs != R_ROWWAIT && rs != R_ERASE && rs != R_ERASEW)
@@ -190,17 +206,21 @@ always @(posedge clk) begin
         end
         else case (rs)
         R_IDLE: begin
-            if (render_pending && !fb_wr_busy) begin
+            if (er_need) begin er_line <= 9'd0; rs <= R_ERASE; end
+            else if (render_pending && !fb_wr_busy) begin
                 render_pending <= 1'b0;
                 rendering <= 1'b1;
                 did_render <= 1'b1;
                 sprite_idx <= 8'd0;
                 burst_valid <= 1'b0;
-                er_line <= 9'd0;
-                rs <= R_ERASE;
+                rs <= R_FETCH;
             end
         end
-        // erase the whole back buffer before drawing into it
+        // Erase the back buffer as soon as it becomes the back buffer (at the
+        // swap), not at the start of the next render: a game that draws every
+        // other frame then never waits for it, and one that requests late in
+        // vblank waits only for the remainder. Only the lines the renderer can
+        // write (on_screen_y) are erased; the rest are never read either.
         R_ERASE: begin
             fb_er_req <= 1'b1;
             fb_er_buf <= {1'b0, ~disp_buf};
@@ -210,7 +230,7 @@ always @(posedge clk) begin
         R_ERASEW: begin
             if (fb_er_ack) begin
                 fb_er_req <= 1'b0;
-                if (er_line == (hires ? 9'd511 : 9'd255)) rs <= R_FETCH;
+                if (er_line == (hires ? 9'd447 : 9'd223)) begin er_need <= 1'b0; rs <= R_IDLE; end
                 else begin er_line <= er_line + 9'd1; rs <= R_ERASE; end
             end
         end
@@ -245,15 +265,26 @@ always @(posedge clk) begin
         R_ROW: begin
             if (hide) rs <= R_NEXT;
             else begin
-                y <= top; rows_left <= height; yacc <= 10'd0;
+                y <= top; rows_left <= height; yacc <= 10'd0; have_run <= 1'b0;
                 rs <= R_ROWWAIT;
             end
         end
-        // start a row: wait for the previous run's flush, then open a run
+        // start a row: wait for the previous run's flush, then open a run.
+        // A row whose source address equals the last rendered row's (the
+        // zoom accumulator did not advance: every other row at 1:1 in 2x,
+        // most rows of an enlarged sprite) is the same pixels, so the run
+        // still held in xb_fb_if is flushed again to this y instead.
         R_ROWWAIT: begin
             if (rows_left == 13'd0) rs <= R_NEXT;
             else if (!on_screen_y) rs <= R_ROWSKIP;
+            else if (!fb_wr_busy && have_run && addr == run_rowaddr) begin
+                fb_wr_dup   <= 1'b1;
+                fb_wr_dup_y <= y[8:0];
+                rs <= R_ROWSKIP;
+            end
             else if (!fb_wr_busy) begin
+                have_run    <= 1'b1;
+                run_rowaddr <= addr;
                 fb_wr_start <= 1'b1;
                 fb_wr_buf   <= {1'b0, ~disp_buf};
                 fb_wr_y     <= y[8:0];

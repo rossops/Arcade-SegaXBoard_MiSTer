@@ -42,6 +42,7 @@ ddram_model ddram (.clk(clk), .DDRAM_BUSY(DDRAM_BUSY), .DDRAM_BURSTCNT(DDRAM_BUR
     .DDRAM_DIN(DDRAM_DIN), .DDRAM_BE(DDRAM_BE), .DDRAM_WE(DDRAM_WE));
 
 wire fbw_start, fbw_valid, fbw_end, fbw_busy, fbe_ack, fbr_ack;
+wire fbw_dup; wire [8:0] fbw_dup_y;
 wire [1:0] fbw_buf, fbe_buf, fbr_buf;
 wire [9:0] fbw_x; wire [3:0] fbw_lanes; wire [8:0] fbw_y, fbe_y, fbr_y;
 reg hires; initial hires = $test$plusargs("hires");
@@ -53,7 +54,7 @@ xb_fb_if #(.FB_BASE(32'h3000_0000)) fb (
     .DDRAM_DOUT(DDRAM_DOUT), .DDRAM_DOUT_READY(DDRAM_DOUT_READY), .DDRAM_RD(DDRAM_RD),
     .DDRAM_DIN(DDRAM_DIN), .DDRAM_BE(DDRAM_BE), .DDRAM_WE(DDRAM_WE),
     .wr_start(fbw_start), .wr_buf(fbw_buf), .wr_x(fbw_x), .wr_lanes(fbw_lanes), .wr_y(fbw_y),
-    .wr_valid(fbw_valid), .wr_pix(fbw_pix), .wr_end(fbw_end), .wr_shadow(1'b0), .wr_busy(fbw_busy),
+    .wr_valid(fbw_valid), .wr_pix(fbw_pix), .wr_end(fbw_end), .wr_dup(fbw_dup), .wr_dup_y(fbw_dup_y), .wr_shadow(1'b0), .wr_busy(fbw_busy),
     .er_req(fbe_req), .er_buf(fbe_buf), .er_y(fbe_y), .er_ack(fbe_ack),
     .rd_req(fbr_req), .rd_buf(fbr_buf), .rd_y(fbr_y), .rd_ack(fbr_ack),
     .rd_x(10'd0), .rd_pix(fbr_pix), .rd_pub_ok(1'b1));
@@ -67,7 +68,7 @@ xb_sprite_5211 dut (
     .sram_addr(sram_addr), .sram_q(sram_q),
     .rom_req(rom_req), .rom_addr(rom_addr), .rom_dout(rom_dout), .rom_ack(rom_ack),
     .fb_wr_start(fbw_start), .fb_wr_buf(fbw_buf), .fb_wr_x(fbw_x), .fb_wr_lanes(fbw_lanes), .fb_wr_y(fbw_y),
-    .fb_wr_valid(fbw_valid), .fb_wr_pix(fbw_pix), .fb_wr_end(fbw_end), .fb_wr_busy(fbw_busy),
+    .fb_wr_valid(fbw_valid), .fb_wr_pix(fbw_pix), .fb_wr_end(fbw_end), .fb_wr_dup(fbw_dup), .fb_wr_dup_y(fbw_dup_y), .fb_wr_busy(fbw_busy),
     .fb_er_req(fbe_req), .fb_er_buf(fbe_buf), .fb_er_y(fbe_y), .fb_er_ack(fbe_ack),
     .fb_rd_req(fbr_req), .fb_rd_buf(fbr_buf), .fb_rd_y(fbr_y), .fb_rd_ack(fbr_ack),
     .disp_buf(disp_buf));
@@ -108,7 +109,7 @@ initial begin
         hist[dut.rs] = hist[dut.rs] + 1;
         if (dut.fb_wr_valid) begin pixv = pixv + 1; if (dut.fb_wr_lanes[0] + dut.fb_wr_lanes[1] + dut.fb_wr_lanes[2] + dut.fb_wr_lanes[3] > 1) pix2 = pix2 + 1; end
         if (dut.rs == 7 && fbw_busy) busyw = busyw + 1;
-        if (cyc > 200 && dut.rs == 0 && !fbw_busy && !dut.rendering) begin
+        if (cyc > 200 && dut.rs == 0 && !fbw_busy && !dut.rendering && !dut.render_pending) begin
             fd = $fopen("fb.txt", "w");
             for (y = 0; y < (hires ? 512 : 256); y = y + 1)
                 for (x = 0; x < (hires ? 1024 : 512); x = x + 4) begin

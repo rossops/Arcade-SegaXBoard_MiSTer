@@ -672,6 +672,8 @@ wire        fbe_req, fbe_ack, fbr_req, fbr_ack;
 wire  [1:0] fbw_buf, fbe_buf, fbr_buf;
 wire  [9:0] fbw_x;
 wire  [3:0] fbw_lanes;
+wire        fbw_dup;
+wire  [8:0] fbw_dup_y;
 wire  [8:0] fbw_y, fbe_y, fbr_y;
 wire [15:0] fbw_pix, fbr_pix;
 wire        spr_disp_buf;
@@ -681,7 +683,7 @@ xb_sprite_5211 sprites (
     .hires(hires), .oline(r_oline),
     .sram_addr(spr_rd_addr), .sram_q(spr_rd_q),
     .rom_req(p2_req), .rom_addr(p2_addr), .rom_dout(p2_dout), .rom_ack(p2_ack),
-    .fb_wr_start(fbw_start), .fb_wr_buf(fbw_buf), .fb_wr_x(fbw_x), .fb_wr_lanes(fbw_lanes), .fb_wr_y(fbw_y),
+    .fb_wr_start(fbw_start), .fb_wr_buf(fbw_buf), .fb_wr_x(fbw_x), .fb_wr_lanes(fbw_lanes), .fb_wr_y(fbw_y), .fb_wr_dup(fbw_dup), .fb_wr_dup_y(fbw_dup_y),
     .fb_wr_valid(fbw_valid), .fb_wr_pix(fbw_pix), .fb_wr_end(fbw_end), .fb_wr_busy(fbw_busy),
     .fb_er_req(fbe_req), .fb_er_buf(fbe_buf), .fb_er_y(fbe_y), .fb_er_ack(fbe_ack),
     .fb_rd_req(fbr_req), .fb_rd_buf(fbr_buf), .fb_rd_y(fbr_y), .fb_rd_ack(fbr_ack),
@@ -704,7 +706,7 @@ xb_fb_if #(.FB_BASE(32'h3000_0000)) fb (
     .DDRAM_BUSY(DDRAM_BUSY), .DDRAM_BURSTCNT(DDRAM_BURSTCNT), .DDRAM_ADDR(DDRAM_ADDR),
     .DDRAM_DOUT(DDRAM_DOUT), .DDRAM_DOUT_READY(DDRAM_DOUT_READY), .DDRAM_RD(DDRAM_RD),
     .DDRAM_DIN(DDRAM_DIN), .DDRAM_BE(DDRAM_BE), .DDRAM_WE(DDRAM_WE),
-    .wr_start(fbw_start), .wr_buf(fbw_buf), .wr_x(fbw_x), .wr_lanes(fbw_lanes), .wr_y(fbw_y),
+    .wr_start(fbw_start), .wr_buf(fbw_buf), .wr_x(fbw_x), .wr_lanes(fbw_lanes), .wr_y(fbw_y), .wr_dup(fbw_dup), .wr_dup_y(fbw_dup_y),
     .wr_valid(fbw_valid), .wr_pix(fbw_pix), .wr_end(fbw_end), .wr_shadow(1'b0), .wr_busy(fbw_busy),
     .er_req(fbe_req), .er_buf(fbe_buf), .er_y(fbe_y), .er_ack(fbe_ack),
     .rd_req(fbr_req), .rd_buf(fbr_buf), .rd_y(fbr_y), .rd_ack(fbr_ack),

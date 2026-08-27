@@ -558,6 +558,41 @@ loader's BRAM byte path is gone.
   the board frames are checked as before (After Burner II and Super
   Monaco GP, the road-heavy game).
 
+## Render speed for the 2x mode (M20)
+
+Racing Hero with enhanced sprites on lost the bottom of the screen from the
+start of a race: the board harness (`+start=N` presses P1 Start so a race
+can be reached; `+no_abort` lets a render run past vblank to measure it)
+showed the start grid needing 17-19 ms per render against the 15.7 ms the
+game leaves (it draws every other frame, requesting at line 238; the
+render is cut at line 223 of the next frame), the cut landing around
+sprite 118 of the list, where the near road and the bike are. Two changes
+in the renderer, both pixel-exact by construction:
+
+- Duplicate rows. Whenever the vertical zoom accumulator does not advance
+  a source row, the output row is the same pixels as the previous one:
+  every second row at 1:1 in the 2x mode, three in four for a sprite
+  enlarged twice. The renderer keeps the source row address of the last
+  run it rendered; a row with the same address asks `xb_fb_if` to flush
+  the run it still holds (the buffer, mask and span survive a flush) to
+  the new y and skips the ROM fetch and the pixel loop. Same benefit for
+  enlarged sprites at 1x. After Burner II frame 150 on the bench: 8.56 to
+  6.66 ms at 2x, 1x unchanged (no enlarged sprites in that list).
+- Erase at the swap. The back-buffer erase (1.5 ms at 2x, 23% of that
+  bench render) used to be the first phase of a render. It now starts
+  when a buffer becomes the back buffer, at the vblank swap, and the next
+  render waits only for whatever is left: a game drawing every other frame
+  never waits, and one requesting late in vblank waits for the remainder.
+  Only the lines the renderer can write (0..447 at 2x, 0..223 at 1x) are
+  erased; nothing reads the others. A line fetch has priority over erase
+  lines in `xb_fb_if` since M19, so the display never waits on it.
+
+Result: Racing Hero's start grid peaks at 12.1 ms with no aborts (dup
+rows alone: 13.7 ms); After Burner II frame 150 exact at 1x and 2x.
+Left on the table if a game still overruns: a second run buffer so a
+duplicate row's flush overlaps the next row (the dup path waits for the
+previous flush), and the sprite ROM waits.
+
 ## Later: CPU overclock (parked)
 
 An opt-in OSD "CPU speed" (12.5 / 15 / 18.75 / 25 MHz) for both 68000s,
