@@ -427,6 +427,9 @@ xb_ana_shape shape_x (.clk(clk_sys), .axis(stick_x), .curve(curve_eff), .range(r
 xb_ana_shape shape_y (.clk(clk_sys), .axis(stick_y), .curve(curve_eff), .range(range_eff), .out(sy_s));
 xb_ana_shape shape_t (.clk(clk_sys), .axis(throttle ^ 8'h80), .curve(curve_eff), .range(range_eff), .out(thr_s));
 wire [7:0] throttle_s = thr_s ^ 8'h80;
+// After Burner / Thunder Blade: the Speed Up / Slow Down buttons hold the
+// throttle at the value the right stick gives fully up / fully down
+wire [7:0] thr_fl = p1_buttons[11] ? 8'h00 : p1_buttons[12] ? 8'hFF : throttle_s;
 wire use_analog  = (stick_mode != 2'd1);
 wire use_dpad    = (stick_mode != 2'd0);
 wire dpad_active = |p1_buttons[3:0];
@@ -467,8 +470,8 @@ wire [7:0] ana_x = (use_dpad && dpad_active) ? sel_dx : use_analog ? sel_x : 8'h
 wire [7:0] ana_y = (use_dpad && dpad_active) ? sel_dy : use_analog ? sel_y : 8'h80;
 wire [7:0] adc_ch0 = (am == 3'd5) ? gun1_x : ana_x;
 wire [7:0] adc_ch3 = (am == 3'd5) ? gun2_y : 8'h80;
-wire [7:0] adc_ch1 = (am == 3'd5) ? gun1_y : (am == 3'd4) ? gp_gas   : (am == 3'd3) ? gas_f   : (am == 3'd2) ? (8'h38 + gas_v)   : (am == 3'd1) ? throttle_s : ana_y;
-wire [7:0] adc_ch2 = (am == 3'd5) ? gun2_x : (am == 3'd4) ? gp_brake : (am == 3'd3) ? brake_f : (am == 3'd2) ? (8'h28 + brake_v) : (am == 3'd1) ? ana_y : throttle_s;
+wire [7:0] adc_ch1 = (am == 3'd5) ? gun1_y : (am == 3'd4) ? gp_gas   : (am == 3'd3) ? gas_f   : (am == 3'd2) ? (8'h38 + gas_v)   : (am == 3'd1) ? thr_fl : ana_y;
+wire [7:0] adc_ch2 = (am == 3'd5) ? gun2_x : (am == 3'd4) ? gp_brake : (am == 3'd3) ? brake_f : (am == 3'd2) ? (8'h28 + brake_v) : (am == 3'd1) ? ana_y : thr_fl;
 wire snd_reset_n    = io0_out_c[0];
 wire mute_n         = io0_out_d[7];
 

@@ -29,7 +29,8 @@ expanders, a YM2151 and a 315-5218 PCM chip.
 | M15 | Gamma correction (framework OSD option, disabled since M5) | done: confirmed on hardware; road ROM rebuilt as a true-dual-port RAM (build #23, 545/553 M10K) |
 | M16 | MiSTer-devel standards (stock `sys/`, template layout, MRA alternatives) | in source, hardware build pending |
 | M18 | Road ROM in SDRAM (line prefetch, frees 64 M10K blocks) | done: confirmed on hardware (build #28, 488/553 M10K) |
-| M19 | Enhanced sprites (640x448 sprite rendering, opt-in OSD option) | done: confirmed on hardware (build #29, 488/553 M10K). Known issue: with the option on, Racing Hero loses rows at the bottom of the screen from the start of a race (fine with it off), under investigation |
+| M19 | Enhanced sprites (640x448 sprite rendering, opt-in OSD option) | done: confirmed on hardware (build #29, 488/553 M10K). Known issue: with the option on, Racing Hero loses rows at the bottom of the screen from the start of a race (fine with it off), fixed in M20 |
+| M20 | Renderer speed for the 2x mode (duplicate rows, erase at the swap) and MiSTer-devel OSD feedback (button order, D-pad default) | in source: Racing Hero start grid renders in RH_PEAK ms against a 15.7 ms window, no aborts; hardware build pending |
 | later | CPU overclock (12.5/15/18.75/25 MHz, opt-in) | parked, see docs/DESIGN.md |
 | M17 | Analog sensitivity (response curves for stick and wheel games) and per-game OSD | done: confirmed on hardware (build #27) |
 
@@ -72,9 +73,10 @@ folder.
 
 Player 1's left stick is the flight stick or wheel; the right stick's Y
 axis is the throttle (After Burner, Thunder Blade) or gas and brake (the
-driving games), with Gas/Brake buttons as the digital alternative. The
-button list puts what you bind first at the front (Gas and Brake lead on
-the driving games), Test and Service last. OSD options: Stick (D-pad by
+driving games), with Gas/Brake or Speed Up/Slow Down buttons as the
+digital alternative. The button list puts what you bind first at the front
+(Gas and Brake lead on the driving games, the throttle buttons follow the
+fire buttons on After Burner and Thunder Blade), Test and Service last. OSD options: Stick (D-pad by
 default, analog, or both), Analog response (Linear is the
 board's own mapping; Soft and Softer flatten the centre for thumbsticks
 while keeping full lock), Analog range (100/75/50%), Gun control for Line

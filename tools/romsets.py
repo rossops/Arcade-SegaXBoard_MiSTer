@@ -58,7 +58,7 @@ ROMSETS = {
             (13, 13, "Allow Continue", "Yes,No"),
             (14, 15, "Difficulty", "Hardest,Hard,Easy,Normal"),
         ],
-        "buttons": ("Vulcan,Missile,Start,Coin,Pause,Test,Service", "A,B,Start,R,X,L,Select"),
+        "buttons": ("Vulcan,Missile,Speed Up,Slow Down,Start,Coin,Pause,Test,Service", "A,B,R2,L2,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("epr-11107.58", 0x20000, "6d87bab7"),
@@ -127,7 +127,7 @@ ROMSETS = {
             (13, 13, "Allow Continue", "Yes,No"),
             (14, 15, "Difficulty", "Hardest,Hard,Easy,Normal"),
         ],
-        "buttons": ("Vulcan,Missile,Start,Coin,Pause,Test,Service", "A,B,Start,R,X,L,Select"),
+        "buttons": ("Vulcan,Missile,Speed Up,Slow Down,Start,Coin,Pause,Test,Service", "A,B,R2,L2,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("epr-11092.58", 0x20000, "fa02b5cb"),
@@ -197,7 +197,7 @@ ROMSETS = {
             (13, 13, "Allow Continue", "Yes,No"),
             (14, 15, "Difficulty", "Hardest,Hard,Easy,Normal"),
         ],
-        "buttons": ("Vulcan,Missile,Start,Coin,Pause,Test,Service", "A,B,Start,R,X,L,Select"),
+        "buttons": ("Vulcan,Missile,Speed Up,Slow Down,Start,Coin,Pause,Test,Service", "A,B,R2,L2,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("epr-10940.58", 0x20000, "4d132c4e"),
@@ -268,7 +268,7 @@ ROMSETS = {
             (13, 13, "Allow Continue", "No,Yes"),
             (14, 15, "Difficulty", "Hardest,Easy,Hard,Normal"),
         ],
-        "buttons": ("Cannon,Missile,Start,Coin,Pause,Test,Service", "A,B,Start,R,X,L,Select"),
+        "buttons": ("Cannon,Missile,Speed Up,Slow Down,Start,Coin,Pause,Test,Service", "A,B,R2,L2,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("epr-11304.ic58", 0x20000, "a90630ef"),
@@ -343,7 +343,7 @@ ROMSETS = {
             (13, 13, "Allow Continue", "No,Yes"),
             (14, 15, "Difficulty", "Hardest,Easy,Hard,Normal"),
         ],
-        "buttons": ("Cannon,Missile,Start,Coin,Pause,Test,Service", "A,B,Start,R,X,L,Select"),
+        "buttons": ("Cannon,Missile,Speed Up,Slow Down,Start,Coin,Pause,Test,Service", "A,B,R2,L2,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("bootleg_epr-11405.ic58", 0x20000, "1642fd59"),
@@ -493,7 +493,7 @@ ROMSETS = {
             (13, 13, 'Allow Continue', 'No,Yes'),
             (14, 15, 'Difficulty', 'Hardest,Easy,Hard,Normal'),
         ],
-        "buttons": ("Cannon,Missile,Start,Coin,Pause,Test,Service", "A,B,Start,R,X,L,Select"),
+        "buttons": ("Cannon,Missile,Speed Up,Slow Down,Start,Coin,Pause,Test,Service", "A,B,R2,L2,Start,R,X,L,Select"),
         "regions": {
             "main": ("w16", [
                 ("epr-11405.ic58", 0x20000, "e057dd5a"),

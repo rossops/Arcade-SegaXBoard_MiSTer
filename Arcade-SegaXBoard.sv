@@ -302,17 +302,24 @@ wire [1:0] stick_mode = (status[9:8] == 2'd0) ? 2'd1 : (status[9:8] == 2'd1) ? 2
 
 // Pause: the mapped button (joystick bit 10) or the OSD open with the option set
 // Button positions follow the MRA's list, which puts the buttons players bind
-// first at the front: driving sets (wheel/pedal analog modes) list
-// Gas, Brake, A, B, Start, Coin, Pause, Test, Service; the others
-// A, B, Start, Coin, Pause, Test, Service. The core keeps one fixed layout
-// (4 A, 5 B, 6 Start, 7 Coin, 8 Test, 9 Service, 10 Pause, 11 Gas, 12 Brake).
+// first at the front. Three layouts, chosen from the board descriptor:
+//   driving (wheel/pedal analog modes): Gas, Brake, A, B, Start, Coin, Pause, Test, Service
+//   flight (After Burner, Thunder Blade): A, B, Speed Up, Slow Down, Start, Coin, Pause, Test, Service
+//   the rest:                             A, B, Start, Coin, Pause, Test, Service
+// The core keeps one fixed layout (4 A, 5 B, 6 Start, 7 Coin, 8 Test,
+// 9 Service, 10 Pause, 11 Gas/Speed Up, 12 Brake/Slow Down).
 wire driving_set = (board_desc.ana_mode == 3'd2) || (board_desc.ana_mode == 3'd3) || (board_desc.ana_mode == 3'd4);
-function automatic [15:0] map_buttons(input [15:0] j, input drv);
-    map_buttons = drv ? {3'd0, j[5], j[4], j[10], j[12], j[11], j[9], j[8], j[7], j[6], j[3:0]}
-                      : {5'd0, j[8], j[10], j[9], j[7], j[6], j[5], j[4], j[3:0]};
+wire flight_set  = board_desc.has_throttle && (board_desc.ana_mode == 3'd0 || board_desc.ana_mode == 3'd1);
+wire [1:0] btn_layout = driving_set ? 2'd2 : flight_set ? 2'd1 : 2'd0;
+function automatic [15:0] map_buttons(input [15:0] j, input [1:0] lay);
+    case (lay)
+    2'd2:    map_buttons = {3'd0, j[5], j[4], j[10], j[12], j[11], j[9], j[8], j[7], j[6], j[3:0]};
+    2'd1:    map_buttons = {3'd0, j[7], j[6], j[10], j[12], j[11], j[9], j[8], j[5], j[4], j[3:0]};
+    default: map_buttons = {5'd0, j[8], j[10], j[9], j[7], j[6], j[5], j[4], j[3:0]};
+    endcase
 endfunction
-wire [15:0] p1_btn = map_buttons(joystick_0[15:0], driving_set);
-wire [15:0] p2_btn = map_buttons(joystick_1[15:0], driving_set);
+wire [15:0] p1_btn = map_buttons(joystick_0[15:0], btn_layout);
+wire [15:0] p2_btn = map_buttons(joystick_1[15:0], btn_layout);
 wire pause = p1_btn[10] | (status[10] & OSD_STATUS);
 
 //////////////////////////////   CORE   ///////////////////////////////////////
