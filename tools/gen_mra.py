@@ -12,7 +12,10 @@ sys.path.insert(0, os.path.dirname(__file__))
 from romsets import ROMSETS, SLOT, ORDER, DESC_SIZE
 from pack_roms import descriptor, last_region
 
-RBF = "Arcade-SegaXBoard"
+# Bare name, no "Arcade-": Distribution_MiSTer strips that prefix from the
+# packaged .rbf, and the MiSTer loader matches a bare tag against both
+# SegaXBoard_*.rbf and Arcade-SegaXBoard_*.rbf (issue #3).
+RBF = "SegaXBoard"
 
 
 def hexbytes(b):

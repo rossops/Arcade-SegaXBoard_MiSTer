@@ -1,7 +1,7 @@
 <misterromdescription>
   <name>GP Rider (World)</name>
   <setname>gpriders</setname>
-  <rbf>Arcade-SegaXBoard</rbf>
+  <rbf>SegaXBoard</rbf>
   <mameversion>0289</mameversion>
   <year>1990</year>
   <manufacturer>Sega</manufacturer>
