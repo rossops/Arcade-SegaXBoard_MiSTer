@@ -73,6 +73,9 @@ module xb_core (
     input       [1:0] stick_mode,           // 0 analog, 1 d-pad, 2 both
     input       [1:0] ana_curve,            // OSD analog response: 0 linear, 1 soft, 2 softer
     input       [1:0] ana_range,            // OSD analog range: 0 100%, 1 75%, 2 50%
+    input             dpad_ramp,            // OSD (After Burner): D-pad ramps a virtual stick instead of snapping
+    input             stick_recenter,       // OSD (After Burner): 0 holds the D-pad stick where it was released
+    input             ana_cal,              // OSD (After Burner): analog zero calibration
     input       [7:0] dsw_a, dsw_b,
     input             service, test,
     input             coin1, coin2,
@@ -422,9 +425,23 @@ wire display_enable = io0_out_c[5];   // MAME: set_display_enable(data & 0x20)
 wire [2:0] am    = board_desc.ana_mode;
 wire [1:0] curve_eff = (am == 3'd5) ? 2'd0 : ana_curve;
 wire [1:0] range_eff = (am == 3'd5) ? 2'd0 : ana_range;
+// After Burner stick options (xb_stick): the virtual D-pad stick and the
+// zero calibration sit in front of the shaper; with the options off (the
+// defaults) the axes pass through untouched and the snap path below is used
+wire use_analog  = (stick_mode != 2'd1);
+wire use_dpad    = (stick_mode != 2'd0);
+wire ab_board    = board_desc.has_throttle && (am == 3'd0);
+wire vst_en      = ab_board && use_dpad && (dpad_ramp || !stick_recenter);
+wire signed [7:0] st_x, st_y;
+wire x_vst, y_vst;
+xb_stick stick (.clk(clk_sys), .reset(reset), .frame(vbl_irq && !vbl_d),
+    .ax_in(stick_x), .ay_in(stick_y),
+    .right(p1_buttons[0]), .left(p1_buttons[1]), .down(p1_buttons[2]), .up(p1_buttons[3]),
+    .vst_en(vst_en), .ramp(dpad_ramp), .recenter(stick_recenter), .cal(ana_cal && ab_board),
+    .ax_out(st_x), .ay_out(st_y), .x_dpad(x_vst), .y_dpad(y_vst));
 wire signed [7:0] sx_s, sy_s, thr_s;
-xb_ana_shape shape_x (.clk(clk_sys), .axis(stick_x), .curve(curve_eff), .range(range_eff), .out(sx_s));
-xb_ana_shape shape_y (.clk(clk_sys), .axis(stick_y), .curve(curve_eff), .range(range_eff), .out(sy_s));
+xb_ana_shape shape_x (.clk(clk_sys), .axis(st_x), .curve(curve_eff), .range(range_eff), .out(sx_s));
+xb_ana_shape shape_y (.clk(clk_sys), .axis(st_y), .curve(curve_eff), .range(range_eff), .out(sy_s));
 xb_ana_shape shape_t (.clk(clk_sys), .axis(throttle ^ 8'h80), .curve(curve_eff), .range(range_eff), .out(thr_s));
 wire [7:0] throttle_s = thr_s ^ 8'h80;
 // After Burner / Thunder Blade: the Speed Up / Slow Down buttons hold the
@@ -432,8 +449,6 @@ wire [7:0] throttle_s = thr_s ^ 8'h80;
 // test, build #30: the other way round slowed the plane), so Speed Up is
 // 0xFF, which is the right stick fully DOWN in the axis mapping above.
 wire [7:0] thr_fl = p1_buttons[11] ? 8'hFF : p1_buttons[12] ? 8'h00 : throttle_s;
-wire use_analog  = (stick_mode != 2'd1);
-wire use_dpad    = (stick_mode != 2'd0);
 wire dpad_active = |p1_buttons[3:0];
 wire signed [15:0] ab_xs = sx_s * 8'sd96;      // +-0x60
 wire signed [15:0] ab_ys = sy_s * 8'sd64;      // +-0x40
@@ -468,8 +483,8 @@ wire [7:0] sel_x  = (am == 3'd4) ? fr_x  : (am == 3'd3) ? rh_x  : (am == 3'd2) ?
 wire [7:0] sel_dx = (am == 3'd4) ? fr_dx : (am == 3'd3) ? rh_dx : (am == 3'd2) ? dr_dx : (am == 3'd1) ? fr_dx : ab_dx;
 wire [7:0] sel_y  = (am == 3'd1) ? fr_y  : ab_y;
 wire [7:0] sel_dy = (am == 3'd1) ? fr_dy : ab_dy;
-wire [7:0] ana_x = (use_dpad && dpad_active) ? sel_dx : use_analog ? sel_x : 8'h80;
-wire [7:0] ana_y = (use_dpad && dpad_active) ? sel_dy : use_analog ? sel_y : 8'h80;
+wire [7:0] ana_x = (use_dpad && dpad_active && !vst_en) ? sel_dx : (use_analog || x_vst) ? sel_x : 8'h80;
+wire [7:0] ana_y = (use_dpad && dpad_active && !vst_en) ? sel_dy : (use_analog || y_vst) ? sel_y : 8'h80;
 wire [7:0] adc_ch0 = (am == 3'd5) ? gun1_x : ana_x;
 wire [7:0] adc_ch3 = (am == 3'd5) ? gun2_y : 8'h80;
 wire [7:0] adc_ch1 = (am == 3'd5) ? gun1_y : (am == 3'd4) ? gp_gas   : (am == 3'd3) ? gas_f   : (am == 3'd2) ? (8'h38 + gas_v)   : (am == 3'd1) ? thr_fl : ana_y;

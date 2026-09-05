@@ -160,7 +160,7 @@ xb_core core (
     .p5_req(p5_req), .p5_addr(p5_addr), .p5_dout(p5_dout), .p5_ack(p5_ack),
     .p6_req(p6_req), .p6_addr(p6_addr), .p6_dout(p6_dout), .p6_ack(p6_ack),
     .p7_req(p7_req), .p7_addr(p7_addr), .p7_dout(p7_dout), .p7_ack(p7_ack),
-    .p1_buttons({9'd0, p1_start, 6'd0}), .p2_buttons(16'd0), .aim1_x(8'sd0), .aim1_y(8'sd0), .aim2_x(8'sd0), .aim2_y(8'sd0), .stick2_x(8'sd0), .stick2_y(8'sd0), .gun_mode(1'b0), .speed1(4'd0), .speed2(4'd0), .xhair_en(1'b0), .stick_x(8'sd0), .stick_y(8'sd0), .throttle(8'h80), .stick_mode(2'd0), .ana_curve(2'd0), .ana_range(2'd0),
+    .p1_buttons({9'd0, p1_start, 6'd0}), .p2_buttons(16'd0), .aim1_x(8'sd0), .aim1_y(8'sd0), .aim2_x(8'sd0), .aim2_y(8'sd0), .stick2_x(8'sd0), .stick2_y(8'sd0), .gun_mode(1'b0), .speed1(4'd0), .speed2(4'd0), .xhair_en(1'b0), .stick_x(8'sd0), .stick_y(8'sd0), .throttle(8'h80), .stick_mode(2'd0), .ana_curve(2'd0), .ana_range(2'd0), .dpad_ramp(1'b0), .stick_recenter(1'b1), .ana_cal(1'b0),
     .dsw_a(dsw_a), .dsw_b(dsw_b), .service(1'b0), .test(1'b0), .coin1(coin1), .coin2(1'b0),
     .nv_download(1'b0), .nv_upload(1'b0), .nv_wr(1'b0), .nv_rd(1'b0), .nv_addr(15'd0), .nv_din(16'd0), .nv_dout(), .nv_modified(),
     .r(r), .g(g), .b(b), .ce_vid(ce_pix), .hs(hs), .vs(vs), .hb(hb), .vb(vb),

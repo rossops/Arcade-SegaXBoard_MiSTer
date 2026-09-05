@@ -129,8 +129,11 @@ localparam CONF_STR = {
     "O[22],Enhanced sprites (640x448),Off,On;",
     "O[7],Service Mode,Off,On;",
     "H2O[9:8],Stick,D-Pad,Analog,Analog+D-Pad;",
+    "H3O[28],D-pad stick,Snap,Ramp;",
+    "H3O[29],Stick re-centering,On,Off;",
     "H2O[24:23],Analog response,Linear,Soft,Softer;",
     "H2O[26:25],Analog range,100%,75%,50%;",
+    "H3O[27],Analog zero calibration,Off,On;",
     "O[10],Pause when OSD open,Off,On;",
     "H0O[11],Rear speakers,On,Off;",
     "H1O[12],Gun control,Lightgun,Gamepad;",
@@ -244,7 +247,8 @@ wire [24:1] sw_addr;
 wire [15:0] sw_din;
 wire  [1:0] sw_be;
 board_desc_t board_desc;
-assign status_menumask = {13'd0,
+assign status_menumask = {12'd0,
+    ~(board_desc.has_throttle && board_desc.ana_mode == 3'd0),   // bit 3: After Burner stick options
     board_desc.ana_mode == 3'd5,   // bit 2: gun game, no stick/analog options
     ~board_desc.gun_inputs,        // bit 1: no gun options
     ~board_desc.has_snd2};         // bit 0: no rear speakers
@@ -351,6 +355,7 @@ xb_core core (
     .stick_x(joystick_l_analog_0[7:0]), .stick_y(joystick_l_analog_0[15:8]),
     .throttle(joystick_r_analog_0[15:8] ^ 8'h80), .stick_mode(stick_mode),
     .ana_curve(status[24:23]), .ana_range(status[26:25]),
+    .dpad_ramp(status[28]), .stick_recenter(~status[29]), .ana_cal(status[27]),
     .dsw_a(dsw_a), .dsw_b(dsw_b),
     .service(p1_btn[9]), .test(status[7] | p1_btn[8]),
     .coin1(p1_btn[7]), .coin2(1'b0),

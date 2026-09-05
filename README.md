@@ -79,7 +79,13 @@ digital alternative. The button list puts what you bind first at the front
 fire buttons on After Burner and Thunder Blade), Test and Service last. OSD options: Stick (D-pad by
 default, analog, or both), Analog response (Linear is the
 board's own mapping; Soft and Softer flatten the centre for thumbsticks
-while keeping full lock), Analog range (100/75/50%), Gun control for Line
+while keeping full lock), Analog range (100/75/50%), three After Burner
+stick options that all default to the cabinet's spring-centred feel (D-pad
+stick: Snap or Ramp, the ramp reaching full lock in 26 frames like MAME's
+keyboard stick; Stick re-centering: Off leaves the D-pad stick where you
+release it, and with Snap that gives left, centre, right; Analog zero
+calibration: On takes the stick's rest position when you turn it on, or at
+reset, as centre, for a thumbstick that drifts), Gun control for Line
 of Fire (lightgun or gamepad cursor, with per-player cursor speed and an
 optional crosshair), rear speakers for Super Monaco GP, and pause while
 the OSD is open. Options that do not apply to the loaded game are hidden
