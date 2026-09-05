@@ -304,7 +304,8 @@ sdram sdram (
 // the core encodes 0 analog, 1 d-pad, 2 both
 wire [1:0] stick_mode = (status[9:8] == 2'd0) ? 2'd1 : (status[9:8] == 2'd1) ? 2'd0 : 2'd2;
 
-// Pause: the mapped button (joystick bit 10) or the OSD open with the option set
+// Pause: the mapped button (joystick bit 10) toggles a latch on each press,
+// or the OSD open with the option set holds it. Reset clears the latch.
 // Button positions follow the MRA's list, which puts the buttons players bind
 // first at the front. Three layouts, chosen from the board descriptor:
 //   driving (wheel/pedal analog modes): Gas, Brake, A, B, Start, Coin, Pause, Test, Service
@@ -324,7 +325,13 @@ function automatic [15:0] map_buttons(input [15:0] j, input [1:0] lay);
 endfunction
 wire [15:0] p1_btn = map_buttons(joystick_0[15:0], btn_layout);
 wire [15:0] p2_btn = map_buttons(joystick_1[15:0], btn_layout);
-wire pause = p1_btn[10] | (status[10] & OSD_STATUS);
+reg  pause_btn_d, pause_latch;
+always @(posedge clk_sys) begin
+    pause_btn_d <= p1_btn[10];
+    if (reset) pause_latch <= 1'b0;
+    else if (p1_btn[10] && !pause_btn_d) pause_latch <= ~pause_latch;
+end
+wire pause = pause_latch | (status[10] & OSD_STATUS);
 
 //////////////////////////////   CORE   ///////////////////////////////////////
 wire  [7:0] r, g, b;
