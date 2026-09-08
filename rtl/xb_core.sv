@@ -476,9 +476,12 @@ wire [7:0] rh_x  = 8'h80 - ab_xs[14:7];
 wire [7:0] rh_dx = p1_buttons[0] ? 8'h20 : p1_buttons[1] ? 8'hE0 : 8'h80;
 wire [7:0] gas_f   = p1_buttons[11] ? 8'hFF : {thr_up[6:0], thr_up[7]};      // 0..0x80 -> 0..0xFF
 wire [7:0] brake_f = p1_buttons[12] ? 8'hFF : {thr_down[6:0], 1'b0};
-// GP Rider: steering full range 0x01..0xFF on ADC0, pedals 0x10..0xEF
-wire [7:0] gp_gas   = (gas_f   > 8'hDF) ? 8'hEF : 8'h10 + gas_f;
-wire [7:0] gp_brake = (brake_f > 8'hDF) ? 8'hEF : 8'h10 + brake_f;
+// GP Rider: steering full range 0x01..0xFF on ADC0, pedals 0x10..0xEF read
+// the other way up from the rest of the driving games (MAME PORT_REVERSE on
+// both pedals): released is 0xEF, floored is 0x10. Sending them the usual
+// way round made the bike brake on Gas and accelerate on Brake.
+wire [7:0] gp_gas   = (gas_f   > 8'hDF) ? 8'h10 : 8'hEF - gas_f;
+wire [7:0] gp_brake = (brake_f > 8'hDF) ? 8'h10 : 8'hEF - brake_f;
 wire [7:0] sel_x  = (am == 3'd4) ? fr_x  : (am == 3'd3) ? rh_x  : (am == 3'd2) ? dr_x  : (am == 3'd1) ? fr_x  : ab_x;
 wire [7:0] sel_dx = (am == 3'd4) ? fr_dx : (am == 3'd3) ? rh_dx : (am == 3'd2) ? dr_dx : (am == 3'd1) ? fr_dx : ab_dx;
 wire [7:0] sel_y  = (am == 3'd1) ? fr_y  : ab_y;

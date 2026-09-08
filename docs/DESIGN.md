@@ -628,7 +628,10 @@ timing). No timing-closure impact, `clk_sys` is unchanged.
   the main CPU is presented level 4 and the timer follows (descriptor flag,
   byte 1 bit 6).
 - Analog mode 4: steering full range, gas and brake 0x10..0xEF (MAME's
-  ranges); Shift Down/Up on the first two buttons. DIPs: Cabinet
+  ranges) and, unlike the other driving games, reversed: a released pedal
+  reads 0xEF and a floored one 0x10 (MAME `PORT_REVERSE` on both). The
+  first release sent them the usual way up, so Gas braked and Brake
+  accelerated; fixed 2026-09-06. Shift Down/Up on the first two buttons. DIPs: Cabinet
   (Upright/Ride On), ID No. (Main/Slave), Demo Sounds, Difficulty
   (default `FF,FE`). The analog mode field is now 3 bits.
 
