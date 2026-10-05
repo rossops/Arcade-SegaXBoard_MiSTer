@@ -133,6 +133,8 @@ localparam CONF_STR = {
     "H3O[29],Stick re-centering,On,Off;",
     "H2O[24:23],Analog response,Linear,Soft,Softer;",
     "H2O[26:25],Analog range,100%,75%,50%;",
+    "H2O[32],Invert stick Y,Off,On;",
+    "H2O[33],Invert throttle/pedals,Off,On;",
     "H3O[27],Analog zero calibration,Off,On;",
     "O[10],Pause when OSD open,Off,On;",
     "O[30],Dim video after 10s,On,Off;",
@@ -310,6 +312,15 @@ sdram sdram (
 // OSD order D-Pad, Analog, Analog+D-Pad (D-pad first: most players have one);
 // the core encodes 0 analog, 1 d-pad, 2 both
 wire [1:0] stick_mode = (status[9:8] == 2'd0) ? 2'd1 : (status[9:8] == 2'd1) ? 2'd0 : 2'd2;
+// OSD axis inversion (issue #9, for HOTAS throttles that can't be reversed
+// in the Main menu): flips the raw axis ahead of the core's shaping, -128
+// saturating to 127. Never for the gun game, whose sticks aim.
+function automatic [7:0] ana_neg(input [7:0] a);
+    ana_neg = (a == 8'h80) ? 8'h7F : (~a + 8'd1);
+endfunction
+wire       ana_inv_ok = board_desc.ana_mode != 3'd5;
+wire [7:0] stick_y_in = (status[32] && ana_inv_ok) ? ana_neg(joystick_l_analog_0[15:8]) : joystick_l_analog_0[15:8];
+wire [7:0] thr_in     = (status[33] && ana_inv_ok) ? ana_neg(joystick_r_analog_0[15:8]) : joystick_r_analog_0[15:8];
 
 // Pause: JimmyStones' pause module below. The mapped button (joystick bit
 // 10) toggles on each press, the OSD holds it when the option is set, and
@@ -393,8 +404,8 @@ xb_core core (
     .aim2_x(joystick_r_analog_1[7:0]), .aim2_y(joystick_r_analog_1[15:8]),
     .stick2_x(joystick_l_analog_1[7:0]), .stick2_y(joystick_l_analog_1[15:8]),
     .gun_mode(status[12]), .speed1(status[16:13]), .speed2(status[20:17]), .xhair_en(~status[21]),
-    .stick_x(joystick_l_analog_0[7:0]), .stick_y(joystick_l_analog_0[15:8]),
-    .throttle(joystick_r_analog_0[15:8] ^ 8'h80), .stick_mode(stick_mode),
+    .stick_x(joystick_l_analog_0[7:0]), .stick_y(stick_y_in),
+    .throttle(thr_in ^ 8'h80), .stick_mode(stick_mode),
     .ana_curve(status[24:23]), .ana_range(status[26:25]),
     .dpad_ramp(status[28]), .stick_recenter(~status[29]), .ana_cal(status[27]),
     .dsw_a(dsw_a), .dsw_b(dsw_b),

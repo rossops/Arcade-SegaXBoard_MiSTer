@@ -80,7 +80,9 @@ digital alternative. The button list puts what you bind first at the front
 fire buttons on After Burner and Thunder Blade), Test and Service last. OSD options: Stick (D-pad by
 default, analog, or both), Analog response (Linear is the
 board's own mapping; Soft and Softer flatten the centre for thumbsticks
-while keeping full lock), Analog range (100/75/50%), three After Burner
+while keeping full lock), Analog range (100/75/50%), Invert stick Y and
+Invert throttle/pedals (for a HOTAS throttle or pedal set that reads
+backwards and can't be reversed in the Main menu), three After Burner
 stick options that all default to the cabinet's spring-centred feel (D-pad
 stick: Snap or Ramp, the ramp reaching full lock in 26 frames like MAME's
 keyboard stick; Stick re-centering: Off leaves the D-pad stick where you

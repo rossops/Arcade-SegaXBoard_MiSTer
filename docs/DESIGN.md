@@ -515,6 +515,11 @@ twitchy around centre.
   deadzone.
 - OSD "Analog range": 100 / 75 / 50%, scales the magnitude after the curve
   for people who want less reach as well. Off (100%) by default.
+- OSD "Invert stick Y" / "Invert throttle/pedals" (O[32], O[33], issue #9):
+  negate the P1 left stick's Y or the right stick's Y in the top level,
+  before xb_stick and the shaper, with -128 saturating to 127. Asked for by
+  a HOTAS owner whose throttle reads upside down and can't be flipped in
+  the Main menu's mapping. Hidden and ignored for Line of Fire (mode 5).
 - `rtl/io/xb_ana_shape.sv`: three registered stages (magnitude, square,
   cube) and a combinational pick; one instance each for the P1 stick's X
   and Y and the throttle axis (the right stick's Y, which is also gas and
